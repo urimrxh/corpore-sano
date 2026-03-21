@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
+import "../style/home.css";
 
 function Home() {
   return (
     <section className="hero">
       <div className="container">
-        <h1>Online nutrition consultations made simple.</h1>
+        <h1 className="text-[#103152]">Online nutrition consultations made simple.</h1>
         <p>
           Corpore Sano helps you schedule free online meetings with our
           nutrition specialists in a simple and comfortable way.
