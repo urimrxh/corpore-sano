@@ -13,7 +13,7 @@ function App() {
     <BrowserRouter>
       <div className="app-shell">
         <Navbar />
-        <main className="main-content">
+        <main className="main-content w-[1400px] m-auto py-[24px] md:py-[32px]">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/book-meeting" element={<BookMeeting />} />

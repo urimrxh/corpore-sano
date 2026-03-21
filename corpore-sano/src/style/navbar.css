@@ -1,3 +1,72 @@
 .site-header{
     background-color: #fff;
 }
+
+.nav-links-item{
+    padding: 12px 24px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    color: #4d515c;
+    font-weight: 400;
+}
+
+.nav-links-item:hover{
+    background-color: #f0f0f0;
+}
+
+.navbar-burger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    color: #218c77;
+}
+
+.navbar-burger:hover {
+    background-color: #f0f0f0;
+}
+
+.navbar-burger-line {
+    display: block;
+    height: 2px;
+    width: 100%;
+    border-radius: 1px;
+    background-color: currentColor;
+}
+
+.nav-links-mobile {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 0;
+    border-top: 1px solid transparent;
+    transition: max-height 0.25s ease, border-color 0.25s ease;
+}
+
+.nav-links-mobile--open {
+    max-height: 280px;
+    border-top-color: #e8e8e8;
+}
+
+.nav-links-item--mobile {
+    padding: 14px 16px;
+    border-radius: 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.nav-links-item--mobile:last-child {
+    border-bottom: none;
+}
+
+@media (max-width: 767px){
+    .nav-links-item:not(.nav-links-item--mobile){
+        padding: 4px 8px;
+    }
+}
