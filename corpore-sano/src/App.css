@@ -1,8 +1,14 @@
 .container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding-left: 24px;
   padding-right: 24px;
+}
+.container-navbar {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 html,
@@ -35,14 +41,6 @@ body {
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-}
-
-.app-shell__hero-waves-host {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow-x: clip;
 }
 
 .main-content {

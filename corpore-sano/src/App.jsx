@@ -13,12 +13,7 @@ function App() {
     <BrowserRouter>
       <div className="app-shell">
         <Navbar />
-        <div
-          id="app-hero-waves-root"
-          className="app-shell__hero-waves-host"
-          aria-hidden="true"
-        />
-        <main className="main-content relative z-[2] container m-auto py-[24px] md:py-[32px]">
+        <main className="main-content relative w-full py-[24px] md:py-[32px]">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/book-meeting" element={<BookMeeting />} />

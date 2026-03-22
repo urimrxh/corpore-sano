@@ -1,10 +1,12 @@
 .hero {
   position: relative;
+  z-index: 1;
   isolation: isolate;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  width: 100%;
   overflow-x: clip;
 }
 
@@ -23,7 +25,7 @@
 
 .hero-waves {
   position: absolute;
-  top: 110px;
+  top: 30px;
   left: 0;
   right: 0;
   width: 100%;

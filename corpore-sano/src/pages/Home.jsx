@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../style/home.css";
 import BookMeeting from "../components/BookMeeting";
@@ -181,53 +180,44 @@ function HeroWavePaths({ reducedMotion }) {
 
 function Home() {
   const reducedMotion = usePrefersReducedMotion();
-  const [wavesHost, setWavesHost] = useState(null);
-
-  useLayoutEffect(() => {
-    setWavesHost(document.getElementById("app-hero-waves-root"));
-  }, []);
-
-  const heroWaves = (
-    <div className="hero-waves" aria-hidden="true">
-      <svg
-        className="hero-waves-svg"
-        viewBox={`0 0 ${WAVE_VB.w} ${WAVE_VB.h}`}
-        preserveAspectRatio="xMaxYMin slice"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          {WAVE_LAYERS.map((layer) => (
-            <linearGradient
-              key={layer.gradientId}
-              id={layer.gradientId}
-              gradientUnits="userSpaceOnUse"
-              x1="0"
-              y1="0"
-              x2={String(WAVE_VB.w)}
-              y2="0"
-            >
-              {layer.stops.map((stop, j) => (
-                <stop
-                  key={j}
-                  offset={stop.offset}
-                  stopColor={stop.color}
-                  stopOpacity={stop.opacity}
-                />
-              ))}
-            </linearGradient>
-          ))}
-        </defs>
-
-        <HeroWavePaths reducedMotion={reducedMotion} />
-      </svg>
-    </div>
-  );
 
   return (
     <>
-      {wavesHost ? createPortal(heroWaves, wavesHost) : null}
-
       <section className="hero">
+        <div className="hero-waves" aria-hidden="true">
+          <svg
+            className="hero-waves-svg"
+            viewBox={`0 0 ${WAVE_VB.w} ${WAVE_VB.h}`}
+            preserveAspectRatio="xMaxYMin slice"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              {WAVE_LAYERS.map((layer) => (
+                <linearGradient
+                  key={layer.gradientId}
+                  id={layer.gradientId}
+                  gradientUnits="userSpaceOnUse"
+                  x1="0"
+                  y1="0"
+                  x2={String(WAVE_VB.w)}
+                  y2="0"
+                >
+                  {layer.stops.map((stop, j) => (
+                    <stop
+                      key={j}
+                      offset={stop.offset}
+                      stopColor={stop.color}
+                      stopOpacity={stop.opacity}
+                    />
+                  ))}
+                </linearGradient>
+              ))}
+            </defs>
+
+            <HeroWavePaths reducedMotion={reducedMotion} />
+          </svg>
+        </div>
+
         <div className="container hero-inner">
           <h1 className="text-[#103152] text-[32px] md:text-[48px] font-semibold">
             Online nutrition consultations made simple.
