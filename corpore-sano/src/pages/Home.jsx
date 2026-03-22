@@ -3,12 +3,10 @@ import { Link } from "react-router-dom";
 import "../style/home.css";
 import BookMeeting from "../components/BookMeeting";
 
-/* Short viewBox + shallow fill: a tall strip + slice was cropping to the flat rectangle below the curves (read as a gradient bar). */
 const WAVE_VB = { w: 1600, h: 380 };
 const WAVE_BASE_Y = 368;
 const B = WAVE_BASE_Y;
 
-/** One-line paths; same command structure per layer (M + 3×C + 2×L + Z) for numeric morph. */
 const WAVE_LAYERS = [
   {
     className: "hero-wave hero-wave--back",

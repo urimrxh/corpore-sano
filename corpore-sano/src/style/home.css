@@ -20,18 +20,14 @@
   margin-top: 1.25rem;
 }
 
-/*
-  Full-viewport strip: escape centered main width + cancel main vertical padding so waves
-  align to the viewport top-right (not inset by main py or the 1400px column).
-*/
 .hero-waves {
   position: absolute;
-  top: calc(-1 * var(--main-content-py, 24px));
+  top: 0;
   left: 50%;
   margin-left: -50vw;
   width: 100vw;
   max-width: none;
-  height: clamp(200px, 30vh, 300px);
+  height: clamp(200px, 80vh, 400px);
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -73,7 +69,6 @@
     overflow: visible;
   }
   
-  /* Shape morph is driven by SVG <animate attributeName="d"> in Home.jsx */
   .hero-wave {
     transform-box: fill-box;
   }

@@ -1,10 +1,8 @@
-/* Corpore Sano greens — overrides react-day-picker defaults (blue / --rdp-today-color chain) */
 .rdp-root.schedule-day-picker {
   background-color: #fff;
   --rdp-accent-color: #3aa57d;
   --rdp-accent-background-color: #d9f2e3;
   --rdp-today-color: #218c77;
-  /* Larger day cells so bigger numerals fit */
   --rdp-day-height: 52px;
   --rdp-day-width: 52px;
   --rdp-day_button-height: 48px;

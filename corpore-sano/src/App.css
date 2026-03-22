@@ -35,7 +35,6 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* Matches Tailwind py-[24px] md:py-[32px] — used by home hero waves breakout */
   --main-content-py: 24px;
 }
 
