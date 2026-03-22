@@ -1,8 +1,14 @@
 .container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   padding-left: 24px;
   padding-right: 24px;
+}
+.container-navbar {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 html,
@@ -25,9 +31,16 @@ body {
   min-height: 0;
 }
 
-.app-shell > .site-header,
+.app-shell > .site-header {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
 .app-shell > .site-footer {
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .main-content {

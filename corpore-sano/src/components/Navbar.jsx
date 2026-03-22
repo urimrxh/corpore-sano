@@ -36,7 +36,7 @@ function Navbar() {
 
   return (
     <header className="site-header bg-white relative">
-      <div className="container nav flex items-center justify-between gap-3 m-auto py-[8px] md:py-[12px] px-[12px] md:px-0">
+      <div className="container-navbar nav flex items-center justify-between gap-3 m-auto py-[8px] md:py-[12px] px-[12px] md:px-0">
         {isMobileNav && (
           <div className="burger-menu-container flex items-center gap-1 sm:gap-2 min-w-0 shrink">
             <button
