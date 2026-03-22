@@ -90,22 +90,86 @@
     .schedule-date-time__date-time-wrapper {
       grid-template-columns: 1fr;
     }
-
+  
+    .schedule-date-time__date-calendar,
+    .schedule-date-time__time-picker {
+      min-width: 0;
+    }
+  
     .schedule-date-time__date-calendar {
       width: 100%;
       max-width: 100%;
-      justify-self: stretch;
       box-sizing: border-box;
+      padding: 16px;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-root {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      margin: 0 auto;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-months,
+    .schedule-date-time__date-calendar .rdp-month,
+    .schedule-date-time__date-calendar .rdp-month_grid {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-weekdays,
+    .schedule-date-time__date-calendar .rdp-week {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      width: 100%;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-weekday,
+    .schedule-date-time__date-calendar .rdp-day {
+      width: 100%;
+      min-width: 0;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
     }
-
-    .schedule-date-time__date-calendar .rdp-root {
+  
+    .schedule-date-time__date-calendar .rdp-day_button {
+      width: 40px;
+      height: 40px;
       max-width: 100%;
+      padding: 0;
+      font-size: 0.95rem;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-weekday {
+      font-size: 0.85rem;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-caption_label {
+      font-size: 1.25rem;
     }
   
     .time-slots__grid {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .schedule-date-time__date-calendar {
+      padding: 12px;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-day_button {
+      width: 36px;
+      height: 36px;
+      font-size: 0.9rem;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-weekday {
+      font-size: 0.78rem;
+    }
+  
+    .schedule-date-time__date-calendar .rdp-caption_label {
+      font-size: 1.1rem;
     }
   }
