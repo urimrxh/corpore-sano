@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../style/home.css";
+import BookMeeting from "../components/BookMeeting";
 
 /* Short viewBox + shallow fill: a tall strip + slice was cropping to the flat rectangle below the curves (read as a gradient bar). */
 const WAVE_VB = { w: 1600, h: 380 };
@@ -227,6 +228,8 @@ function Home() {
           Corpore Sano helps you schedule free online meetings with our
           nutrition specialists in a simple and comfortable way.
         </p>
+
+        <BookMeeting />
 
         <div className="hero-actions">
           <Link to="/book-meeting" className="btn btn-primary">
