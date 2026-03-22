@@ -25,9 +25,24 @@ body {
   min-height: 0;
 }
 
-.app-shell > .site-header,
+.app-shell > .site-header {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
 .app-shell > .site-footer {
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.app-shell__hero-waves-host {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow-x: clip;
 }
 
 .main-content {
