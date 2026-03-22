@@ -1,0 +1,111 @@
+.page-section {
+    padding: 10px 0;
+  }
+  
+  .schedule-date-time {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .schedule-date-time__title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #103152;
+    margin-bottom: 24px;
+  }
+  
+  .schedule-date-time__date-time-wrapper {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  
+  .schedule-date-time__date-calendar {
+    width: fit-content;
+    max-width: 100%;
+    background: #fff;
+    border: 1px solid #e1e5ec;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(16, 49, 82, 0.04), 0 6px 20px rgba(16, 49, 82, 0.06);
+  }
+
+  .schedule-date-time__time-picker {
+    background: #f5f7fa;
+    border: 1px solid #d9e1ea;
+    border-radius: 16px;
+    padding: 24px;
+    min-width: 0;
+  }
+  
+  .time-slots__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #103152;
+    margin-bottom: 20px;
+  }
+  
+  .time-slots__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 14px;
+  }
+  
+  .time-slot-btn {
+    height: 52px;
+    border: 1px solid #d2dae5;
+    border-radius: 12px;
+    background: #fff;
+    color: #103152;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+  
+  .time-slot-btn:hover {
+    border-color: #103152;
+  }
+  
+  .time-slot-btn.is-selected {
+    background: #d9f2e3;
+    border-color: #7bc49c;
+  }
+  
+  .time-slot-btn.is-busy {
+    background: #b9c3d1;
+    color: #fff;
+    border-color: #b9c3d1;
+    cursor: not-allowed;
+  }
+  
+  .time-slots__empty {
+    color: #6b7280;
+    margin: 0;
+  }
+  
+  @media (max-width: 900px) {
+    .schedule-date-time__date-time-wrapper {
+      grid-template-columns: 1fr;
+    }
+
+    .schedule-date-time__date-calendar {
+      width: 100%;
+      max-width: 100%;
+      justify-self: stretch;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .schedule-date-time__date-calendar .rdp-root {
+      max-width: 100%;
+    }
+  
+    .time-slots__grid {
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+  }
