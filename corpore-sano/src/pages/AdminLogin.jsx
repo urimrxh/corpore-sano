@@ -72,7 +72,7 @@ function AdminLogin() {
   return (
     <section className="page-section">
       <div className="container admin-page">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <h1 className="mb-0 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
             Site content
           </h1>
@@ -84,11 +84,6 @@ function AdminLogin() {
             Sign out
           </button>
         </div>
-        <p className="mb-6 text-[15px] text-[#4d515c] dark:text-[#b8c4d0]">
-          Edit text and image URLs. Saves go to this browser (
-          <code className="rounded bg-[#f5f8fa] dark:bg-[#1e2835] dark:text-[#e8ecf1] px-1">localStorage</code>
-          ) and to Supabase when the sync succeeds. Save after changes.
-        </p>
         {remoteLoadError && (
           <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
             Could not load site from Supabase: {remoteLoadError}. Using saved

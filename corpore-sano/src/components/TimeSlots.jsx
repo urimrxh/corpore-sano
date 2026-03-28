@@ -21,15 +21,16 @@ function TimeSlots({
         <div className="time-slots__grid">
           {slots.map((slot) => {
             const isBusy = slot.status === "busy";
+            const isPast = slot.status === "past";
             const isSelected = selectedTime === slot.time;
 
             return (
               <button
                 key={slot.time}
                 type="button"
-                className={`time-slot-btn ${isBusy ? "is-busy" : ""} ${isSelected ? "is-selected" : ""}`}
+                className={`time-slot-btn ${isBusy ? "is-busy" : ""} ${isPast ? "is-past" : ""} ${isSelected ? "is-selected" : ""}`}
                 onClick={() => onTimeSelect(slot.time, slot.status)}
-                disabled={isBusy}
+                disabled={isBusy || isPast}
               >
                 {formatTime12h(slot.time)}
               </button>

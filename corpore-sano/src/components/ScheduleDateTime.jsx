@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import CalendarPicker from "./CalendarPicker";
 import TimeSlots from "./TimeSlots";
 import "../style/scheduleDateTime.css";
+import { BOOKING_PENDING_HOLD_MINUTES } from "../lib/bookingConstants";
 import { formatDateKey } from "../lib/timeSlots";
 import {
   buildSlotsForDate,
   createBooking,
   fetchBusyTimeSlots,
 } from "../lib/bookingsApi";
-import { requestCalendarSync } from "../lib/calendarSync";
+import { requestBookingVerificationEmail } from "../lib/bookingVerification";
 
 function ScheduleDateTime({
   fullName,
@@ -37,13 +38,15 @@ function ScheduleDateTime({
       }
       const busy = await fetchBusyTimeSlots(selectedDateKey, gender);
       if (cancelled) return;
-      setSlots(buildSlotsForDate(selectedDateKey, gender, busy));
+      setSlots(
+        buildSlotsForDate(selectedDateKey, gender, busy, selectedDate),
+      );
     }
     loadSlots();
     return () => {
       cancelled = true;
     };
-  }, [selectedDateKey, gender]);
+  }, [selectedDateKey, gender, selectedDate]);
 
   const handleDateSelect = (date) => {
     if (!date) return;
@@ -52,7 +55,7 @@ function ScheduleDateTime({
   };
 
   const handleTimeSelect = (time, status) => {
-    if (status === "busy") return;
+    if (status === "busy" || status === "past") return;
     setSelectedTime(time);
   };
 
@@ -96,13 +99,49 @@ function ScheduleDateTime({
     }
 
     if (data?.id) {
-      await requestCalendarSync({ bookingId: data.id });
+      const ver = await requestBookingVerificationEmail({
+        bookingId: data.id,
+      });
+      if (ver.skipped) {
+        setBookingMessage(
+          "Thanks — your booking was saved. Verification could not be started (no browser URL). If you’re developing locally, set VITE_SEND_BOOKING_VERIFICATION_URL to your live function URL or run netlify dev.",
+        );
+      } else if (!ver.ok) {
+        const st = ver.status;
+        if (st === 401) {
+          setBookingError(
+            "Could not reach the verification service (unauthorized). If Netlify has BOOKING_FUNCTION_SECRET set, add the same value as VITE_BOOKING_FUNCTION_SECRET and redeploy — or remove that secret from Netlify and the site.",
+          );
+        } else if (st === 502) {
+          setBookingError(
+            "Your booking was saved, but sending the email failed (check Resend API key and RESEND_FROM). Please contact us to confirm your slot.",
+          );
+        } else {
+          setBookingError(
+            `Your booking was saved, but we could not send the verification email${st ? ` (${st})` : ""}. Please contact us.`,
+          );
+        }
+      } else {
+        const payload = ver.data && typeof ver.data === "object" ? ver.data : {};
+        if (payload.autoVerified) {
+          setBookingMessage(
+            "You’re booked. Your appointment is confirmed (email provider not configured on the server, so we confirmed it automatically).",
+          );
+        } else if (payload.emailSent) {
+          setBookingMessage(
+            "Check your email to verify your appointment. Your time is reserved for you until you confirm (or we follow up manually).",
+          );
+        } else if (payload.alreadyVerified) {
+          setBookingMessage("This appointment is already verified.");
+        } else {
+          setBookingMessage(
+            `Check your email for a link to verify your appointment. You have ${BOOKING_PENDING_HOLD_MINUTES} minutes to confirm, or this booking will be cancelled.`,
+          );
+        }
+      }
     }
 
     setBookingBusy(false);
-    setBookingMessage(
-      "You’re booked. You’ll receive a confirmation by email shortly.",
-    );
     setSelectedTime("");
   }
 

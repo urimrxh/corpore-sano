@@ -90,6 +90,15 @@ function AdminSignIn() {
           </button>
         </form>
 
+        <p className="mt-4 text-center text-sm">
+          <Link
+            to="/admin/forgot-password"
+            className="text-[#218c77] underline dark:text-[#4dc89f]"
+          >
+            Forgot password?
+          </Link>
+        </p>
+
         <p className="mt-8 text-center text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           <Link to="/" className="text-[#218c77] underline dark:text-[#4dc89f]">
             ← Back to site

@@ -3,8 +3,14 @@ import "react-day-picker/style.css";
 import "../style/calendarPicker.css";
 import { formatDateKey } from "../lib/timeSlots";
 
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 function CalendarPicker({ selectedDate, onDateSelect, availableDates }) {
-  const today = new Date();
+  const todayStart = startOfToday();
 
   const restrictDates =
     Array.isArray(availableDates) && availableDates.length > 0;
@@ -18,10 +24,10 @@ function CalendarPicker({ selectedDate, onDateSelect, availableDates }) {
       disabled={
         restrictDates
           ? [
-              { before: today },
+              { before: todayStart },
               (date) => !availableDates.includes(formatDateKey(date)),
             ]
-          : [{ before: today }]
+          : [{ before: todayStart }]
       }
     />
   );

@@ -68,6 +68,15 @@ export const handler = async (request) => {
     };
   }
 
+  if (!booking.verified_at) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        error: "Booking is not verified yet; calendar sync runs after email confirmation.",
+      }),
+    };
+  }
+
   const calendarId = booking.gender === "male" ? calMale : calFemale;
 
   let credentials;
