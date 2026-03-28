@@ -1,0 +1,2 @@
+# SPA: serve index.html for all routes so React Router can handle /admin, /contact, etc.
+/*    /index.html   200

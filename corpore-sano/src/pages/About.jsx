@@ -27,6 +27,7 @@ function About() {
           title={section.title}
           body={section.body}
           imageLeft={section.imageLeft}
+          textPanelTheme={section.textPanelTheme}
         />
       ))}
     </>

@@ -49,7 +49,9 @@
 .admin-field input[type="text"],
 .admin-field input[type="url"],
 .admin-field input[type="email"],
-.admin-field textarea {
+.admin-field input[type="password"],
+.admin-field textarea,
+.admin-field select {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -61,10 +63,16 @@
   color: #103152;
 }
 
+.admin-field select {
+  cursor: pointer;
+}
+
 .admin-field input[type="text"]:focus,
 .admin-field input[type="url"]:focus,
 .admin-field input[type="email"]:focus,
-.admin-field textarea:focus {
+.admin-field input[type="password"]:focus,
+.admin-field textarea:focus,
+.admin-field select:focus {
   outline: none;
   border-color: #3aa57d;
   box-shadow: 0 0 0 1px #3aa57d;
@@ -85,6 +93,35 @@
   width: auto;
 }
 
+.admin-about-text-panel-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+.admin-about-text-panel-select {
+  flex: 1;
+  min-width: 0;
+  width: auto !important;
+  max-width: 100%;
+}
+
+.admin-about-swatch {
+  flex-shrink: 0;
+  width: 2.5rem;
+  align-self: stretch;
+  min-height: 2.5rem;
+  border-radius: 8px;
+  border: 1px solid #d2dae5;
+  box-shadow: inset 0 0 0 1px rgba(16, 49, 82, 0.06);
+}
+
+.dark .admin-about-swatch {
+  border-color: #3d4a5c;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
 .admin-actions {
   display: flex;
   flex-wrap: wrap;
@@ -103,13 +140,26 @@
   border: none;
 }
 
-.admin-actions .admin-btn-primary {
+/* Primary CTA — admin save, sign-in, anywhere outside .admin-actions */
+.admin-btn-primary {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
   background: #3aa57d;
   color: #fff;
+  transition: background 0.15s ease;
 }
 
-.admin-actions .admin-btn-primary:hover {
+.admin-btn-primary:hover:not(:disabled) {
   background: #318f6c;
+}
+
+.admin-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .admin-actions .admin-btn-danger {
@@ -172,7 +222,9 @@
 .dark .admin-field input[type="text"],
 .dark .admin-field input[type="url"],
 .dark .admin-field input[type="email"],
-.dark .admin-field textarea {
+.dark .admin-field input[type="password"],
+.dark .admin-field textarea,
+.dark .admin-field select {
   border-color: #2a3441;
   background: #161d27;
   color: #e8ecf1;

@@ -39,6 +39,8 @@ export const defaultSiteContent = {
       {
         id: "about-section-1",
         imageLeft: true,
+        /** grey | green-teal | green-mint | white | navy | black */
+        textPanelTheme: "grey",
         image:
           "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1600&q=80",
         imageAlt: "Healthy meal and nutrition consultation",
@@ -48,6 +50,7 @@ export const defaultSiteContent = {
       {
         id: "about-section-2",
         imageLeft: false,
+        textPanelTheme: "grey",
         image:
           "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=80",
         imageAlt: "Wellness and balanced lifestyle",

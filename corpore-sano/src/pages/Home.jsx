@@ -2,7 +2,7 @@ import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useSiteContent } from "../context/SiteContentContext";
 import "../style/home.css";
-import BookMeeting from "../components/BookMeeting";
+import BookingScheduler from "../components/BookMeeting";
 import HeroWaves from "../components/HeroWaves";
 import VideosSection from "../components/VideoSection";
 
@@ -38,7 +38,7 @@ function Home() {
             <p className="hero-banner-description text-[#4d515c] dark:text-[#b8c4d0]">{heroDescription}</p>
           </div>
 
-          <BookMeeting />
+          <BookingScheduler />
           <VideosSection />
         </div>
       </section>
