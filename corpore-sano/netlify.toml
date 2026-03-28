@@ -5,3 +5,5 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Supabase anon keys are public (browser) by design; Vite embeds them → omit from Netlify secrets scan.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY,VITE_SUPABASE_ANON_KEY"
