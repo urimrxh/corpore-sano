@@ -18,9 +18,9 @@ function AdminSignIn() {
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
             Supabase is not configured. Add{" "}
-            <code className="text-sm">VITE_SUPABASE_URL</code> and{" "}
-            <code className="text-sm">VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY</code>{" "}
-            to your env file.
+            <code className="text-sm">VITE_SUPABASE_URL</code> and an anon key
+            (<code className="text-sm">VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY</code> or{" "}
+            <code className="text-sm">VITE_SUPABASE_ANON_KEY</code>) to your env file.
           </p>
         </div>
       </section>

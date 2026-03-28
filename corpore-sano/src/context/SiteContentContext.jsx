@@ -101,11 +101,7 @@ function isPayloadEmpty(p) {
 }
 
 function canUseSupabase() {
-  return Boolean(
-    import.meta.env.VITE_SUPABASE_URL &&
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY &&
-      supabase,
-  );
+  return Boolean(supabase);
 }
 
 export function SiteContentProvider({ children }) {
