@@ -11,3 +11,21 @@
     border: 1px solid #3aa57d;
     transition: all 0.3s ease;
 }
+
+textarea.schedule-inputs__textarea {
+  min-height: 140px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.dark .schedule-inputs {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.dark .schedule-inputs__input:focus-visible {
+  background-color: #1e2835;
+  border-color: #3aa57d;
+}

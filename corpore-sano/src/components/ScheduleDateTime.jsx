@@ -54,7 +54,7 @@ function ScheduleDateTime() {
   };
 
   return (
-    <section className="page-section">
+    <section className="page-section" id="schedule-datetime">
       <div className="schedule-date-time">
         <p className="schedule-date-time__title">Select a Date & Time</p>
 
@@ -66,7 +66,7 @@ function ScheduleDateTime() {
               availableDates={availableDates}
             />
           </div>
-
+          <div className="schedule-date-time__book-appointment flex flex-col h-full">
           <div className="schedule-date-time__time-picker">
             <TimeSlots
               selectedDate={selectedDate}
@@ -74,6 +74,10 @@ function ScheduleDateTime() {
               selectedTime={selectedTime}
               onTimeSelect={handleTimeSelect}
             />
+          </div>
+          <div className="schedule-date-time__book-appointment-btn my-[30px] mx-auto md:m-auto">
+            <button className="schedule-date-time__book-btn py-[14px] px-[32px] md:py-[16px] md:px-[120px] text-sm md:text-[18px] font-semibold rounded-md bg-[#3aa57d] text-white hover:bg-[#3aa57d]/80 transition-all duration-300 whitespace-nowrap hover:cursor-pointer mx-auto my-[02px] md:my-[20px]">Book Meeting</button>
+          </div>
           </div>
         </div>
       </div>

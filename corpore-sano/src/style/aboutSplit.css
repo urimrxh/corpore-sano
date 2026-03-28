@@ -1,0 +1,81 @@
+/* Full-width 50/50 image + dark text panel (reference: alternating columns) */
+.about-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+  min-height: min(52vw, 520px);
+  overflow: hidden;
+}
+
+.about-split__media {
+  position: relative;
+  min-height: 220px;
+}
+
+.about-split__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.about-split__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 3rem);
+  background-color: #454d55;
+  color: #fff;
+  text-align: center;
+}
+
+.about-split__heading {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.about-split__body {
+  margin: 0;
+  max-width: 38rem;
+  font-size: clamp(0.8rem, 1.35vw, 0.95rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.65;
+  opacity: 0.95;
+}
+
+@media (min-width: 768px) {
+  .about-split {
+    grid-template-columns: 1fr 1fr;
+    min-height: min(42vw, 560px);
+  }
+
+  .about-split__media {
+    min-height: 0;
+  }
+
+  /* Image right, text left: swap columns with RTL */
+  .about-split--image-right {
+    direction: rtl;
+  }
+
+  .about-split--image-right > .about-split__media,
+  .about-split--image-right > .about-split__text {
+    direction: ltr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-split__media img {
+    transition: none;
+  }
+}
