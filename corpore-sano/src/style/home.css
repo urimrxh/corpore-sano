@@ -15,6 +15,16 @@
   z-index: 1;
 }
 
+#book-consultation {
+  scroll-margin-top: calc(var(--site-header-height, 64px) + 12px);
+}
+
+@media (max-width: 576px){
+  .hero-banner-title, .hero-banner-description{
+    text-align: center;
+  }
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;

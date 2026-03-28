@@ -17,3 +17,24 @@
 .rdp-root.schedule-day-picker .rdp-selected {
   font-size: 1.25rem;
 }
+
+.dark .rdp-root.schedule-day-picker {
+  background-color: #161d27;
+  color: #e8ecf1;
+  --rdp-accent-color: #3aa57d;
+  --rdp-accent-background-color: rgba(58, 165, 125, 0.28);
+  --rdp-today-color: #5dcc9f;
+}
+
+.dark .rdp-root.schedule-day-picker .rdp-weekday,
+.dark .rdp-root.schedule-day-picker .rdp-caption_label {
+  color: #b8c4d0;
+}
+
+.dark .rdp-root.schedule-day-picker .rdp-day_button {
+  color: #e8ecf1;
+}
+
+.dark .rdp-root.schedule-day-picker .rdp-outside {
+  opacity: 0.45;
+}
