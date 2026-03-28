@@ -10,6 +10,8 @@ import Contact from "./pages/Contact";
 import AdminGate from "./components/AdminGate";
 import AdminLogin from "./pages/AdminLogin";
 import AdminSignIn from "./pages/AdminSignIn";
+import AdminForgotPassword from "./pages/AdminForgotPassword";
+import AdminResetPassword from "./pages/AdminResetPassword";
 import Videos from "./pages/Videos";
 import "./App.css";
 
@@ -28,6 +30,8 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/videos" element={<Videos />} />
             <Route path="/admin/sign-in" element={<AdminSignIn />} />
+            <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+            <Route path="/admin/reset-password" element={<AdminResetPassword />} />
             <Route
               path="/admin"
               element={

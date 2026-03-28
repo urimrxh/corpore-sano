@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 import BookConsultationLink from "./BookConsultationLink";
 import "../style/navbar.css";
 import logo from "../assets/logo.png";
@@ -29,6 +30,7 @@ function useIsMobileNav() {
 function Navbar() {
   const { content } = useSiteContent();
   const { theme, toggleTheme } = useTheme();
+  const { session } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
   const location = useLocation();
@@ -96,6 +98,9 @@ function Navbar() {
 
   function isNavActive(to) {
     if (to === "/") return pathname === "/";
+    if (to === "/admin") {
+      return pathname === "/admin" || pathname === "/admin-login";
+    }
     return pathname === to;
   }
 
@@ -162,6 +167,15 @@ function Navbar() {
           >
             About
           </Link>
+          {session && (
+            <Link
+              to="/admin"
+              className={navLinkClass("/admin")}
+              aria-current={isNavActive("/admin") ? "page" : undefined}
+            >
+              Admin
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -212,6 +226,15 @@ function Navbar() {
           >
             About
           </Link>
+          {session && (
+            <Link
+              to="/admin"
+              className={`${navLinkClass("/admin")} nav-links-item--mobile`}
+              aria-current={isNavActive("/admin") ? "page" : undefined}
+            >
+              Admin
+            </Link>
+          )}
         </nav>
       )}
     </header>

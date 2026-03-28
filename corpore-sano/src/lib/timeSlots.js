@@ -38,3 +38,9 @@ export function slotToLocalDateRange(bookingDate, timeSlot) {
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   return { start, end };
 }
+
+/** True if the slot start is before now (same calendar day or earlier). */
+export function isSlotStartInPast(bookingDate, timeSlotHHMM) {
+  const { start } = slotToLocalDateRange(bookingDate, timeSlotHHMM);
+  return start.getTime() < Date.now();
+}

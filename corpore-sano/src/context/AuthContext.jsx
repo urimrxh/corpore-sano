@@ -46,6 +46,21 @@ export function AuthProvider({ children }) {
     return supabase.auth.signOut();
   }, []);
 
+  const requestPasswordReset = useCallback(async (email) => {
+    if (!supabase) {
+      return { error: new Error("Supabase is not configured") };
+    }
+    const redirectTo = `${window.location.origin}/admin/reset-password`;
+    return supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword) => {
+    if (!supabase) {
+      return { error: new Error("Supabase is not configured") };
+    }
+    return supabase.auth.updateUser({ password: newPassword });
+  }, []);
+
   const value = useMemo(
     () => ({
       session,
@@ -53,9 +68,11 @@ export function AuthProvider({ children }) {
       loading,
       signIn,
       signOut,
+      requestPasswordReset,
+      updatePassword,
       authReady: Boolean(supabase),
     }),
-    [session, loading, signIn, signOut],
+    [session, loading, signIn, signOut, requestPasswordReset, updatePassword],
   );
 
   return (
