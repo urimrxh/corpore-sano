@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSiteContent } from "../context/SiteContentContext";
+import { useAuth } from "../context/AuthContext";
+import AdminBookingsTab from "../components/AdminBookingsTab";
 import "../style/admin.css";
 
 const TABS = [
@@ -11,14 +13,38 @@ const TABS = [
   { id: "videosPage", label: "Videos page" },
   { id: "footer", label: "Footer" },
   { id: "pages", label: "Other pages" },
+  { id: "bookings", label: "Bookings" },
 ];
+
+const ABOUT_TEXT_PANEL_OPTIONS = [
+  { value: "grey", label: "Grey (#454d55) — default", swatch: "#454d55" },
+  { value: "green-teal", label: "Green teal (#218c77)", swatch: "#218c77" },
+  { value: "green-mint", label: "Green mint (#3aa57d)", swatch: "#3aa57d" },
+  { value: "white", label: "White (#ffffff)", swatch: "#ffffff" },
+  { value: "navy", label: "Navy (#103152)", swatch: "#103152" },
+  { value: "black", label: "Black (#0d1218)", swatch: "#0d1218" },
+];
+
+function aboutPanelSwatchHex(theme) {
+  const key = theme ?? "grey";
+  return (
+    ABOUT_TEXT_PANEL_OPTIONS.find((o) => o.value === key)?.swatch ?? "#454d55"
+  );
+}
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
 function AdminLogin() {
-  const { content, replaceContent, resetToDefaults } = useSiteContent();
+  const { signOut } = useAuth();
+  const {
+    content,
+    replaceContent,
+    resetToDefaults,
+    lastRemoteSaveError,
+    remoteLoadError,
+  } = useSiteContent();
   const [tab, setTab] = useState("global");
   const [draft, setDraft] = useState(() => clone(content));
   const [savedFlash, setSavedFlash] = useState(false);
@@ -46,14 +72,29 @@ function AdminLogin() {
   return (
     <section className="page-section">
       <div className="container admin-page">
-        <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
-          Site content
-        </h1>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <h1 className="mb-0 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
+            Site content
+          </h1>
+          <button
+            type="button"
+            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
+            onClick={() => signOut()}
+          >
+            Sign out
+          </button>
+        </div>
         <p className="mb-6 text-[15px] text-[#4d515c] dark:text-[#b8c4d0]">
-          Edit text and image URLs. Data is stored in this browser (
+          Edit text and image URLs. Saves go to this browser (
           <code className="rounded bg-[#f5f8fa] dark:bg-[#1e2835] dark:text-[#e8ecf1] px-1">localStorage</code>
-          ) until you connect a backend. Save after changes.
+          ) and to Supabase when the sync succeeds. Save after changes.
         </p>
+        {remoteLoadError && (
+          <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
+            Could not load site from Supabase: {remoteLoadError}. Using saved
+            browser data or defaults.
+          </p>
+        )}
 
         <div className="admin-tabs" role="tablist">
           {TABS.map((t) => (
@@ -274,6 +315,10 @@ function AdminLogin() {
             <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
               Sections (alternating layout is automatic)
             </h3>
+            <p className="admin-hint mb-4">
+              Each section has its own text-column background; colors adjust for
+              readable contrast.
+            </p>
             {draft.about.sections.map((sec, index) => (
               <div key={sec.id} className="admin-card">
                 <h3>Section {index + 1}</h3>
@@ -297,6 +342,46 @@ function AdminLogin() {
                     }
                   />
                   <label htmlFor={`a-il-${sec.id}`}>Image on the left</label>
+                </div>
+                <div className="admin-field">
+                  <label htmlFor={`a-tp-${sec.id}`}>
+                    Text column background (this section only)
+                  </label>
+                  <div className="admin-about-text-panel-row">
+                    <select
+                      id={`a-tp-${sec.id}`}
+                      className="admin-about-text-panel-select"
+                      value={sec.textPanelTheme ?? "grey"}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          about: {
+                            ...d.about,
+                            sections: d.about.sections.map((s, i) =>
+                              i === index
+                                ? { ...s, textPanelTheme: e.target.value }
+                                : s,
+                            ),
+                          },
+                        }))
+                      }
+                    >
+                      {ABOUT_TEXT_PANEL_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      className="admin-about-swatch"
+                      style={{
+                        backgroundColor: aboutPanelSwatchHex(sec.textPanelTheme),
+                      }}
+                      title={aboutPanelSwatchHex(sec.textPanelTheme)}
+                      role="presentation"
+                      aria-hidden
+                    />
+                  </div>
                 </div>
                 <div className="admin-field">
                   <label>Image URL</label>
@@ -401,6 +486,7 @@ function AdminLogin() {
                       {
                         id: `about-${Date.now()}`,
                         imageLeft: d.about.sections.length % 2 === 0,
+                        textPanelTheme: "grey",
                         image: "",
                         imageAlt: "",
                         title: "",
@@ -761,6 +847,17 @@ function AdminLogin() {
           </div>
         )}
 
+        {tab === "bookings" && (
+          <div>
+            <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+              Consultation requests from the home page booking flow. Male
+              bookings use the male specialist calendar; female use the female
+              calendar when Google sync is configured.
+            </p>
+            <AdminBookingsTab />
+          </div>
+        )}
+
         <div className="admin-actions">
           <button type="button" className="admin-btn-primary" onClick={save}>
             Save changes
@@ -769,7 +866,14 @@ function AdminLogin() {
             Reset to defaults
           </button>
           {savedFlash && (
-            <span className="text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f]">Saved.</span>
+            <span className="text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f]">Saved locally.</span>
+          )}
+          {lastRemoteSaveError && (
+            <span className="max-w-xl text-sm text-[#b91c1c] dark:text-[#fca5a5]">
+              Supabase sync failed: {lastRemoteSaveError}. Check that you are
+              signed in (writes require authentication) and that RLS policies
+              allow updates.
+            </span>
           )}
         </div>
       </div>

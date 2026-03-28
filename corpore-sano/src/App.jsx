@@ -7,7 +7,9 @@ import BookMeeting from "./pages/BookMeeting";
 import Nutritionists from "./pages/Nutritionists";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import AdminGate from "./components/AdminGate";
 import AdminLogin from "./pages/AdminLogin";
+import AdminSignIn from "./pages/AdminSignIn";
 import Videos from "./pages/Videos";
 import "./App.css";
 
@@ -25,8 +27,23 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/videos" element={<Videos />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admin/sign-in" element={<AdminSignIn />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminGate>
+                  <AdminLogin />
+                </AdminGate>
+              }
+            />
+            <Route
+              path="/admin-login"
+              element={
+                <AdminGate>
+                  <AdminLogin />
+                </AdminGate>
+              }
+            />
           </Routes>
         </main>
         <Footer />

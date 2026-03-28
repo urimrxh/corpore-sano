@@ -1,7 +1,20 @@
 import "../style/aboutSplit.css";
 
-function AboutSplitSection({ id, image, imageAlt, title, body, imageLeft }) {
+const VALID_TEXT_PANEL_THEMES = new Set([
+  "grey",
+  "green-teal",
+  "green-mint",
+  "white",
+  "navy",
+  "black",
+]);
+
+function AboutSplitSection({ id, image, imageAlt, title, body, imageLeft, textPanelTheme }) {
   const headingId = `${id}-heading`;
+  const panel =
+    textPanelTheme && VALID_TEXT_PANEL_THEMES.has(textPanelTheme)
+      ? textPanelTheme
+      : "grey";
 
   return (
     <section
@@ -11,7 +24,7 @@ function AboutSplitSection({ id, image, imageAlt, title, body, imageLeft }) {
       <div className="about-split__media">
         <img src={image} alt={imageAlt || ""} loading="lazy" decoding="async" />
       </div>
-      <div className="about-split__text">
+      <div className={`about-split__text about-split__text--${panel}`}>
         <h2 id={headingId} className="about-split__heading">
           {title}
         </h2>
