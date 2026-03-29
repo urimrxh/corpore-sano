@@ -9,6 +9,9 @@ import {
 
 const BOOKINGS_TABLE = "bookings";
 
+/** Same window as RLS policy `004_bookings_rls_insert_and_delete.sql` (one booking per email per 24h). */
+const RECENT_BOOKING_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Returns Set of "HH:MM" times already taken for this calendar line (gender + date).
  * Verified bookings always count. Unverified rows only count until they pass the
@@ -48,6 +51,30 @@ export async function fetchBusyTimeSlots(bookingDateKey, gender) {
   }
 
   return busy;
+}
+
+/**
+ * True if this email already has a booking row created in the last 24 hours (case-insensitive).
+ */
+export async function hasRecentBookingForEmail(email) {
+  if (!supabase || !email?.trim()) {
+    return false;
+  }
+
+  const cutoff = new Date(Date.now() - RECENT_BOOKING_WINDOW_MS).toISOString();
+  const { data, error } = await supabase
+    .from(BOOKINGS_TABLE)
+    .select("id")
+    .ilike("email", email.trim())
+    .gte("created_at", cutoff)
+    .limit(1);
+
+  if (error) {
+    console.warn("hasRecentBookingForEmail:", error.message);
+    return false;
+  }
+
+  return Boolean(data?.length);
 }
 
 export function buildSlotsForDate(
@@ -109,6 +136,17 @@ export async function createBooking({
     };
   }
 
+  const recent = await hasRecentBookingForEmail(email);
+  if (recent) {
+    return {
+      data: null,
+      error: new Error(
+        "You've already had a meeting in the last 24 hours.",
+      ),
+      code: "RECENT_BOOKING",
+    };
+  }
+
   const { start, end } = slotToLocalDateRange(dateObj, timeSlot);
 
   const row = {
@@ -130,6 +168,19 @@ export async function createBooking({
     .single();
 
   if (error) {
+    const msg = error.message || "";
+    const rlsBlock =
+      msg.includes("row-level security") ||
+      msg.includes("violates row-level security");
+    if (rlsBlock && msg.toLowerCase().includes("bookings")) {
+      return {
+        data: null,
+        error: new Error(
+          "You've already had a meeting in the last 24 hours.",
+        ),
+        code: "RECENT_BOOKING",
+      };
+    }
     return {
       data: null,
       error: new Error(error.message),
@@ -138,6 +189,26 @@ export async function createBooking({
   }
 
   return { data, error: null, code: null };
+}
+
+/**
+ * Admin: delete a booking (requires authenticated session + RLS DELETE policy).
+ */
+export async function deleteBookingAsAdmin(bookingId) {
+  if (!supabase) {
+    return { error: new Error("Supabase is not configured") };
+  }
+
+  const { error } = await supabase
+    .from(BOOKINGS_TABLE)
+    .delete()
+    .eq("id", bookingId);
+
+  if (error) {
+    return { error: new Error(error.message) };
+  }
+
+  return { error: null };
 }
 
 /**
