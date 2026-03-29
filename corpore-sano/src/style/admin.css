@@ -194,6 +194,17 @@
   margin-top: 0.25rem;
 }
 
+.admin-bookings-section__title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #103152;
+}
+
+.dark .admin-bookings-section__title {
+  color: #e8ecf1;
+}
+
 /* Dark mode */
 .dark .admin-tabs {
   border-bottom-color: #2a3441;

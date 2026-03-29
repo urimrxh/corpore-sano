@@ -92,6 +92,10 @@ function ScheduleDateTime({
         setBookingError(
           "That slot was just taken. Please pick another time.",
         );
+      } else if (String(code) === "RECENT_BOOKING") {
+        setBookingError(
+          "You've already had a meeting in the last 24 hours.",
+        );
       } else {
         setBookingError(error.message || "Could not complete booking.");
       }
