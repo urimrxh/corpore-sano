@@ -117,8 +117,14 @@ function ScheduleDateTime({
             "Could not reach the verification service (unauthorized). If Netlify has BOOKING_FUNCTION_SECRET set, add the same value as VITE_BOOKING_FUNCTION_SECRET and redeploy — or remove that secret from Netlify and the site.",
           );
         } else if (st === 502) {
+          const raw =
+            typeof ver.detail === "string" ? ver.detail.trim() : "";
+          const short =
+            raw.length > 320 ? `${raw.slice(0, 320)}…` : raw;
           setBookingError(
-            "Your booking was saved, but sending the email failed (check Resend API key and RESEND_FROM). Please contact us to confirm your slot.",
+            short
+              ? `Your booking was saved, but the email service rejected the send: ${short}`
+              : "Your booking was saved, but sending the email failed. In Netlify → Functions → send-booking-verification → Logs, look for “Resend error”. In Resend, check API key, verified domain for “from”, and that the recipient is allowed (sandbox only allows test addresses).",
           );
         } else {
           setBookingError(

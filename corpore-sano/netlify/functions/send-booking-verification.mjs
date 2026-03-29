@@ -4,21 +4,39 @@
  *      RESEND_API_KEY, RESEND_FROM (e.g. "Corpore Sano <onboarding@resend.dev>")
  */
 import { createClient } from "@supabase/supabase-js";
+import {
+  createCalendarEventFunctionUrl,
+  getDeploySiteOrigin,
+} from "./lib/siteUrl.mjs";
 
 async function triggerCalendarSync(bookingId) {
-  const base = process.env.URL || "";
-  const url = `${base.replace(/\/$/, "")}/.netlify/functions/create-calendar-event`;
+  const url = createCalendarEventFunctionUrl();
+  if (!url) {
+    console.error(
+      "send-booking-verification: missing deploy site URL; calendar sync skipped",
+    );
+    return;
+  }
   const secret = process.env.BOOKING_FUNCTION_SECRET;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(secret ? { "x-booking-secret": secret } : {}),
-    },
-    body: JSON.stringify({ bookingId }),
-  });
-  if (!res.ok) {
-    console.warn("send-booking-verification: calendar sync failed", await res.text());
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(secret ? { "x-booking-secret": secret } : {}),
+      },
+      body: JSON.stringify({ bookingId }),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      console.error(
+        "send-booking-verification: create-calendar-event failed",
+        res.status,
+        text,
+      );
+    }
+  } catch (e) {
+    console.error("send-booking-verification: calendar sync error", e?.message || e);
   }
 }
 
@@ -91,7 +109,7 @@ export const handler = async (request) => {
   }
 
   const resendKey = process.env.RESEND_API_KEY;
-  const siteUrl = (process.env.URL || "").replace(/\/$/, "");
+  const siteUrl = getDeploySiteOrigin();
 
   if (!resendKey) {
     const now = new Date().toISOString();
@@ -153,9 +171,15 @@ export const handler = async (request) => {
 
   if (!resendRes.ok) {
     const text = await resendRes.text();
-    console.error("Resend error:", text);
+    console.error(
+      "Resend error:",
+      resendRes.status,
+      resendRes.statusText,
+      text,
+    );
     return {
       statusCode: 502,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Failed to send email", detail: text }),
     };
   }

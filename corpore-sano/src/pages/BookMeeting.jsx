@@ -7,16 +7,23 @@ function BookMeetingPage() {
   const { title, intro } = content.bookMeeting;
   const [searchParams, setSearchParams] = useSearchParams();
   const verify = searchParams.get("verify");
+  const calendarSync = searchParams.get("calendarSync");
 
   const verifyBanner =
-    verify === "success"
+    verify === "success" && calendarSync === "failed"
       ? {
-          text: "Your appointment is verified. Thank you — we’ll see you then.",
+          text: "Your appointment is verified. We could not add it to our calendar automatically — our team will follow up, or check your inbox for a calendar invite if one was sent.",
           className:
-            "mb-6 rounded-md border border-[#3aa57d]/50 bg-[#e8f5ef] px-4 py-3 text-sm text-[#103152] dark:border-[#3aa57d]/30 dark:bg-[#161d27] dark:text-[#b8c4d0]",
+            "mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
         }
-      : verify === "invalid" || verify === "missing"
+      : verify === "success"
         ? {
+            text: "Your appointment is verified. Thank you — we’ll see you then.",
+            className:
+              "mb-6 rounded-md border border-[#3aa57d]/50 bg-[#e8f5ef] px-4 py-3 text-sm text-[#103152] dark:border-[#3aa57d]/30 dark:bg-[#161d27] dark:text-[#b8c4d0]",
+          }
+        : verify === "invalid" || verify === "missing"
+          ? {
             text: "This confirmation link is invalid or expired. Please book again or contact us.",
             className:
               "mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
@@ -52,6 +59,7 @@ function BookMeetingPage() {
                 onClick={() => {
                   const next = new URLSearchParams(searchParams);
                   next.delete("verify");
+                  next.delete("calendarSync");
                   setSearchParams(next, { replace: true });
                 }}
               >
