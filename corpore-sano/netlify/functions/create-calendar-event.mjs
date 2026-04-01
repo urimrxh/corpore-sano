@@ -1,19 +1,11 @@
-/**
- * Netlify serverless: create Google Calendar event for a booking and store event id.
- * Required env (Netlify UI → Site settings → Environment variables):
- *   GOOGLE_SERVICE_ACCOUNT_JSON  — full JSON key for a service account
- *   GOOGLE_CALENDAR_MALE_ID        — calendar ID (often email) shared with the service account
- *   GOOGLE_CALENDAR_FEMALE_ID
- *   SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
- *   BOOKING_FUNCTION_SECRET        — optional; must match VITE_BOOKING_FUNCTION_SECRET from the client
- *
- * Calendar runs only after verified_at is set (user confirms email). Uses sendUpdates: all so Google
- * emails the attendee; adds Google Meet when the API allows (retries without Meet if not).
- */
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { google } from "googleapis";
+import {
+  sendResendEmail,
+  escapeHtml,
+  formatAppointment,
+} from "./lib/resendEmail.mjs";
 
 function headerGet(headers, name) {
   if (!headers || typeof headers !== "object") return undefined;
@@ -22,6 +14,35 @@ function headerGet(headers, name) {
     if (k.toLowerCase() === lower) return v;
   }
   return undefined;
+}
+
+function getMeetLink(insertRes) {
+  return (
+    insertRes?.data?.hangoutLink ||
+    insertRes?.data?.conferenceData?.entryPoints?.find(
+      (entry) => entry.entryPointType === "video",
+    )?.uri ||
+    null
+  );
+}
+
+async function sendMeetingLinkEmail(booking, joinLink) {
+  const when = formatAppointment(booking.slot_start);
+
+  const html = `
+    <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
+    <p>Your appointment is now confirmed.</p>
+    <p><strong>When:</strong> ${escapeHtml(when)}</p>
+    <p><strong>Join link:</strong><br />
+    <a href="${joinLink}">${joinLink}</a></p>
+    <p>Please keep this email and use the link at the appointment time.</p>
+  `;
+
+  await sendResendEmail({
+    to: booking.email,
+    subject: "Your appointment is confirmed — join link inside",
+    html,
+  });
 }
 
 export const handler = async (request) => {
@@ -44,8 +65,12 @@ export const handler = async (request) => {
 
   const bookingId =
     body.bookingId != null ? String(body.bookingId).trim() : "";
+
   if (!bookingId) {
-    return { statusCode: 400, body: JSON.stringify({ error: "bookingId required" }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "bookingId required" }),
+    };
   }
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -76,7 +101,6 @@ export const handler = async (request) => {
     };
   }
 
-  /** Brief wait + re-fetch if confirm-booking just wrote verified_at (rare replication lag). */
   if (!booking.verified_at) {
     await new Promise((r) => setTimeout(r, 600));
     const second = await supabase
@@ -84,16 +108,10 @@ export const handler = async (request) => {
       .select("*")
       .eq("id", bookingId)
       .maybeSingle();
+
     if (!second.error && second.data) {
       booking = second.data;
     }
-  }
-
-  if (booking.google_event_id) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true, skipped: true, id: booking.google_event_id }),
-    };
   }
 
   if (!booking.verified_at) {
@@ -101,6 +119,37 @@ export const handler = async (request) => {
       statusCode: 400,
       body: JSON.stringify({
         error: "Booking is not verified yet; calendar sync runs after email confirmation.",
+      }),
+    };
+  }
+
+  const existingJoinLink = booking.google_meet_link || booking.google_event_link;
+
+  if (booking.google_event_id) {
+    if (existingJoinLink && !booking.meeting_link_sent_at) {
+      try {
+        await sendMeetingLinkEmail(booking, existingJoinLink);
+
+        await supabase
+          .from("bookings")
+          .update({ meeting_link_sent_at: new Date().toISOString() })
+          .eq("id", bookingId);
+      } catch (emailErr) {
+        console.error(
+          "create-calendar-event: existing meeting link email failed",
+          emailErr?.message || emailErr,
+        );
+      }
+    }
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ok: true,
+        skipped: true,
+        id: booking.google_event_id,
+        googleMeetLink: existingJoinLink,
       }),
     };
   }
@@ -137,7 +186,6 @@ export const handler = async (request) => {
     end: { dateTime: booking.slot_end },
   };
 
-  /** Try Google Meet + notify attendees; some setups block Meet for service accounts — then retry without Meet. */
   let insertRes;
   try {
     insertRes = await calendar.events.insert({
@@ -158,6 +206,7 @@ export const handler = async (request) => {
       "create-calendar-event: Meet insert failed, retrying without Meet:",
       meetErr?.message || meetErr,
     );
+
     try {
       insertRes = await calendar.events.insert({
         calendarId,
@@ -176,6 +225,9 @@ export const handler = async (request) => {
   }
 
   const eventId = insertRes?.data?.id;
+  const meetLink = getMeetLink(insertRes);
+  const eventLink = insertRes?.data?.htmlLink || null;
+
   if (!eventId) {
     return {
       statusCode: 502,
@@ -185,7 +237,11 @@ export const handler = async (request) => {
 
   const { error: updErr } = await supabase
     .from("bookings")
-    .update({ google_event_id: eventId })
+    .update({
+      google_event_id: eventId,
+      google_meet_link: meetLink,
+      google_event_link: eventLink,
+    })
     .eq("id", bookingId);
 
   if (updErr) {
@@ -194,15 +250,35 @@ export const handler = async (request) => {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        error: "Could not save google_event_id",
+        error: "Could not save Google event fields",
         detail: updErr.message,
       }),
     };
   }
 
+  if (meetLink && !booking.meeting_link_sent_at) {
+    try {
+      await sendMeetingLinkEmail(booking, meetLink);
+
+      await supabase
+        .from("bookings")
+        .update({ meeting_link_sent_at: new Date().toISOString() })
+        .eq("id", bookingId);
+    } catch (emailErr) {
+      console.error(
+        "create-calendar-event: meeting link email failed",
+        emailErr?.message || emailErr,
+      );
+    }
+  }
+
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ok: true, googleEventId: eventId }),
+    body: JSON.stringify({
+      ok: true,
+      googleEventId: eventId,
+      googleMeetLink: meetLink,
+    }),
   };
 };
