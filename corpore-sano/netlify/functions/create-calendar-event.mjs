@@ -196,7 +196,6 @@ export const handler = async (request) => {
         conferenceData: {
           createRequest: {
             requestId: randomUUID(),
-            conferenceSolutionKey: { type: "hangoutsMeet" },
           },
         },
       },
