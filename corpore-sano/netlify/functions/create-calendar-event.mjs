@@ -135,7 +135,6 @@ export const handler = async (request) => {
     description: descriptionLines.join("\n"),
     start: { dateTime: booking.slot_start },
     end: { dateTime: booking.slot_end },
-    attendees: [{ email: booking.email }],
   };
 
   /** Try Google Meet + notify attendees; some setups block Meet for service accounts — then retry without Meet. */
@@ -144,7 +143,6 @@ export const handler = async (request) => {
     insertRes = await calendar.events.insert({
       calendarId,
       conferenceDataVersion: 1,
-      sendUpdates: "all",
       requestBody: {
         ...baseEvent,
         conferenceData: {
@@ -163,7 +161,6 @@ export const handler = async (request) => {
     try {
       insertRes = await calendar.events.insert({
         calendarId,
-        sendUpdates: "all",
         requestBody: baseEvent,
       });
     } catch (plainErr) {
