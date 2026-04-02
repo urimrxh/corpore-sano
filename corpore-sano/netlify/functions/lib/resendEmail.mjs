@@ -43,6 +43,7 @@ export async function sendResendEmail({ to, subject, html }) {
   
   export function formatAppointment(isoString) {
     if (!isoString) return "";
+  
     return new Intl.DateTimeFormat("en-GB", {
       dateStyle: "full",
       timeStyle: "short",

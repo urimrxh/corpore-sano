@@ -10,20 +10,54 @@ import {
 function headerGet(headers, name) {
   if (!headers || typeof headers !== "object") return undefined;
   const lower = name.toLowerCase();
+
   for (const [k, v] of Object.entries(headers)) {
     if (k.toLowerCase() === lower) return v;
   }
+
   return undefined;
 }
 
-function getMeetLink(insertRes) {
+function getMeetLinkFromEvent(event) {
   return (
-    insertRes?.data?.hangoutLink ||
-    insertRes?.data?.conferenceData?.entryPoints?.find(
+    event?.hangoutLink ||
+    event?.conferenceData?.entryPoints?.find(
       (entry) => entry.entryPointType === "video",
     )?.uri ||
     null
   );
+}
+
+async function waitForMeetLink(calendar, calendarId, eventId, tries = 6, delayMs = 2000) {
+  for (let i = 0; i < tries; i += 1) {
+    const res = await calendar.events.get({
+      calendarId,
+      eventId,
+      conferenceDataVersion: 1,
+    });
+
+    const event = res?.data || null;
+    const status =
+      event?.conferenceData?.createRequest?.status?.statusCode || null;
+    const meetLink = getMeetLinkFromEvent(event);
+    const eventLink = event?.htmlLink || null;
+
+    if (meetLink && status === "success") {
+      return { meetLink, eventLink, status };
+    }
+
+    if (meetLink) {
+      return { meetLink, eventLink, status };
+    }
+
+    if (status === "failure") {
+      return { meetLink: null, eventLink, status };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  return { meetLink: null, eventLink: null, status: "timeout" };
 }
 
 async function sendMeetingLinkEmail(booking, joinLink) {
@@ -31,7 +65,7 @@ async function sendMeetingLinkEmail(booking, joinLink) {
 
   const html = `
     <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
-    <p>Your appointment is now confirmed.</p>
+    <p>Your appointment is confirmed.</p>
     <p><strong>When:</strong> ${escapeHtml(when)}</p>
     <p><strong>Join link:</strong><br />
     <a href="${joinLink}">${joinLink}</a></p>
@@ -52,19 +86,25 @@ export const handler = async (request) => {
 
   const secret = process.env.BOOKING_FUNCTION_SECRET;
   const clientSecret = headerGet(request.headers, "x-booking-secret");
+
   if (secret && clientSecret !== secret) {
-    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
   }
 
   let body;
   try {
     body = JSON.parse(request.body || "{}");
   } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON" }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid JSON" }),
+    };
   }
 
-  const bookingId =
-    body.bookingId != null ? String(body.bookingId).trim() : "";
+  const bookingId = body.bookingId != null ? String(body.bookingId).trim() : "";
 
   if (!bookingId) {
     return {
@@ -102,7 +142,8 @@ export const handler = async (request) => {
   }
 
   if (!booking.verified_at) {
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
     const second = await supabase
       .from("bookings")
       .select("*")
@@ -123,7 +164,7 @@ export const handler = async (request) => {
     };
   }
 
-  const existingJoinLink = booking.google_meet_link || booking.google_event_link;
+  const existingJoinLink = booking.google_meet_link || booking.google_event_link || null;
 
   if (booking.google_event_id) {
     if (existingJoinLink && !booking.meeting_link_sent_at) {
@@ -187,6 +228,7 @@ export const handler = async (request) => {
   };
 
   let insertRes;
+
   try {
     insertRes = await calendar.events.insert({
       calendarId,
@@ -224,14 +266,37 @@ export const handler = async (request) => {
   }
 
   const eventId = insertRes?.data?.id;
-  const meetLink = getMeetLink(insertRes);
-  const eventLink = insertRes?.data?.htmlLink || null;
+  let meetLink = getMeetLinkFromEvent(insertRes?.data);
+  let eventLink = insertRes?.data?.htmlLink || null;
 
   if (!eventId) {
     return {
       statusCode: 502,
       body: JSON.stringify({ error: "No event id returned from Google" }),
     };
+  }
+
+  if (!meetLink) {
+    try {
+      const waited = await waitForMeetLink(calendar, calendarId, eventId, 6, 2000);
+      meetLink = waited.meetLink || meetLink;
+      eventLink = waited.eventLink || eventLink;
+
+      console.log(
+        "create-calendar-event: conference poll result",
+        JSON.stringify({
+          bookingId,
+          eventId,
+          status: waited.status,
+          hasMeetLink: Boolean(waited.meetLink),
+        }),
+      );
+    } catch (pollErr) {
+      console.warn(
+        "create-calendar-event: polling for Meet link failed:",
+        pollErr?.message || pollErr,
+      );
+    }
   }
 
   const { error: updErr } = await supabase
@@ -269,6 +334,11 @@ export const handler = async (request) => {
         emailErr?.message || emailErr,
       );
     }
+  } else {
+    console.warn(
+      "create-calendar-event: no Meet link available after polling; follow-up email skipped",
+      JSON.stringify({ bookingId, eventId, hasMeetLink: Boolean(meetLink) }),
+    );
   }
 
   return {
@@ -278,6 +348,7 @@ export const handler = async (request) => {
       ok: true,
       googleEventId: eventId,
       googleMeetLink: meetLink,
+      googleEventLink: eventLink,
     }),
   };
 };
