@@ -220,23 +220,33 @@ export async function deleteBookingAsAdmin(bookingId) {
  * @param {string | null} adminLine - optional: "male" | "female" from user_metadata.admin_line
  */
 export async function fetchBookingsForAdmin(limit = 200, adminLine = null) {
-  if (!supabase) {
-    return { data: [], error: new Error("Supabase is not configured") };
+  try {
+    const threeDaysAgoIso = new Date(
+      Date.now() - 3 * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    let query = supabase
+      .from("bookings")
+      .select("*")
+      .gte("slot_start", threeDaysAgoIso)
+      .or("status.is.null,status.neq.cancelled")
+      .order("slot_start", { ascending: true })
+      .limit(limit);
+
+    if (adminLine === "male" || adminLine === "female") {
+      query = query.eq("gender", adminLine);
+    }
+
+    const { data, error } = await query;
+
+    return {
+      data: data || [],
+      error: error || null,
+    };
+  } catch (error) {
+    return {
+      data: [],
+      error,
+    };
   }
-
-  let q = supabase
-    .from(BOOKINGS_TABLE)
-    .select(
-      "id, created_at, full_name, email, gender, topic, booking_date, time_slot, slot_start, google_event_id, verified_at",
-    )
-    .order("slot_start", { ascending: false })
-    .limit(limit);
-
-  if (adminLine === "male" || adminLine === "female") {
-    q = q.eq("gender", adminLine);
-  }
-
-  const { data, error } = await q;
-
-  return { data: data ?? [], error };
 }
