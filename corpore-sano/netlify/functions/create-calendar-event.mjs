@@ -6,29 +6,50 @@ import {
   escapeHtml,
   formatAppointment,
 } from "./lib/resendEmail.mjs";
+import { getActiveAdminEmailsByGender } from "./lib/adminRecipients.mjs";
+import { sendAdminBookedEmail } from "./lib/adminBookingEmails.mjs";
 
 function headerGet(headers, name) {
   if (!headers || typeof headers !== "object") return undefined;
   const lower = name.toLowerCase();
 
-  for (const [k, v] of Object.entries(headers)) {
-    if (k.toLowerCase() === lower) return v;
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === lower) return value;
   }
 
   return undefined;
+}
+
+function normalizeRecipientEmails(value) {
+  return [
+    ...new Set(
+      (Array.isArray(value) ? value : [])
+        .map((email) => String(email || "").trim().toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
 }
 
 function getMeetLinkFromEvent(event) {
   return (
     event?.hangoutLink ||
     event?.conferenceData?.entryPoints?.find(
-      (entry) => entry.entryPointType === "video",
+      (entry) => entry.entryPointType === "video"
     )?.uri ||
     null
   );
 }
 
-async function waitForMeetLink(calendar, calendarId, eventId, tries = 6, delayMs = 2000) {
+async function waitForMeetLink(
+  calendar,
+  calendarId,
+  eventId,
+  tries = 6,
+  delayMs = 2000
+) {
+  let lastEventLink = null;
+  let lastStatus = "timeout";
+
   for (let i = 0; i < tries; i += 1) {
     const res = await calendar.events.get({
       calendarId,
@@ -41,6 +62,9 @@ async function waitForMeetLink(calendar, calendarId, eventId, tries = 6, delayMs
       event?.conferenceData?.createRequest?.status?.statusCode || null;
     const meetLink = getMeetLinkFromEvent(event);
     const eventLink = event?.htmlLink || null;
+
+    lastEventLink = eventLink || lastEventLink;
+    lastStatus = status || lastStatus;
 
     if (meetLink && status === "success") {
       return { meetLink, eventLink, status };
@@ -57,18 +81,19 @@ async function waitForMeetLink(calendar, calendarId, eventId, tries = 6, delayMs
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  return { meetLink: null, eventLink: null, status: "timeout" };
+  return { meetLink: null, eventLink: lastEventLink, status: lastStatus };
 }
 
 async function sendMeetingLinkEmail(booking, joinLink) {
   const when = formatAppointment(booking.slot_start);
+  const safeJoinLink = escapeHtml(joinLink);
 
   const html = `
     <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
     <p>Your appointment is confirmed.</p>
     <p><strong>When:</strong> ${escapeHtml(when)}</p>
     <p><strong>Join link:</strong><br />
-    <a href="${joinLink}">${joinLink}</a></p>
+    <a href="${safeJoinLink}">${safeJoinLink}</a></p>
     <p>Please keep this email and use the link at the appointment time.</p>
   `;
 
@@ -77,6 +102,60 @@ async function sendMeetingLinkEmail(booking, joinLink) {
     subject: "Your appointment is confirmed — join link inside",
     html,
   });
+}
+
+async function notifyAdminsForBooking(supabase, booking) {
+  if (booking.admin_notified_at) {
+    return normalizeRecipientEmails(booking.admin_recipient_emails);
+  }
+
+  let recipients = normalizeRecipientEmails(booking.admin_recipient_emails);
+
+  if (!recipients.length) {
+    recipients = await getActiveAdminEmailsByGender(supabase, booking.gender);
+  }
+
+  if (!recipients.length) {
+    console.warn(`No active admins found for gender "${booking.gender}"`);
+    return [];
+  }
+
+  const { error: recipientSaveError } = await supabase
+    .from("bookings")
+    .update({ admin_recipient_emails: recipients })
+    .eq("id", booking.id);
+
+  if (recipientSaveError) {
+    console.error(
+      "create-calendar-event: failed to save admin recipient emails",
+      recipientSaveError.message
+    );
+  }
+
+  await sendAdminBookedEmail({
+    to: recipients,
+    booking: {
+      ...booking,
+      admin_recipient_emails: recipients,
+    },
+  });
+
+  const { error: notifiedError } = await supabase
+    .from("bookings")
+    .update({
+      admin_recipient_emails: recipients,
+      admin_notified_at: new Date().toISOString(),
+    })
+    .eq("id", booking.id);
+
+  if (notifiedError) {
+    console.error(
+      "create-calendar-event: failed to save admin_notified_at",
+      notifiedError.message
+    );
+  }
+
+  return recipients;
 }
 
 export const handler = async (request) => {
@@ -159,14 +238,25 @@ export const handler = async (request) => {
     return {
       statusCode: 400,
       body: JSON.stringify({
-        error: "Booking is not verified yet; calendar sync runs after email confirmation.",
+        error:
+          "Booking is not verified yet; calendar sync runs after email confirmation.",
       }),
     };
   }
 
-  const existingJoinLink = booking.google_meet_link || booking.google_event_link || null;
+  const existingJoinLink =
+    booking.google_meet_link || booking.google_event_link || null;
 
   if (booking.google_event_id) {
+    try {
+      await notifyAdminsForBooking(supabase, booking);
+    } catch (adminErr) {
+      console.error(
+        "create-calendar-event: existing-event admin notification failed",
+        adminErr?.message || adminErr
+      );
+    }
+
     if (existingJoinLink && !booking.meeting_link_sent_at) {
       try {
         await sendMeetingLinkEmail(booking, existingJoinLink);
@@ -178,7 +268,7 @@ export const handler = async (request) => {
       } catch (emailErr) {
         console.error(
           "create-calendar-event: existing meeting link email failed",
-          emailErr?.message || emailErr,
+          emailErr?.message || emailErr
         );
       }
     }
@@ -191,11 +281,25 @@ export const handler = async (request) => {
         skipped: true,
         id: booking.google_event_id,
         googleMeetLink: existingJoinLink,
+        googleEventLink: booking.google_event_link || null,
       }),
     };
   }
 
-  const calendarId = booking.gender === "male" ? calMale : calFemale;
+  const normalizedGender = String(booking.gender || "").trim().toLowerCase();
+  const calendarId =
+    normalizedGender === "male"
+      ? calMale
+      : normalizedGender === "female"
+      ? calFemale
+      : "";
+
+  if (!calendarId) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: `Invalid booking gender "${booking.gender}"` }),
+    };
+  }
 
   let credentials;
   try {
@@ -238,6 +342,9 @@ export const handler = async (request) => {
         conferenceData: {
           createRequest: {
             requestId: randomUUID(),
+            conferenceSolutionKey: {
+              type: "hangoutsMeet",
+            },
           },
         },
       },
@@ -245,7 +352,7 @@ export const handler = async (request) => {
   } catch (meetErr) {
     console.warn(
       "create-calendar-event: Meet insert failed, retrying without Meet:",
-      meetErr?.message || meetErr,
+      meetErr?.message || meetErr
     );
 
     try {
@@ -255,6 +362,7 @@ export const handler = async (request) => {
       });
     } catch (plainErr) {
       console.error("create-calendar-event: calendar insert failed", plainErr);
+
       return {
         statusCode: 502,
         headers: { "Content-Type": "application/json" },
@@ -289,12 +397,12 @@ export const handler = async (request) => {
           eventId,
           status: waited.status,
           hasMeetLink: Boolean(waited.meetLink),
-        }),
+        })
       );
     } catch (pollErr) {
       console.warn(
         "create-calendar-event: polling for Meet link failed:",
-        pollErr?.message || pollErr,
+        pollErr?.message || pollErr
       );
     }
   }
@@ -310,6 +418,7 @@ export const handler = async (request) => {
 
   if (updErr) {
     console.error("create-calendar-event: Supabase update failed", updErr);
+
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
@@ -318,6 +427,22 @@ export const handler = async (request) => {
         detail: updErr.message,
       }),
     };
+  }
+
+  const enrichedBooking = {
+    ...booking,
+    google_event_id: eventId,
+    google_meet_link: meetLink,
+    google_event_link: eventLink,
+  };
+
+  try {
+    await notifyAdminsForBooking(supabase, enrichedBooking);
+  } catch (adminErr) {
+    console.error(
+      "create-calendar-event: admin notification failed",
+      adminErr?.message || adminErr
+    );
   }
 
   if (meetLink && !booking.meeting_link_sent_at) {
@@ -331,13 +456,13 @@ export const handler = async (request) => {
     } catch (emailErr) {
       console.error(
         "create-calendar-event: meeting link email failed",
-        emailErr?.message || emailErr,
+        emailErr?.message || emailErr
       );
     }
   } else {
     console.warn(
       "create-calendar-event: no Meet link available after polling; follow-up email skipped",
-      JSON.stringify({ bookingId, eventId, hasMeetLink: Boolean(meetLink) }),
+      JSON.stringify({ bookingId, eventId, hasMeetLink: Boolean(meetLink) })
     );
   }
 
