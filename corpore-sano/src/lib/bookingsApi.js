@@ -191,24 +191,28 @@ export async function createBooking({
   return { data, error: null, code: null };
 }
 
-/**
- * Admin: delete a booking (requires authenticated session + RLS DELETE policy).
- */
 export async function deleteBookingAsAdmin(bookingId) {
-  if (!supabase) {
-    return { error: new Error("Supabase is not configured") };
+  try {
+    const response = await fetch("/.netlify/functions/delete-calendar-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ bookingId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        error: new Error(data.error || "Failed to remove booking"),
+      };
+    }
+
+    return { error: null };
+  } catch (error) {
+    return { error };
   }
-
-  const { error } = await supabase
-    .from(BOOKINGS_TABLE)
-    .delete()
-    .eq("id", bookingId);
-
-  if (error) {
-    return { error: new Error(error.message) };
-  }
-
-  return { error: null };
 }
 
 /**
