@@ -1,5 +1,33 @@
 import { createClient } from "@supabase/supabase-js";
 import { google } from "googleapis";
+import {
+  sendResendEmail,
+  escapeHtml,
+  formatAppointment,
+} from "./lib/resendEmail.mjs";
+
+function isFutureAppointment(slotStart) {
+  if (!slotStart) return false;
+  const time = new Date(slotStart).getTime();
+  return Number.isFinite(time) && time > Date.now();
+}
+
+async function sendClientCancellationEmail(booking) {
+  const when = formatAppointment(booking.slot_start);
+
+  const html = `
+    <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
+    <p>Your appointment has been cancelled by the admin.</p>
+    <p><strong>Scheduled time:</strong> ${escapeHtml(when)}</p>
+    <p>If you would like, you can book a new appointment from the website.</p>
+  `;
+
+  await sendResendEmail({
+    to: booking.email,
+    subject: "Your appointment has been cancelled",
+    html,
+  });
+}
 
 export const handler = async (request) => {
   if (request.httpMethod !== "POST") {
@@ -46,60 +74,57 @@ export const handler = async (request) => {
     };
   }
 
-  if (!booking.google_event_id) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "No Google event linked to this booking" }),
-    };
-  }
+  const shouldEmailClient = isFutureAppointment(booking.slot_start);
 
-  const normalizedGender = String(booking.gender || "").trim().toLowerCase();
-  const calendarId =
-    normalizedGender === "male"
-      ? process.env.GOOGLE_CALENDAR_MALE_ID
-      : normalizedGender === "female"
-      ? process.env.GOOGLE_CALENDAR_FEMALE_ID
-      : "";
+  if (booking.google_event_id) {
+    const normalizedGender = String(booking.gender || "").trim().toLowerCase();
+    const calendarId =
+      normalizedGender === "male"
+        ? process.env.GOOGLE_CALENDAR_MALE_ID
+        : normalizedGender === "female"
+        ? process.env.GOOGLE_CALENDAR_FEMALE_ID
+        : "";
 
-  if (!calendarId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: `Invalid booking gender "${booking.gender}"`,
-      }),
-    };
-  }
+    if (!calendarId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: `Invalid booking gender "${booking.gender}"`,
+        }),
+      };
+    }
 
-  let credentials;
-  try {
-    credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  } catch {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_JSON" }),
-    };
-  }
+    let credentials;
+    try {
+      credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    } catch {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_JSON" }),
+      };
+    }
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/calendar"],
-  });
-
-  const calendar = google.calendar({ version: "v3", auth });
-
-  try {
-    await calendar.events.delete({
-      calendarId,
-      eventId: booking.google_event_id,
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/calendar"],
     });
-  } catch (error) {
-    return {
-      statusCode: 502,
-      body: JSON.stringify({
-        error: "Failed to delete Google Calendar event",
-        detail: error?.message || String(error),
-      }),
-    };
+
+    const calendar = google.calendar({ version: "v3", auth });
+
+    try {
+      await calendar.events.delete({
+        calendarId,
+        eventId: booking.google_event_id,
+      });
+    } catch (error) {
+      return {
+        statusCode: 502,
+        body: JSON.stringify({
+          error: "Failed to delete Google Calendar event",
+          detail: error?.message || String(error),
+        }),
+      };
+    }
   }
 
   const { error: updateErr } = await supabase
@@ -118,10 +143,21 @@ export const handler = async (request) => {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Google event deleted, but booking update failed",
+        error: "Booking update failed after removal",
         detail: updateErr.message,
       }),
     };
+  }
+
+  if (shouldEmailClient) {
+    try {
+      await sendClientCancellationEmail(booking);
+    } catch (emailErr) {
+      console.error(
+        "delete-calendar-event: failed to send client cancellation email",
+        emailErr?.message || emailErr
+      );
+    }
   }
 
   return {
