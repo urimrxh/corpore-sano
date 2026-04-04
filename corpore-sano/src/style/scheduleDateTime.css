@@ -77,6 +77,7 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(120px, 1fr));
     gap: 14px;
+    padding: 16px;
   }
   
   .time-slot-btn {
@@ -186,6 +187,7 @@
   
     .time-slots__grid {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
+      padding: 8px;
     }
   }
 
