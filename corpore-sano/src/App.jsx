@@ -13,6 +13,9 @@ import AdminSignIn from "./pages/AdminSignIn";
 import AdminForgotPassword from "./pages/AdminForgotPassword";
 import AdminResetPassword from "./pages/AdminResetPassword";
 import Videos from "./pages/Videos";
+import PostsPage from "./pages/PostsPage";
+import PostsByTagPage from "./pages/PostsByTagPage";
+import PostDetailPage from "./pages/PostDetailPage";
 import "./App.css";
 
 function App() {
@@ -48,6 +51,9 @@ function App() {
                 </AdminGate>
               }
             />
+            <Route path="/posts" element={<PostsPage />} />
+            <Route path="/posts/:slug" element={<PostDetailPage />} />
+            <Route path="/posts/tag/:slug" element={<PostsByTagPage />} />
           </Routes>
         </main>
         <Footer />

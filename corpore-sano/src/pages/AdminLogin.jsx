@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useAuth } from "../context/AuthContext";
 import AdminBookingsTab from "../components/AdminBookingsTab";
+import AdminPostsTab from "../components/AdminPostsTab";
+import AdminPostTagsTab from "../components/AdminPostTagsTab";
 import "../style/admin.css";
 
 const TABS = [
@@ -14,6 +16,8 @@ const TABS = [
   { id: "footer", label: "Footer" },
   { id: "pages", label: "Other pages" },
   { id: "bookings", label: "Bookings" },
+  { id: "posts", label: "Posts" },
+  { id: "postTags", label: "Post tags" },
 ];
 
 const ABOUT_TEXT_PANEL_OPTIONS = [
@@ -45,9 +49,12 @@ function AdminLogin() {
     lastRemoteSaveError,
     remoteLoadError,
   } = useSiteContent();
+
   const [tab, setTab] = useState("global");
   const [draft, setDraft] = useState(() => clone(content));
   const [savedFlash, setSavedFlash] = useState(false);
+
+  const isContentTab = !["posts", "postTags"].includes(tab);
 
   useEffect(() => {
     setDraft(clone(content));
@@ -78,12 +85,13 @@ function AdminLogin() {
           </h1>
           <button
             type="button"
-            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:cursor-pointer"
+            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
             onClick={() => signOut()}
           >
             Sign out
           </button>
         </div>
+
         {remoteLoadError && (
           <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
             Could not load site from Supabase: {remoteLoadError}. Using saved
@@ -314,9 +322,11 @@ function AdminLogin() {
               Each section has its own text-column background; colors adjust for
               readable contrast.
             </p>
+
             {draft.about.sections.map((sec, index) => (
               <div key={sec.id} className="admin-card">
                 <h3>Section {index + 1}</h3>
+
                 <div className="admin-field admin-field--inline">
                   <input
                     type="checkbox"
@@ -338,6 +348,7 @@ function AdminLogin() {
                   />
                   <label htmlFor={`a-il-${sec.id}`}>Image on the left</label>
                 </div>
+
                 <div className="admin-field">
                   <label htmlFor={`a-tp-${sec.id}`}>
                     Text column background (this section only)
@@ -378,6 +389,7 @@ function AdminLogin() {
                     />
                   </div>
                 </div>
+
                 <div className="admin-field">
                   <label>Image URL</label>
                   <input
@@ -396,6 +408,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <div className="admin-field">
                   <label>Image alt text</label>
                   <input
@@ -416,6 +429,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <div className="admin-field">
                   <label>Heading</label>
                   <input
@@ -434,6 +448,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <div className="admin-field">
                   <label>Body</label>
                   <textarea
@@ -451,6 +466,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <button
                   type="button"
                   className="admin-btn-danger rounded-md px-3 py-1.5 text-sm font-semibold"
@@ -468,9 +484,10 @@ function AdminLogin() {
                 </button>
               </div>
             ))}
+
             <button
               type="button"
-              className="admin-btn-secondary rounded-md border border-[#e1e5ec] dark:border-[#2a3441] bg-[#f5f8fa] dark:bg-[#1e2835] px-4 py-2 text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]"
+              className="admin-btn-secondary rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
               onClick={() =>
                 setDraft((d) => ({
                   ...d,
@@ -503,9 +520,11 @@ function AdminLogin() {
               Only videos with “Published” checked appear on the site. YouTube
               watch URLs work best.
             </p>
+
             {draft.videos.map((v, index) => (
               <div key={v.id} className="admin-card">
                 <h3>Video #{v.id}</h3>
+
                 <div className="admin-field admin-field--inline">
                   <input
                     type="checkbox"
@@ -524,6 +543,7 @@ function AdminLogin() {
                   />
                   <label htmlFor={`v-pub-${v.id}`}>Published</label>
                 </div>
+
                 <div className="admin-field">
                   <label>Title</label>
                   <input
@@ -539,6 +559,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <div className="admin-field">
                   <label>Description</label>
                   <textarea
@@ -553,6 +574,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <div className="admin-field">
                   <label>Video URL (YouTube)</label>
                   <input
@@ -568,6 +590,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <div className="admin-field">
                   <label>Category</label>
                   <input
@@ -583,6 +606,7 @@ function AdminLogin() {
                     }
                   />
                 </div>
+
                 <button
                   type="button"
                   className="mt-2 rounded-md bg-[#fef2f2] px-3 py-1.5 text-sm font-semibold text-[#b91c1c]"
@@ -597,9 +621,10 @@ function AdminLogin() {
                 </button>
               </div>
             ))}
+
             <button
               type="button"
-              className="rounded-md border border-[#e1e5ec] dark:border-[#2a3441] bg-[#f5f8fa] dark:bg-[#1e2835] px-4 py-2 text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]"
+              className="rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
               onClick={() =>
                 setDraft((d) => {
                   const nextId =
@@ -750,9 +775,11 @@ function AdminLogin() {
                 }
               />
             </div>
+
             <h3 className="mb-2 mt-4 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
               Social URLs
             </h3>
+
             {["facebook", "instagram", "linkedin", "emailMailto"].map((k) => (
               <div key={k} className="admin-field">
                 <label htmlFor={`soc-${k}`}>{k}</label>
@@ -805,6 +832,7 @@ function AdminLogin() {
                 />
               </div>
             </div>
+
             <div className="admin-card">
               <h3>Nutritionists</h3>
               <div className="admin-field">
@@ -853,24 +881,53 @@ function AdminLogin() {
           </div>
         )}
 
-        <div className="admin-actions">
-          <button type="button" className="admin-btn-primary" onClick={save}>
-            Save changes
-          </button>
-          <button type="button" className="admin-btn-secondary" onClick={handleReset}>
-            Reset to defaults
-          </button>
-          {savedFlash && (
-            <span className="text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f]">Saved locally.</span>
-          )}
-          {lastRemoteSaveError && (
-            <span className="max-w-xl text-sm text-[#b91c1c] dark:text-[#fca5a5]">
-              Supabase sync failed: {lastRemoteSaveError}. Check that you are
-              signed in (writes require authentication) and that RLS policies
-              allow updates.
-            </span>
-          )}
-        </div>
+        {tab === "posts" && (
+          <div>
+            <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+              Create, edit, publish, and remove website posts.
+            </p>
+            <AdminPostsTab />
+          </div>
+        )}
+
+        {tab === "postTags" && (
+          <div>
+            <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+              Manage post tags. Tags marked for navigation will appear as menu
+              items on the site.
+            </p>
+            <AdminPostTagsTab />
+          </div>
+        )}
+
+        {isContentTab && (
+          <div className="admin-actions">
+            <button type="button" className="admin-btn-primary" onClick={save}>
+              Save changes
+            </button>
+            <button
+              type="button"
+              className="admin-btn-secondary"
+              onClick={handleReset}
+            >
+              Reset to defaults
+            </button>
+
+            {savedFlash && (
+              <span className="text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f]">
+                Saved locally.
+              </span>
+            )}
+
+            {lastRemoteSaveError && (
+              <span className="max-w-xl text-sm text-[#b91c1c] dark:text-[#fca5a5]">
+                Supabase sync failed: {lastRemoteSaveError}. Check that you are
+                signed in (writes require authentication) and that RLS policies
+                allow updates.
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

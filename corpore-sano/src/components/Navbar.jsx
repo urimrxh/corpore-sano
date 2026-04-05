@@ -4,6 +4,7 @@ import { MdDarkMode, MdLightMode } from "react-icons/md";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import { fetchNavPostTags } from "../lib/postsApi";
 import BookConsultationLink from "./BookConsultationLink";
 import "../style/navbar.css";
 import logo from "../assets/logo.png";
@@ -33,6 +34,7 @@ function Navbar() {
   const { session } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [postTags, setPostTags] = useState([]);
   const location = useLocation();
   const isMobileNav = useIsMobileNav();
   const headerRef = useRef(null);
@@ -45,6 +47,21 @@ function Navbar() {
   useEffect(() => {
     if (!isMobileNav) setMenuOpen(false);
   }, [isMobileNav]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await fetchNavPostTags();
+      if (!cancelled && !error) {
+        setPostTags(data || []);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const el = headerRef.current;
@@ -139,7 +156,10 @@ function Navbar() {
         )}
 
         {!isMobileNav && (
-          <Link to="/" className="logo-desktop text-[#218c77] dark:text-[#4dc89f] text-[24px] font-semibold flex items-center shrink-0 min-w-0">
+          <Link
+            to="/"
+            className="logo-desktop text-[#218c77] dark:text-[#4dc89f] text-[24px] font-semibold flex items-center shrink-0 min-w-0"
+          >
             <img src={logo} alt="Corpore Sano" className="w-[40px] h-[40px] shrink-0" />
             <span className="truncate logo-text">Corpore Sano</span>
           </Link>
@@ -167,6 +187,21 @@ function Navbar() {
           >
             About
           </Link>
+
+          {postTags.map((tag) => {
+            const tagPath = `/posts/tag/${tag.slug}`;
+            return (
+              <Link
+                key={tag.id}
+                to={tagPath}
+                className={navLinkClass(tagPath)}
+                aria-current={isNavActive(tagPath) ? "page" : undefined}
+              >
+                {tag.name}
+              </Link>
+            );
+          })}
+
           {session && (
             <Link
               to="/admin"
@@ -198,7 +233,6 @@ function Navbar() {
         </div>
       </div>
 
-
       {isMobileNav && (
         <nav
           id="mobile-nav"
@@ -226,6 +260,21 @@ function Navbar() {
           >
             About
           </Link>
+
+          {postTags.map((tag) => {
+            const tagPath = `/posts/tag/${tag.slug}`;
+            return (
+              <Link
+                key={tag.id}
+                to={tagPath}
+                className={`${navLinkClass(tagPath)} nav-links-item--mobile`}
+                aria-current={isNavActive(tagPath) ? "page" : undefined}
+              >
+                {tag.name}
+              </Link>
+            );
+          })}
+
           {session && (
             <Link
               to="/admin"

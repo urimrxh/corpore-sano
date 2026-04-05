@@ -5,6 +5,7 @@ import "../style/home.css";
 import BookingScheduler from "../components/BookMeeting";
 import HeroWaves from "../components/HeroWaves";
 import VideosSection from "../components/VideoSection";
+import HomeLatestPostsSection from "../components/HomeLatestPostsSection";
 
 function Home() {
   const { content } = useSiteContent();
@@ -39,6 +40,7 @@ function Home() {
           </div>
 
           <BookingScheduler />
+          <HomeLatestPostsSection />
           <VideosSection />
         </div>
       </section>
