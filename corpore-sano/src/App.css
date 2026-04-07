@@ -64,7 +64,6 @@ body {
 .app-shell > .site-footer {
   flex-shrink: 0;
   position: relative;
-  z-index: 2;
 }
 
 .main-content {

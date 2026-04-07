@@ -221,7 +221,7 @@ function Navbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="shrink-0 rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] p-2 text-[#103152] transition-colors hover:bg-[#e8ecf1] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] dark:hover:bg-[#2a3441]"
+            className="shrink-0 rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] p-2 text-[#103152] transition-colors hover:bg-[#e8ecf1] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] dark:hover:bg-[#2a3441] hover:cursor-pointer"
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             {theme === "dark" ? (

@@ -84,24 +84,51 @@ async function waitForMeetLink(
   return { meetLink: null, eventLink: lastEventLink, status: lastStatus };
 }
 
-async function sendMeetingLinkEmail(booking, joinLink) {
+async function sendVerificationConfirmedEmail(booking) {
   const when = formatAppointment(booking.slot_start);
-  const safeJoinLink = escapeHtml(joinLink);
 
   const html = `
     <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
-    <p>Your appointment is confirmed.</p>
-    <p><strong>When:</strong> ${escapeHtml(when)}</p>
-    <p><strong>Join link:</strong><br />
-    <a href="${safeJoinLink}">${safeJoinLink}</a></p>
-    <p>Please keep this email and use the link at the appointment time.</p>
+    <p>Your appointment has been successfully verified.</p>
+    <p><strong>Time:</strong> ${escapeHtml(when)}</p>
+    <p>You will receive the Google Meet link by email about 15 minutes before your appointment.</p>
+    <p>Thank you — we’ll see you then.</p>
   `;
 
   await sendResendEmail({
     to: booking.email,
-    subject: "Your appointment is confirmed — join link inside",
+    subject: "Your appointment has been successfully verified",
     html,
   });
+}
+
+async function sendVerificationConfirmedEmailIfNeeded(supabase, booking) {
+  if (booking.verification_confirmation_sent_at) {
+    return;
+  }
+
+  try {
+    await sendVerificationConfirmedEmail(booking);
+
+    const { error } = await supabase
+      .from("bookings")
+      .update({
+        verification_confirmation_sent_at: new Date().toISOString(),
+      })
+      .eq("id", booking.id);
+
+    if (error) {
+      console.error(
+        "create-calendar-event: failed to save verification_confirmation_sent_at",
+        error.message
+      );
+    }
+  } catch (emailErr) {
+    console.error(
+      "create-calendar-event: verification confirmation email failed",
+      emailErr?.message || emailErr
+    );
+  }
 }
 
 async function notifyAdminsForBooking(supabase, booking) {
@@ -257,21 +284,7 @@ export const handler = async (request) => {
       );
     }
 
-    if (existingJoinLink && !booking.meeting_link_sent_at) {
-      try {
-        await sendMeetingLinkEmail(booking, existingJoinLink);
-
-        await supabase
-          .from("bookings")
-          .update({ meeting_link_sent_at: new Date().toISOString() })
-          .eq("id", bookingId);
-      } catch (emailErr) {
-        console.error(
-          "create-calendar-event: existing meeting link email failed",
-          emailErr?.message || emailErr
-        );
-      }
-    }
+    await sendVerificationConfirmedEmailIfNeeded(supabase, booking);
 
     return {
       statusCode: 200,
@@ -445,26 +458,7 @@ export const handler = async (request) => {
     );
   }
 
-  if (meetLink && !booking.meeting_link_sent_at) {
-    try {
-      await sendMeetingLinkEmail(booking, meetLink);
-
-      await supabase
-        .from("bookings")
-        .update({ meeting_link_sent_at: new Date().toISOString() })
-        .eq("id", bookingId);
-    } catch (emailErr) {
-      console.error(
-        "create-calendar-event: meeting link email failed",
-        emailErr?.message || emailErr
-      );
-    }
-  } else {
-    console.warn(
-      "create-calendar-event: no Meet link available after polling; follow-up email skipped",
-      JSON.stringify({ bookingId, eventId, hasMeetLink: Boolean(meetLink) })
-    );
-  }
+  await sendVerificationConfirmedEmailIfNeeded(supabase, enrichedBooking);
 
   return {
     statusCode: 200,

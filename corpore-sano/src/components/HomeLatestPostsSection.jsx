@@ -27,28 +27,30 @@ function HomeLatestPostsSection() {
   if (!posts.length) return null;
 
   return (
-    <section className="page-section">
-      <div className="container">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <h2 className="text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-            Latest posts
-          </h2>
+    <div className="relative left-1/2 w-screen -translate-x-1/2 bg-white dark:bg-[#121a22] py-[24px] md:py-[12px]">
+      <section className="page-section">
+        <div className="container">
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <h2 className="text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
+              Latest posts
+            </h2>
 
-          <Link
-            to="/posts"
-            className="rounded-md bg-[#218c77] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#1b7361]"
-          >
-            View all posts
-          </Link>
-        </div>
+            <Link
+              to="/posts"
+              className="rounded-md bg-[#218c77] px-5 py-2.5 text-[18px] md:text-sm font-medium text-white hover:bg-[#1b7361]"
+            >
+              View all posts
+            </Link>
+          </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
