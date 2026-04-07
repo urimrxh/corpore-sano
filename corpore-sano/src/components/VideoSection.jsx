@@ -55,9 +55,9 @@ function VideosSection() {
               slidesPerView={1.1}
               breakpoints={{
                 480: { slidesPerView: 1.35 },
-                768: { slidesPerView: 2.1 },
-                1024: { slidesPerView: 3.1 },
-                1280: { slidesPerView: 3.75 },
+                768: { slidesPerView: 3 },
+                1024: { slidesPerView: 3 },
+                1280: { slidesPerView: 4},
               }}
               className="videos-slider"
             >

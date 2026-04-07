@@ -11,7 +11,8 @@ function formatDate(value) {
 
 function PostCard({ post }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-[#e1e5ec] bg-white shadow-sm dark:border-[#2a3441] dark:bg-[#1e2835]">
+    <Link to={`/posts/${post.slug}`} className="hover:translate-y-[-5px] transition-all duration-300 hover:brightness-[0.95]">
+    <article className="overflow-hidden rounded-2xl border border-[#e1e5ec] shadow-sm dark:border-[#2a3441] bg-[#f5f8fa] dark:bg-[#1a2332]">
       {post.image_url ? (
         <img
           src={post.image_url}
@@ -45,9 +46,10 @@ function PostCard({ post }) {
           className="inline-flex items-center text-sm font-medium text-[#218c77] underline dark:text-[#4dc89f]"
         >
           Read more
-        </Link>
-      </div>
-    </article>
+          </Link>
+        </div>
+      </article>
+    </Link>
   );
 }
 
