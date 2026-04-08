@@ -954,7 +954,7 @@ function AdminLogin() {
         )}
 
         {isContentTab && (
-          <div className="admin-actions">
+          <div className="admin-actions py-[24px] md:py-[12px]">
             <button type="button" className="admin-btn-primary" onClick={save}>
               Save changes
             </button>
