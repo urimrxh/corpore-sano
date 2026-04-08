@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useAuth } from "../context/AuthContext";
 import AdminBookingsTab from "../components/AdminBookingsTab";
 import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
+import { fetchCurrentAdminProfile } from "../lib/adminsApi";
 import "../style/admin.css";
 
 const TABS = [
@@ -41,7 +42,7 @@ function clone(obj) {
 }
 
 function AdminLogin() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const {
     content,
     replaceContent,
@@ -53,12 +54,46 @@ function AdminLogin() {
   const [tab, setTab] = useState("global");
   const [draft, setDraft] = useState(() => clone(content));
   const [savedFlash, setSavedFlash] = useState(false);
+  const [adminProfile, setAdminProfile] = useState(null);
 
   const isContentTab = !["posts", "postTags"].includes(tab);
+  const adminEmail = user?.email ?? "";
 
   useEffect(() => {
     setDraft(clone(content));
   }, [content]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdminProfile() {
+      if (!user?.email) {
+        setAdminProfile(null);
+        return;
+      }
+
+      const { data } = await fetchCurrentAdminProfile(user.email);
+
+      if (!cancelled) {
+        setAdminProfile(data ?? null);
+      }
+    }
+
+    loadAdminProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email]);
+
+  const adminDisplayName = useMemo(() => {
+    return (
+      adminProfile?.full_name ||
+      adminEmail.split("@")[0] ||
+      adminEmail ||
+      "Admin"
+    );
+  }, [adminProfile?.full_name, adminEmail]);
 
   function save() {
     replaceContent(draft);
@@ -90,6 +125,18 @@ function AdminLogin() {
           >
             Sign out
           </button>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-4 dark:border-[#2a3441] dark:bg-[#1e2835]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d515c] dark:text-[#8ea0b5]">
+            Admin account
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]">
+            Welcome {adminDisplayName}
+          </h2>
+          <p className="mt-1 break-all text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+            {adminEmail || "No email found"}
+          </p>
         </div>
 
         {remoteLoadError && (
@@ -139,7 +186,10 @@ function AdminLogin() {
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    global: { ...d.global, consultationCtaFooter: e.target.value },
+                    global: {
+                      ...d.global,
+                      consultationCtaFooter: e.target.value,
+                    },
                   }))
                 }
               />
@@ -245,7 +295,10 @@ function AdminLogin() {
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    contact: { ...d.contact, backgroundImageUrl: e.target.value },
+                    contact: {
+                      ...d.contact,
+                      backgroundImageUrl: e.target.value,
+                    },
                   }))
                 }
               />

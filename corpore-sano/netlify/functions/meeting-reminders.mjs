@@ -14,8 +14,7 @@ function normalizeRecipients(value) {
 
 export default async (req) => {
   try {
-    const { next_run } = await req.json().catch(() => ({}));
-    console.log("meeting-reminders: running; next run:", next_run);
+    await req.json().catch(() => ({}));
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -28,7 +27,6 @@ export default async (req) => {
 
     const now = Date.now();
 
-    // Shared reminder window: ~15 minutes before appointment
     const reminderWindowStart = new Date(now + 14 * 60 * 1000).toISOString();
     const reminderWindowEnd = new Date(now + 16 * 60 * 1000).toISOString();
 
@@ -57,7 +55,6 @@ export default async (req) => {
         slotStart >= reminderWindowStart &&
         slotStart <= reminderWindowEnd;
 
-      // USER REMINDER (~15 minutes before)
       if (shouldSendUserReminder) {
         const joinLink = booking.google_meet_link || booking.google_event_link;
 
@@ -85,10 +82,6 @@ export default async (req) => {
               .from("bookings")
               .update({ meeting_reminder_sent_at: new Date().toISOString() })
               .eq("id", booking.id);
-
-            console.log(
-              `meeting-reminders: user reminder sent for booking ${booking.id}`
-            );
           } catch (emailErr) {
             console.error(
               `meeting-reminders: user reminder failed for booking ${booking.id}`,
@@ -102,7 +95,6 @@ export default async (req) => {
         }
       }
 
-      // ADMIN REMINDER (~15 minutes before)
       if (shouldSendAdminReminder) {
         const recipients = normalizeRecipients(booking.admin_recipient_emails);
 
@@ -123,10 +115,6 @@ export default async (req) => {
             .from("bookings")
             .update({ admin_reminder_sent_at: new Date().toISOString() })
             .eq("id", booking.id);
-
-          console.log(
-            `meeting-reminders: admin reminder sent for booking ${booking.id} to ${recipients.join(", ")}`
-          );
         } catch (emailErr) {
           console.error(
             `meeting-reminders: admin reminder failed for booking ${booking.id}`,
