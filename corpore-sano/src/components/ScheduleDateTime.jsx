@@ -182,7 +182,7 @@ function ScheduleDateTime({
                 genderSelected={Boolean(gender)}
               />
             </div>
-            <div className="schedule-date-time__book-appointment-btn my-[30px] mx-auto md:m-auto flex flex-col items-center gap-3">
+            <div className="schedule-date-time__book-appointment-btn my-[30px] mx-auto md:m-auto flex flex-col items-center gap-3 md:pt-[24px]">
               {bookingMessage && (
                 <p className="text-center text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f] max-w-md">
                   {bookingMessage}

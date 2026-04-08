@@ -402,16 +402,6 @@ export const handler = async (request) => {
       const waited = await waitForMeetLink(calendar, calendarId, eventId, 6, 2000);
       meetLink = waited.meetLink || meetLink;
       eventLink = waited.eventLink || eventLink;
-
-      console.log(
-        "create-calendar-event: conference poll result",
-        JSON.stringify({
-          bookingId,
-          eventId,
-          status: waited.status,
-          hasMeetLink: Boolean(waited.meetLink),
-        })
-      );
     } catch (pollErr) {
       console.warn(
         "create-calendar-event: polling for Meet link failed:",
