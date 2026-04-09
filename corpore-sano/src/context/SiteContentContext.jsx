@@ -47,7 +47,14 @@ function mergeSavedWithBase(saved, locale) {
     return {
       ...base,
       ...saved,
-      global: { ...base.global, ...saved.global },
+      global: {
+        ...base.global,
+        ...saved.global,
+        sectionsHidden: {
+          ...base.global.sectionsHidden,
+          ...saved.global?.sectionsHidden,
+        },
+      },
       home: { ...base.home, ...saved.home },
       contact: {
         ...base.contact,
@@ -223,17 +230,21 @@ export function SiteContentProvider({ children }) {
       const store = readV2Storage();
       store.locales = { ...store.locales, [loc]: full };
       const bFlag = full.global?.bilingualEnabled;
+      const sectionsHidden = full.global?.sectionsHidden;
       const other = loc === "en" ? "sq" : "en";
       const otherSaved = store.locales[other];
-      if (
-        bFlag !== undefined &&
-        otherSaved &&
-        typeof otherSaved === "object"
-      ) {
-        store.locales[other] = {
-          ...otherSaved,
-          global: { ...otherSaved.global, bilingualEnabled: bFlag },
-        };
+      if (otherSaved && typeof otherSaved === "object") {
+        const globalPatch = {};
+        if (bFlag !== undefined) globalPatch.bilingualEnabled = bFlag;
+        if (sectionsHidden !== undefined && typeof sectionsHidden === "object") {
+          globalPatch.sectionsHidden = { ...sectionsHidden };
+        }
+        if (Object.keys(globalPatch).length > 0) {
+          store.locales[other] = {
+            ...otherSaved,
+            global: { ...otherSaved.global, ...globalPatch },
+          };
+        }
       }
       store.version = 2;
       try {

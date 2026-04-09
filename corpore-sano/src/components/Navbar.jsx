@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { MdCheck, MdDarkMode, MdKeyboardArrowDown, MdLightMode } from "react-icons/md";
 import { useSiteContent } from "../context/SiteContentContext";
+import { isSectionHidden } from "../lib/sectionVisibility";
 import { useI18n } from "../context/I18nContext";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
@@ -151,6 +152,7 @@ function LanguageSwitcher({ compact = false }) {
 
 function Navbar() {
   const { content, siteBilingualEnabled } = useSiteContent();
+  const postsHidden = isSectionHidden(content, "posts");
   const { t, setLocale } = useI18n();
 
   useEffect(() => {
@@ -175,6 +177,7 @@ function Navbar() {
   }, [isMobileNav]);
 
   useEffect(() => {
+    if (postsHidden) return undefined;
     let cancelled = false;
 
     (async () => {
@@ -187,7 +190,7 @@ function Navbar() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [postsHidden]);
 
   useEffect(() => {
     const el = headerRef.current;
@@ -314,19 +317,21 @@ function Navbar() {
             {t("nav.about")}
           </Link>
 
-          {postTags.map((tag) => {
-            const tagPath = `/posts/tag/${tag.slug}`;
-            return (
-              <Link
-                key={tag.id}
-                to={tagPath}
-                className={navLinkClass(tagPath)}
-                aria-current={isNavActive(tagPath) ? "page" : undefined}
-              >
-                {tag.name}
-              </Link>
-            );
-          })}
+          {!postsHidden
+            ? postTags.map((tag) => {
+                const tagPath = `/posts/tag/${tag.slug}`;
+                return (
+                  <Link
+                    key={tag.id}
+                    to={tagPath}
+                    className={navLinkClass(tagPath)}
+                    aria-current={isNavActive(tagPath) ? "page" : undefined}
+                  >
+                    {tag.name}
+                  </Link>
+                );
+              })
+            : null}
 
           {session && (
             <Link
@@ -389,19 +394,21 @@ function Navbar() {
             {t("nav.about")}
           </Link>
 
-          {postTags.map((tag) => {
-            const tagPath = `/posts/tag/${tag.slug}`;
-            return (
-              <Link
-                key={tag.id}
-                to={tagPath}
-                className={`${navLinkClass(tagPath)} nav-links-item--mobile`}
-                aria-current={isNavActive(tagPath) ? "page" : undefined}
-              >
-                {tag.name}
-              </Link>
-            );
-          })}
+          {!postsHidden
+            ? postTags.map((tag) => {
+                const tagPath = `/posts/tag/${tag.slug}`;
+                return (
+                  <Link
+                    key={tag.id}
+                    to={tagPath}
+                    className={`${navLinkClass(tagPath)} nav-links-item--mobile`}
+                    aria-current={isNavActive(tagPath) ? "page" : undefined}
+                  >
+                    {tag.name}
+                  </Link>
+                );
+              })
+            : null}
 
           {session && (
             <Link

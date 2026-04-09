@@ -4,12 +4,13 @@ import {
   formatAppointment,
   renderBilingualEmail,
   buildBilingualText,
+  emailButton,
 } from "./resendEmail.mjs";
 
 function genderLabelSq(gender) {
   const value = String(gender || "").trim().toLowerCase();
   if (value === "male") return "Mashkull";
-  if (value === "female") return "Femer";
+  if (value === "female") return "Femër";
   return "E panjohur";
 }
 
@@ -34,12 +35,7 @@ export async function sendAdminBookedEmail({ to, booking }) {
     <p style="margin:0 0 16px 0;"><strong>Termini:</strong> ${escapeHtml(when)}</p>
     ${
       booking.google_event_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Ngjarja ne kalendar:</strong> <a href="${escapeHtml(booking.google_event_link)}" style="color:#2563eb;text-decoration:none;">Open appointment</a></p>`
-        : ""
-    }
-    ${
-      booking.google_meet_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Google Meet:</strong> <a href="${escapeHtml(booking.google_meet_link)}" style="color:#2563eb;text-decoration:none;">Join meeting</a></p>`
+        ? `<p style="margin:0 0 16px 0;"><strong>Ngjarja në kalendar:</strong> <a href="${escapeHtml(booking.google_event_link)}" style="color:#2563eb;text-decoration:none;">Hape ngjarjen</a></p>`
         : ""
     }
   `;
@@ -56,15 +52,11 @@ export async function sendAdminBookedEmail({ to, booking }) {
         ? `<p style="margin:0 0 16px 0;"><strong>Calendar event:</strong> <a href="${escapeHtml(booking.google_event_link)}" style="color:#2563eb;text-decoration:none;">Open appointment</a></p>`
         : ""
     }
-    ${
-      booking.google_meet_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Google Meet:</strong> <a href="${escapeHtml(booking.google_meet_link)}" style="color:#2563eb;text-decoration:none;">Join meeting</a></p>`
-        : ""
-    }
   `;
 
   const html = renderBilingualEmail({
-    preheader: "Nje termin i verifikuar eshte shtuar ne kalendar. A verified appointment has been added to the calendar.",
+    preheader:
+      "Nje termin i verifikuar eshte shtuar ne kalendar. A verified appointment has been added to the calendar.",
     title: `Një termin i ri i verifikuar | New verified appointment`,
     albanianHtml,
     englishHtml,
@@ -79,8 +71,7 @@ Emri i plotë: ${booking.full_name || ""}
 Gjinia: ${genderLabelSq(booking.gender)}
 Email i klientit: ${booking.email || ""}
 Termini: ${when}
-${booking.google_event_link ? `Ngjarja në kalendar: ${booking.google_event_link}` : ""}
-${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
+${booking.google_event_link ? `Ngjarja në kalendar: ${booking.google_event_link}` : ""}`.trim(),
     english: `Hi,
 
 A verified appointment has been added to the calendar.
@@ -89,8 +80,7 @@ Full name: ${booking.full_name || ""}
 Gender: ${genderLabelEn(booking.gender)}
 Client email: ${booking.email || ""}
 Appointment: ${when}
-${booking.google_event_link ? `Calendar event: ${booking.google_event_link}` : ""}
-${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
+${booking.google_event_link ? `Calendar event: ${booking.google_event_link}` : ""}`.trim(),
   });
 
   await sendResendEmail({
@@ -108,19 +98,14 @@ export async function sendAdminReminderEmail({ to, booking }) {
 
   const albanianHtml = `
     <p style="margin:0 0 16px 0;">Përshëndetje,</p>
-    <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që nje termin fillon për rreth 15 minuta.</p>
+    <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që një termin fillon për rreth 15 minuta.</p>
     <p style="margin:0 0 8px 0;"><strong>Emri i plotë:</strong> ${escapeHtml(booking.full_name || "")}</p>
     <p style="margin:0 0 8px 0;"><strong>Gjinia:</strong> ${escapeHtml(genderLabelSq(booking.gender))}</p>
     <p style="margin:0 0 8px 0;"><strong>Email i klientit:</strong> ${escapeHtml(booking.email || "")}</p>
     <p style="margin:0 0 16px 0;"><strong>Termini:</strong> ${escapeHtml(when)}</p>
     ${
-      booking.google_event_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Ngjarja ne kalendar:</strong> <a href="${escapeHtml(booking.google_event_link)}" style="color:#2563eb;text-decoration:none;">Open appointment</a></p>`
-        : ""
-    }
-    ${
       booking.google_meet_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Google Meet:</strong> <a href="${escapeHtml(booking.google_meet_link)}" style="color:#2563eb;text-decoration:none;">Join meeting</a></p>`
+        ? emailButton("Hyr në Google Meet", booking.google_meet_link, "#2563eb")
         : ""
     }
   `;
@@ -133,19 +118,15 @@ export async function sendAdminReminderEmail({ to, booking }) {
     <p style="margin:0 0 8px 0;"><strong>Client email:</strong> ${escapeHtml(booking.email || "")}</p>
     <p style="margin:0 0 16px 0;"><strong>Appointment:</strong> ${escapeHtml(when)}</p>
     ${
-      booking.google_event_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Calendar event:</strong> <a href="${escapeHtml(booking.google_event_link)}" style="color:#2563eb;text-decoration:none;">Open appointment</a></p>`
-        : ""
-    }
-    ${
       booking.google_meet_link
-        ? `<p style="margin:0 0 16px 0;"><strong>Google Meet:</strong> <a href="${escapeHtml(booking.google_meet_link)}" style="color:#2563eb;text-decoration:none;">Join meeting</a></p>`
+        ? emailButton("Join Google Meet", booking.google_meet_link, "#111827")
         : ""
     }
   `;
 
   const html = renderBilingualEmail({
-    preheader: "Rikujtesë për terminin që fillon për rreth 15 minuta. Reminder for an appointment starting in about 15 minutes.",
+    preheader:
+      "Rikujtesë për terminin që fillon për rreth 15 minuta. Reminder for an appointment starting in about 15 minutes.",
     title: `Rikujtesë për terminin | Appointment reminder`,
     albanianHtml,
     englishHtml,
@@ -154,13 +135,12 @@ export async function sendAdminReminderEmail({ to, booking }) {
   const text = buildBilingualText({
     albanian: `Përshëndetje,
 
-Kjo është një rikujtesë që nje termin fillon për rreth 15 minuta.
+Kjo është një rikujtesë që një termin fillon për rreth 15 minuta.
 
 Emri i plotë: ${booking.full_name || ""}
 Gjinia: ${genderLabelSq(booking.gender)}
 Email i klientit: ${booking.email || ""}
 Termini: ${when}
-${booking.google_event_link ? `Ngjarja në kalendar: ${booking.google_event_link}` : ""}
 ${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
     english: `Hi,
 
@@ -170,7 +150,6 @@ Full name: ${booking.full_name || ""}
 Gender: ${genderLabelEn(booking.gender)}
 Client email: ${booking.email || ""}
 Appointment: ${when}
-${booking.google_event_link ? `Calendar event: ${booking.google_event_link}` : ""}
 ${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
   });
 

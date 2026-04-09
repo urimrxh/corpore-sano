@@ -3,7 +3,14 @@
     "global": {
       "consultationCta": "Free consultation",
       "consultationCtaFooter": "Free consultation",
-      "bilingualEnabled": true
+      "bilingualEnabled": true,
+      "sectionsHidden": {
+        "homeLatestPosts": false,
+        "homeVideos": false,
+        "videosPage": false,
+        "posts": false,
+        "nutritionists": false
+      }
     },
     "home": {
       "heroTitle": "Online nutrition consultations made simple.",
@@ -356,6 +363,13 @@
       "footerCta": "Footer CTA button",
       "bilingualEnabled": "Enable two languages (Albanian / English)",
       "bilingualEnabledHint": "When disabled, the site is Albanian-only and the header language control is hidden.",
+      "sectionsHiddenTitle": "Hide on public site",
+      "sectionsHiddenHint": "Checked = hidden for visitors. These apply to both languages when you save.",
+      "hideHomeLatestPosts": "Hide “latest posts” block on the home page",
+      "hideHomeVideos": "Hide the videos block on the home page",
+      "hideVideosPage": "Hide the Videos page (/videos) and the “View all videos” link",
+      "hidePosts": "Hide all posts (home block, header tag links, /posts pages)",
+      "hideNutritionists": "Hide the Nutritionists page (/nutritionists)",
       "editingLocaleLabel": "Site copy language",
       "editingLocaleHint": "The fields below edit the Albanian or English version of the site. This admin interface stays in English.",
       "editingLocaleSq": "Albanian",

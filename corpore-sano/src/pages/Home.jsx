@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useSiteContent } from "../context/SiteContentContext";
+import { isSectionHidden } from "../lib/sectionVisibility";
 import "../style/home.css";
 import BookingScheduler from "../components/BookMeeting";
 import HeroWaves from "../components/HeroWaves";
@@ -40,8 +41,10 @@ function Home() {
           </div>
 
           <BookingScheduler />
-          <HomeLatestPostsSection />
-          <VideosSection />
+          {!isSectionHidden(content, "homeLatestPosts") ? (
+            <HomeLatestPostsSection />
+          ) : null}
+          {!isSectionHidden(content, "homeVideos") ? <VideosSection /> : null}
         </div>
       </section>
     </>
