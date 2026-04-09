@@ -5,6 +5,9 @@ import {
   sendResendEmail,
   escapeHtml,
   formatAppointment,
+  renderBilingualEmail,
+  buildBilingualText,
+  emailButton,
 } from "./lib/resendEmail.mjs";
 import { getActiveAdminEmailsByGender } from "./lib/adminRecipients.mjs";
 import { sendAdminBookedEmail } from "./lib/adminBookingEmails.mjs";
@@ -25,7 +28,7 @@ function normalizeRecipientEmails(value) {
     ...new Set(
       (Array.isArray(value) ? value : [])
         .map((email) => String(email || "").trim().toLowerCase())
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
 }
@@ -34,7 +37,7 @@ function getMeetLinkFromEvent(event) {
   return (
     event?.hangoutLink ||
     event?.conferenceData?.entryPoints?.find(
-      (entry) => entry.entryPointType === "video"
+      (entry) => entry.entryPointType === "video",
     )?.uri ||
     null
   );
@@ -45,7 +48,7 @@ async function waitForMeetLink(
   calendarId,
   eventId,
   tries = 6,
-  delayMs = 2000
+  delayMs = 2000,
 ) {
   let lastEventLink = null;
   let lastStatus = "timeout";
@@ -86,19 +89,105 @@ async function waitForMeetLink(
 
 async function sendVerificationConfirmedEmail(booking) {
   const when = formatAppointment(booking.slot_start);
+  const hasMeetLink = Boolean(booking.google_meet_link);
+  const hasEventLink = Boolean(booking.google_event_link);
 
-  const html = `
-    <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
-    <p>Your appointment has been successfully verified.</p>
-    <p><strong>Time:</strong> ${escapeHtml(when)}</p>
-    <p>You will receive the Google Meet link by email about 15 minutes before your appointment.</p>
-    <p>Thank you — we’ll see you then.</p>
+  const albanianHtml = `
+    <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(booking.full_name || "aty")},</p>
+    <p style="margin:0 0 16px 0;">Termini juaj është konfirmuar me sukses.</p>
+    <p style="margin:0 0 16px 0;"><strong>Koha:</strong> ${escapeHtml(when)}</p>
+    ${
+      hasEventLink
+        ? emailButton(
+            "Hap eventin në kalendar",
+            booking.google_event_link,
+            "#2563eb",
+          )
+        : ""
+    }
+    ${
+      hasMeetLink
+        ? emailButton("Hyr në takim", booking.google_meet_link, "#2563eb")
+        : ""
+    }
+    <p style="margin:0;color:#6b7280;">
+      ${
+        hasMeetLink
+          ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
+          : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
+      }
+    </p>
   `;
+
+  const englishHtml = `
+    <p style="margin:0 0 16px 0;">Hi ${escapeHtml(booking.full_name || "there")},</p>
+    <p style="margin:0 0 16px 0;">Your appointment has been successfully verified.</p>
+    <p style="margin:0 0 16px 0;"><strong>Time:</strong> ${escapeHtml(when)}</p>
+    ${
+      hasEventLink
+        ? emailButton(
+            "Open calendar event",
+            booking.google_event_link,
+            "#111827",
+          )
+        : ""
+    }
+    ${
+      hasMeetLink
+        ? emailButton("Join meeting", booking.google_meet_link, "#111827")
+        : ""
+    }
+    <p style="margin:0;color:#6b7280;">
+      ${
+        hasMeetLink
+          ? "You will also receive a reminder email about 15 minutes before the appointment."
+          : "The meeting link will be sent again in the reminder email about 15 minutes before the appointment."
+      }
+    </p>
+  `;
+
+  const html = renderBilingualEmail({
+    preheader:
+      "Termini juaj është konfirmuar me sukses. Your appointment has been successfully verified.",
+    title:
+      "Termini juaj është konfirmuar | Your appointment has been successfully verified",
+    albanianHtml,
+    englishHtml,
+  });
+
+  const text = buildBilingualText({
+    albanian: `Përshëndetje ${booking.full_name || "aty"},
+
+Termini juaj është konfirmuar me sukses.
+
+Koha: ${when}
+${hasEventLink ? `Eventi në kalendar: ${booking.google_event_link}` : ""}
+${hasMeetLink ? `Google Meet: ${booking.google_meet_link}` : ""}
+${
+  hasMeetLink
+    ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
+    : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
+}`,
+    english: `Hi ${booking.full_name || "there"},
+
+Your appointment has been successfully verified.
+
+Time: ${when}
+${hasEventLink ? `Calendar event: ${booking.google_event_link}` : ""}
+${hasMeetLink ? `Google Meet: ${booking.google_meet_link}` : ""}
+${
+  hasMeetLink
+    ? "You will also receive a reminder email about 15 minutes before the appointment."
+    : "The meeting link will be sent again in the reminder email about 15 minutes before the appointment."
+}`,
+  });
 
   await sendResendEmail({
     to: booking.email,
-    subject: "Your appointment has been successfully verified",
+    subject:
+      "Termini juaj është konfirmuar | Your appointment has been successfully verified",
     html,
+    text,
   });
 }
 
@@ -120,13 +209,13 @@ async function sendVerificationConfirmedEmailIfNeeded(supabase, booking) {
     if (error) {
       console.error(
         "create-calendar-event: failed to save verification_confirmation_sent_at",
-        error.message
+        error.message,
       );
     }
   } catch (emailErr) {
     console.error(
       "create-calendar-event: verification confirmation email failed",
-      emailErr?.message || emailErr
+      emailErr?.message || emailErr,
     );
   }
 }
@@ -155,7 +244,7 @@ async function notifyAdminsForBooking(supabase, booking) {
   if (recipientSaveError) {
     console.error(
       "create-calendar-event: failed to save admin recipient emails",
-      recipientSaveError.message
+      recipientSaveError.message,
     );
   }
 
@@ -178,7 +267,7 @@ async function notifyAdminsForBooking(supabase, booking) {
   if (notifiedError) {
     console.error(
       "create-calendar-event: failed to save admin_notified_at",
-      notifiedError.message
+      notifiedError.message,
     );
   }
 
@@ -280,7 +369,7 @@ export const handler = async (request) => {
     } catch (adminErr) {
       console.error(
         "create-calendar-event: existing-event admin notification failed",
-        adminErr?.message || adminErr
+        adminErr?.message || adminErr,
       );
     }
 
@@ -304,13 +393,15 @@ export const handler = async (request) => {
     normalizedGender === "male"
       ? calMale
       : normalizedGender === "female"
-      ? calFemale
-      : "";
+        ? calFemale
+        : "";
 
   if (!calendarId) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: `Invalid booking gender "${booking.gender}"` }),
+      body: JSON.stringify({
+        error: `Invalid booking gender "${booking.gender}"`,
+      }),
     };
   }
 
@@ -365,7 +456,7 @@ export const handler = async (request) => {
   } catch (meetErr) {
     console.warn(
       "create-calendar-event: Meet insert failed, retrying without Meet:",
-      meetErr?.message || meetErr
+      meetErr?.message || meetErr,
     );
 
     try {
@@ -405,7 +496,7 @@ export const handler = async (request) => {
     } catch (pollErr) {
       console.warn(
         "create-calendar-event: polling for Meet link failed:",
-        pollErr?.message || pollErr
+        pollErr?.message || pollErr,
       );
     }
   }
@@ -444,7 +535,7 @@ export const handler = async (request) => {
   } catch (adminErr) {
     console.error(
       "create-calendar-event: admin notification failed",
-      adminErr?.message || adminErr
+      adminErr?.message || adminErr,
     );
   }
 

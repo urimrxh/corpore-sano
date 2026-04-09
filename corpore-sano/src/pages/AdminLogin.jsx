@@ -177,7 +177,7 @@ function AdminLogin() {
           </h1>
           <button
             type="button"
-            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50"
+            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50 hover:text-[#f5f8fa]"
             onClick={() => signOut()}
           >
             {adminT("adminLogin.signOut")}
@@ -305,7 +305,7 @@ function AdminLogin() {
                     }))
                   }
                 />
-                <span className="text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
+                <span className="text-sm font-semibold text-[#103152] dark:text-[#e8ecf1] ml-[5px]">
                   {adminT("adminLogin.bilingualEnabled")}
                 </span>
               </label>

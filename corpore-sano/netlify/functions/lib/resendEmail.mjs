@@ -1,52 +1,133 @@
-export async function sendResendEmail({ to, subject, html }) {
-    const resendKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM;
-  
-    if (!resendKey) {
-      throw new Error("Missing RESEND_API_KEY");
+import { createClient } from "@supabase/supabase-js";
+import {
+  sendResendEmail,
+  escapeHtml,
+  formatAppointment,
+} from "./lib/resendEmail.mjs";
+import { sendAdminReminderEmail } from "./lib/adminBookingEmails.mjs";
+
+function normalizeRecipients(value) {
+  return Array.isArray(value)
+    ? value.map((email) => String(email || "").trim()).filter(Boolean)
+    : [];
+}
+
+export default async (req) => {
+  try {
+    await req.json().catch(() => ({}));
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceKey) {
+      throw new Error("Missing Supabase env vars");
     }
-  
-    if (!from) {
-      throw new Error("Missing RESEND_FROM");
+
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    const now = Date.now();
+
+    const reminderWindowStart = new Date(now + 14 * 60 * 1000).toISOString();
+    const reminderWindowEnd = new Date(now + 16 * 60 * 1000).toISOString();
+
+    const { data: bookings, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .not("verified_at", "is", null)
+      .gte("slot_start", reminderWindowStart)
+      .lte("slot_start", reminderWindowEnd)
+      .or("status.is.null,status.neq.cancelled");
+
+    if (error) {
+      throw error;
     }
-  
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html,
-      }),
-    });
-  
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Resend failed: ${res.status} ${res.statusText} ${text}`);
+
+    for (const booking of bookings || []) {
+      const slotStart = booking.slot_start || "";
+
+      const shouldSendUserReminder =
+        !booking.meeting_reminder_sent_at &&
+        slotStart >= reminderWindowStart &&
+        slotStart <= reminderWindowEnd;
+
+      const shouldSendAdminReminder =
+        !booking.admin_reminder_sent_at &&
+        slotStart >= reminderWindowStart &&
+        slotStart <= reminderWindowEnd;
+
+      if (shouldSendUserReminder) {
+        const joinLink = booking.google_meet_link || booking.google_event_link;
+
+        if (joinLink) {
+          const when = formatAppointment(booking.slot_start);
+          const safeJoinLink = escapeHtml(joinLink);
+
+          const html = `
+            <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
+            <p>This is your appointment reminder. Your meeting starts in about 15 minutes.</p>
+            <p><strong>Time:</strong> ${escapeHtml(when)}</p>
+            <p><strong>Join link:</strong><br />
+            <a href="${safeJoinLink}">${safeJoinLink}</a></p>
+            <p>We’ll see you shortly.</p>
+          `;
+
+          try {
+            await sendResendEmail({
+              to: booking.email,
+              subject: "Reminder — your appointment starts in about 15 minutes",
+              html,
+            });
+
+            await supabase
+              .from("bookings")
+              .update({ meeting_reminder_sent_at: new Date().toISOString() })
+              .eq("id", booking.id);
+          } catch (emailErr) {
+            console.error(
+              `meeting-reminders: user reminder failed for booking ${booking.id}`,
+              emailErr?.message || emailErr
+            );
+          }
+        } else {
+          console.warn(
+            `meeting-reminders: skipped user reminder for booking ${booking.id} because no join link was available`
+          );
+        }
+      }
+
+      if (shouldSendAdminReminder) {
+        const recipients = normalizeRecipients(booking.admin_recipient_emails);
+
+        if (!recipients.length) {
+          console.warn(
+            `meeting-reminders: skipped admin reminder for booking ${booking.id} because no admin recipients were stored`
+          );
+          continue;
+        }
+
+        try {
+          await sendAdminReminderEmail({
+            to: recipients,
+            booking,
+          });
+
+          await supabase
+            .from("bookings")
+            .update({ admin_reminder_sent_at: new Date().toISOString() })
+            .eq("id", booking.id);
+        } catch (emailErr) {
+          console.error(
+            `meeting-reminders: admin reminder failed for booking ${booking.id}`,
+            emailErr?.message || emailErr
+          );
+        }
+      }
     }
-  
-    return res.json().catch(() => null);
+  } catch (err) {
+    console.error("meeting-reminders: fatal error", err?.message || err);
   }
-  
-  export function escapeHtml(value = "") {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-  
-  export function formatAppointment(isoString) {
-    if (!isoString) return "";
-  
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "full",
-      timeStyle: "short",
-      timeZone: "Europe/Belgrade",
-    }).format(new Date(isoString));
-  }
+};
+
+export const config = {
+  schedule: "* * * * *",
+};

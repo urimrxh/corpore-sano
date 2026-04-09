@@ -4,6 +4,8 @@ import {
   sendResendEmail,
   escapeHtml,
   formatAppointment,
+  renderBilingualEmail,
+  buildBilingualText,
 } from "./lib/resendEmail.mjs";
 
 function isFutureAppointment(slotStart) {
@@ -15,17 +17,50 @@ function isFutureAppointment(slotStart) {
 async function sendClientCancellationEmail(booking) {
   const when = formatAppointment(booking.slot_start);
 
-  const html = `
-    <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
-    <p>Your appointment has been cancelled by the admin.</p>
-    <p><strong>Scheduled time:</strong> ${escapeHtml(when)}</p>
-    <p>If you would like, you can book a new appointment from the website.</p>
+  const albanianHtml = `
+    <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(booking.full_name || "aty")},</p>
+    <p style="margin:0 0 16px 0;">Termini juaj është anuluar nga administratori.</p>
+    <p style="margin:0 0 16px 0;"><strong>Koha e planifikuar:</strong> ${escapeHtml(when)}</p>
+    <p style="margin:0;color:#6b7280;">Nëse deshironi, mund të rezervoni një termin të ri nga faqja.</p>
   `;
+
+  const englishHtml = `
+    <p style="margin:0 0 16px 0;">Hi ${escapeHtml(booking.full_name || "there")},</p>
+    <p style="margin:0 0 16px 0;">Your appointment has been cancelled by the admin.</p>
+    <p style="margin:0 0 16px 0;"><strong>Scheduled time:</strong> ${escapeHtml(when)}</p>
+    <p style="margin:0;color:#6b7280;">If you would like, you can book a new appointment from the website.</p>
+  `;
+
+  const html = renderBilingualEmail({
+    preheader:
+      "Termini juaj është anuluar. Your appointment has been cancelled.",
+    title: "Termini juaj është anuluar | Your appointment has been cancelled",
+    albanianHtml,
+    englishHtml,
+  });
+
+  const text = buildBilingualText({
+    albanian: `Përshëndetje ${booking.full_name || "aty"},
+
+Termini juaj është anuluar nga administratori.
+
+Koha e planifikuar: ${when}
+
+Nëse deshironi, mund të rezervoni një termin të ri nga faqja.`,
+    english: `Hi ${booking.full_name || "there"},
+
+Your appointment has been cancelled by the admin.
+
+Scheduled time: ${when}
+
+If you would like, you can book a new appointment from the website.`,
+  });
 
   await sendResendEmail({
     to: booking.email,
-    subject: "Your appointment has been cancelled",
+    subject: "Termini juaj është anuluar | Your appointment has been cancelled",
     html,
+    text,
   });
 }
 
@@ -58,7 +93,7 @@ export const handler = async (request) => {
 
   const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 
   const { data: booking, error: fetchErr } = await supabase
@@ -82,8 +117,8 @@ export const handler = async (request) => {
       normalizedGender === "male"
         ? process.env.GOOGLE_CALENDAR_MALE_ID
         : normalizedGender === "female"
-        ? process.env.GOOGLE_CALENDAR_FEMALE_ID
-        : "";
+          ? process.env.GOOGLE_CALENDAR_FEMALE_ID
+          : "";
 
     if (!calendarId) {
       return {
@@ -155,7 +190,7 @@ export const handler = async (request) => {
     } catch (emailErr) {
       console.error(
         "delete-calendar-event: failed to send client cancellation email",
-        emailErr?.message || emailErr
+        emailErr?.message || emailErr,
       );
     }
   }

@@ -3,6 +3,9 @@ import {
   sendResendEmail,
   escapeHtml,
   formatAppointment,
+  renderBilingualEmail,
+  buildBilingualText,
+  emailButton,
 } from "./lib/resendEmail.mjs";
 import { sendAdminReminderEmail } from "./lib/adminBookingEmails.mjs";
 
@@ -26,7 +29,6 @@ export default async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const now = Date.now();
-
     const reminderWindowStart = new Date(now + 14 * 60 * 1000).toISOString();
     const reminderWindowEnd = new Date(now + 16 * 60 * 1000).toISOString();
 
@@ -60,22 +62,62 @@ export default async (req) => {
 
         if (joinLink) {
           const when = formatAppointment(booking.slot_start);
-          const safeJoinLink = escapeHtml(joinLink);
 
-          const html = `
-            <p>Hi ${escapeHtml(booking.full_name || "there")},</p>
-            <p>This is your appointment reminder. Your meeting starts in about 15 minutes.</p>
-            <p><strong>Time:</strong> ${escapeHtml(when)}</p>
-            <p><strong>Join link:</strong><br />
-            <a href="${safeJoinLink}">${safeJoinLink}</a></p>
-            <p>We’ll see you shortly.</p>
+          const albanianHtml = `
+            <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(booking.full_name || "aty")},</p>
+            <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që termini juaj fillon për rreth 15 minuta.</p>
+            <p style="margin:0 0 24px 0;"><strong>Koha:</strong> ${escapeHtml(when)}</p>
+            ${emailButton("Hyr ne takim", joinLink, "#2563eb")}
+            <p style="margin:0;color:#6b7280;">Shihemi së shpejti.</p>
           `;
+
+          const englishHtml = `
+            <p style="margin:0 0 16px 0;">Hi ${escapeHtml(booking.full_name || "there")},</p>
+            <p style="margin:0 0 16px 0;">This is your appointment reminder. Your meeting starts in about 15 minutes.</p>
+            <p style="margin:0 0 24px 0;"><strong>Time:</strong> ${escapeHtml(when)}</p>
+            ${emailButton("Join meeting", joinLink, "#111827")}
+            <p style="margin:0;color:#6b7280;">We will see you shortly.</p>
+          `;
+
+          const html = renderBilingualEmail({
+            preheader:
+              "Rikujtesë për terminin tuaj që fillon për rreth 15 minuta. Reminder that your appointment starts in about 15 minutes.",
+            title:
+              "Rikujtesë për terminin | Reminder: your appointment starts in about 15 minutes",
+            albanianHtml,
+            englishHtml,
+          });
+
+          const text = buildBilingualText({
+            albanian: `Pershendetje ${booking.full_name || "aty"},
+
+Kjo është një rikujtesë që terminin tuaj fillon për rreth 15 minuta.
+
+Koha: ${when}
+
+Hyr ne takim:
+${joinLink}
+
+Shihemi së shpejti.`,
+            english: `Hi ${booking.full_name || "there"},
+
+This is your appointment reminder. Your meeting starts in about 15 minutes.
+
+Time: ${when}
+
+Join meeting:
+${joinLink}
+
+We will see you shortly.`,
+          });
 
           try {
             await sendResendEmail({
               to: booking.email,
-              subject: "Reminder — your appointment starts in about 15 minutes",
+              subject:
+                "Rikujtesë për terminin | Reminder: your appointment starts in about 15 minutes",
               html,
+              text,
             });
 
             await supabase
@@ -85,12 +127,12 @@ export default async (req) => {
           } catch (emailErr) {
             console.error(
               `meeting-reminders: user reminder failed for booking ${booking.id}`,
-              emailErr?.message || emailErr
+              emailErr?.message || emailErr,
             );
           }
         } else {
           console.warn(
-            `meeting-reminders: skipped user reminder for booking ${booking.id} because no join link was available`
+            `meeting-reminders: skipped user reminder for booking ${booking.id} because no join link was available`,
           );
         }
       }
@@ -100,7 +142,7 @@ export default async (req) => {
 
         if (!recipients.length) {
           console.warn(
-            `meeting-reminders: skipped admin reminder for booking ${booking.id} because no admin recipients were stored`
+            `meeting-reminders: skipped admin reminder for booking ${booking.id} because no admin recipients were stored`,
           );
           continue;
         }
@@ -118,7 +160,7 @@ export default async (req) => {
         } catch (emailErr) {
           console.error(
             `meeting-reminders: admin reminder failed for booking ${booking.id}`,
-            emailErr?.message || emailErr
+            emailErr?.message || emailErr,
           );
         }
       }
