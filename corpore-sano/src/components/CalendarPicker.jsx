@@ -2,6 +2,7 @@ import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import "../style/calendarPicker.css";
 import { formatDateKey } from "../lib/timeSlots";
+import { useI18n } from "../context/I18nContext";
 
 function startOfToday() {
   const d = new Date();
@@ -10,6 +11,7 @@ function startOfToday() {
 }
 
 function CalendarPicker({ selectedDate, onDateSelect, availableDates }) {
+  const { dayPickerLocale } = useI18n();
   const todayStart = startOfToday();
 
   const restrictDates =
@@ -18,6 +20,7 @@ function CalendarPicker({ selectedDate, onDateSelect, availableDates }) {
   return (
     <DayPicker
       className="schedule-day-picker"
+      locale={dayPickerLocale}
       mode="single"
       selected={selectedDate}
       onSelect={onDateSelect}

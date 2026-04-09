@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import "../style/admin.css";
 function AdminSignIn() {
+  const { t } = useI18n();
   const { session, loading, signIn, authReady } = useAuth();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/admin";
@@ -17,10 +19,7 @@ function AdminSignIn() {
       <section className="page-section">
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
-            Supabase is not configured. Add{" "}
-            <code className="text-sm">VITE_SUPABASE_URL</code> and an anon key
-            (<code className="text-sm">VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY</code> or{" "}
-            <code className="text-sm">VITE_SUPABASE_ANON_KEY</code>) to your env file.
+            {t("adminSignIn.notConfigured")}
           </p>
         </div>
       </section>
@@ -47,10 +46,10 @@ function AdminSignIn() {
     <section className="page-section">
       <div className="container admin-page max-w-md">
         <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          Admin sign in
+          {t("adminSignIn.title")}
         </h1>
         <p className="mb-6 text-[15px] text-[#4d515c] dark:text-[#b8c4d0]">
-          Use the account created in Supabase Authentication (no public sign-up).
+          {t("adminSignIn.subtitle")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +65,7 @@ function AdminSignIn() {
             />
           </div>
           <div className="admin-field">
-            <label htmlFor="admin-password">Password</label>
+            <label htmlFor="admin-password">{t("adminSignIn.password")}</label>
             <input
               id="admin-password"
               type="password"
@@ -86,7 +85,7 @@ function AdminSignIn() {
             className="admin-btn-primary w-full"
             disabled={submitting}
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting ? t("adminSignIn.signingIn") : t("adminSignIn.signIn")}
           </button>
         </form>
 
@@ -95,13 +94,13 @@ function AdminSignIn() {
             to="/admin/forgot-password"
             className="text-[#218c77] underline dark:text-[#4dc89f]"
           >
-            Forgot password?
+            {t("adminSignIn.forgot")}
           </Link>
         </p>
 
         <p className="mt-8 text-center text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           <Link to="/" className="text-[#218c77] underline dark:text-[#4dc89f]">
-            ← Back to site
+            ← {t("adminSignIn.back")}
           </Link>
         </p>
       </div>

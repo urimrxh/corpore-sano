@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "../context/I18nContext";
 import {
   createPost,
   deletePost,
@@ -20,6 +21,14 @@ const initialForm = {
 };
 
 function AdminPostsTab() {
+  const { t } = useI18n();
+
+  function formatPostStatus(status) {
+    if (status === "published") return t("adminPosts.statusPublished");
+    if (status === "draft") return t("adminPosts.statusDraft");
+    return status || "";
+  }
+
   const [posts, setPosts] = useState([]);
   const [tags, setTags] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -92,7 +101,7 @@ function AdminPostsTab() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this post?")) return;
+    if (!window.confirm(t("adminPosts.confirmDelete"))) return;
 
     const { error } = await deletePost(id);
     if (error) {
@@ -103,7 +112,7 @@ function AdminPostsTab() {
     loadAll();
   }
 
-  if (loading) return <p>Loading posts...</p>;
+  if (loading) return <p>{t("adminPosts.loading")}</p>;
 
   return (
     <div className="space-y-8">
@@ -112,14 +121,14 @@ function AdminPostsTab() {
         className="space-y-4 rounded-xl border border-[#e1e5ec] bg-white p-5 dark:border-[#2a3441] dark:bg-[#1e2835]"
       >
         <h3 className="text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          {editingId ? "Edit post" : "Add post"}
+          {editingId ? t("adminPosts.editPost") : t("adminPosts.addPost")}
         </h3>
 
         <input
           name="title"
           value={form.title}
           onChange={handleChange}
-          placeholder="Title"
+          placeholder={t("adminPosts.titlePh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -127,7 +136,7 @@ function AdminPostsTab() {
           name="slug"
           value={form.slug}
           onChange={handleChange}
-          placeholder="Slug / link"
+          placeholder={t("adminPosts.slugPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -135,7 +144,7 @@ function AdminPostsTab() {
           name="description"
           value={form.description}
           onChange={handleChange}
-          placeholder="Description"
+          placeholder={t("adminPosts.descPh")}
           className="min-h-[140px] w-full rounded-md border px-3 py-2"
         />
 
@@ -143,7 +152,7 @@ function AdminPostsTab() {
           name="topic"
           value={form.topic}
           onChange={handleChange}
-          placeholder="Topic"
+          placeholder={t("adminPosts.topicPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -151,7 +160,7 @@ function AdminPostsTab() {
           name="author"
           value={form.author}
           onChange={handleChange}
-          placeholder="Author"
+          placeholder={t("adminPosts.authorPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -159,7 +168,7 @@ function AdminPostsTab() {
           name="image_url"
           value={form.image_url}
           onChange={handleChange}
-          placeholder="Image URL (optional)"
+          placeholder={t("adminPosts.imagePh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -169,7 +178,7 @@ function AdminPostsTab() {
           onChange={handleChange}
           className="w-full rounded-md border px-3 py-2"
         >
-          <option value="">No tag</option>
+          <option value="">{t("adminPosts.noTag")}</option>
           {tags.map((tag) => (
             <option key={tag.id} value={tag.id}>
               {tag.name}
@@ -183,8 +192,8 @@ function AdminPostsTab() {
           onChange={handleChange}
           className="w-full rounded-md border px-3 py-2"
         >
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
+          <option value="draft">{t("adminPosts.draft")}</option>
+          <option value="published">{t("adminPosts.published")}</option>
         </select>
 
         <div className="flex gap-3">
@@ -192,7 +201,7 @@ function AdminPostsTab() {
             type="submit"
             className="rounded-md bg-[#218c77] px-5 py-2.5 text-white"
           >
-            {editingId ? "Update post" : "Create post"}
+            {editingId ? "Përditëso postimin" : "Krijo postimin"}
           </button>
 
           {editingId ? (
@@ -204,7 +213,7 @@ function AdminPostsTab() {
               }}
               className="rounded-md border px-5 py-2.5"
             >
-              Cancel
+              {t("adminPosts.cancel")}
             </button>
           ) : null}
         </div>
@@ -221,7 +230,7 @@ function AdminPostsTab() {
                 {post.title}
               </h4>
               <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-                {post.author} • {post.status}
+                {post.author} • {formatPostStatus(post.status)}
                 {post.tag?.name ? ` • ${post.tag.name}` : ""}
               </p>
             </div>
@@ -232,14 +241,14 @@ function AdminPostsTab() {
                 onClick={() => handleEdit(post)}
                 className="rounded-md border px-3 py-2 text-sm"
               >
-                Edit
+                {t("adminPosts.edit")}
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(post.id)}
                 className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700"
               >
-                Delete
+                {t("adminPosts.delete")}
               </button>
             </div>
           </div>

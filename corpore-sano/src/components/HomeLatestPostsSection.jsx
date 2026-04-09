@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchLatestPosts } from "../lib/postsApi";
 import PostCard from "./PostCard";
+import { useI18n } from "../context/I18nContext";
 
 function HomeLatestPostsSection() {
+  const { t } = useI18n();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,14 +34,14 @@ function HomeLatestPostsSection() {
         <div className="container">
           <div className="mb-8 flex items-center justify-between gap-4">
             <h2 className="text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              Latest posts
+              {t("posts.latest")}
             </h2>
 
             <Link
               to="/posts"
               className="rounded-md bg-[#218c77] px-5 py-2.5 text-[18px] md:text-sm font-medium text-white hover:bg-[#1b7361]"
             >
-              View all posts
+              {t("posts.viewAll")}
             </Link>
           </div>
 

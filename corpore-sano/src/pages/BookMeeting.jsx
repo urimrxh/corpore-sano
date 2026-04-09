@@ -1,9 +1,11 @@
 import { useSiteContent } from "../context/SiteContentContext";
+import { useI18n } from "../context/I18nContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BookingScheduler from "../components/BookMeeting";
 
 function BookMeetingPage() {
   const { content } = useSiteContent();
+  const { t } = useI18n();
   const { title, intro } = content.bookMeeting;
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -16,31 +18,31 @@ function BookMeetingPage() {
   const verifyBanner =
     verify === "success" && calendarSync === "failed"
       ? {
-          text: "Your appointment is verified. We could not add it to our calendar automatically — our team will follow up, or check your inbox for a calendar invite if one was sent.",
+          text: t("bookMeetingPage.verifyCalendarSyncFailed"),
           className:
             "rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
         }
       : verify === "success"
         ? {
-            text: "Your appointment is verified. Thank you — we’ll see you then.",
+            text: t("bookMeetingPage.verifySuccess"),
             className:
               "rounded-md border border-[#3aa57d]/50 bg-[#e8f5ef] px-4 py-3 text-sm text-[#103152] dark:border-[#3aa57d]/30 dark:bg-[#161d27] dark:text-[#b8c4d0]",
           }
         : verify === "invalid" || verify === "missing"
           ? {
-              text: "This confirmation link is invalid or expired. Please book again or contact us.",
+              text: t("bookMeetingPage.verifyInvalid"),
               className:
                 "rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/25 dark:text-amber-100",
             }
           : verify === "already"
             ? {
-                text: "This appointment was already confirmed.",
+                text: t("bookMeetingPage.verifyAlready"),
                 className:
                   "rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-3 text-sm text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]",
               }
             : verify === "error"
               ? {
-                  text: "We could not confirm your appointment. Please contact us.",
+                  text: t("bookMeetingPage.verifyError"),
                   className:
                     "rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200",
                 }
@@ -56,7 +58,7 @@ function BookMeetingPage() {
             </h1>
 
             <p className="mb-6 text-[#4d515c] dark:text-[#b8c4d0]">
-              Your appointment has been successfully confirmed.
+              {t("bookMeetingPage.confirmedLine")}
             </p>
 
             <div className={verifyBanner.className}>{verifyBanner.text}</div>
@@ -67,7 +69,7 @@ function BookMeetingPage() {
                 onClick={() => navigate("/")}
                 className="inline-flex items-center rounded-md bg-[#218c77] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#1b7361] dark:bg-[#3aa57d] dark:hover:bg-[#318c6b]"
               >
-                Continue
+                {t("bookMeetingPage.continue")}
               </button>
             </div>
           </div>
@@ -102,7 +104,7 @@ function BookMeetingPage() {
                   setSearchParams(next, { replace: true });
                 }}
               >
-                Dismiss
+                {t("bookMeetingPage.dismiss")}
               </button>
             </div>
           </div>

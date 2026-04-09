@@ -81,7 +81,7 @@ export async function fetchPostsByTagSlug(tagSlug) {
     return {
       data: [],
       tag: null,
-      error: tagError || new Error("Tag not found"),
+      error: tagError || new Error("Etiketa nuk u gjet"),
     };
   }
 

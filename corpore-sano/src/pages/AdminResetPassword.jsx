@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import "../style/admin.css";
 
 function AdminResetPassword() {
+  const { t } = useI18n();
   const { authReady, updatePassword, signOut } = useAuth();
   const [recovery, setRecovery] = useState(false);
   const [password, setPassword] = useState("");
@@ -32,7 +34,7 @@ function AdminResetPassword() {
       <section className="page-section">
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
-            Supabase is not configured.
+            {t("adminReset.notConfigured")}
           </p>
         </div>
       </section>
@@ -43,11 +45,11 @@ function AdminResetPassword() {
     e.preventDefault();
     setError(null);
     if (password.length < 8) {
-      setError("Use at least 8 characters.");
+      setError(t("adminReset.passwordShort"));
       return;
     }
     if (password !== password2) {
-      setError("Passwords do not match.");
+      setError(t("adminReset.passwordMismatch"));
       return;
     }
     setSubmitting(true);
@@ -65,30 +67,28 @@ function AdminResetPassword() {
     <section className="page-section">
       <div className="container admin-page max-w-md">
         <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          Set a new password
+          {t("adminReset.title")}
         </h1>
         <p className="mb-6 text-[15px] text-[#4d515c] dark:text-[#b8c4d0]">
-          Open the link from your email on this device. If this page stays blank, the link may
-          have expired — request a new one from forgot password.
+          {t("adminReset.subtitle")}
         </p>
 
         {done ? (
           <p className="rounded-md border border-[#3aa57d]/40 bg-[#e8f5ef] px-3 py-3 text-sm text-[#103152] dark:border-[#3aa57d]/30 dark:bg-[#161d27] dark:text-[#b8c4d0]">
-            Password updated.{" "}
+            {t("adminReset.done")}{" "}
             <Link to="/admin/sign-in" className="text-[#218c77] underline dark:text-[#4dc89f]">
-              Sign in
+              {t("adminReset.signIn")}
             </Link>
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {!recovery && (
               <p className="text-sm text-amber-800 dark:text-amber-200/90">
-                Waiting for a valid reset session… If nothing happens, use the link from your
-                email again or request a new reset.
+                {t("adminReset.waitingSession")}
               </p>
             )}
             <div className="admin-field">
-              <label htmlFor="new-password">New password</label>
+              <label htmlFor="new-password">{t("adminReset.newPassword")}</label>
               <input
                 id="new-password"
                 type="password"
@@ -100,7 +100,7 @@ function AdminResetPassword() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="new-password-2">Confirm password</label>
+              <label htmlFor="new-password-2">{t("adminReset.confirmPassword")}</label>
               <input
                 id="new-password-2"
                 type="password"
@@ -121,14 +121,14 @@ function AdminResetPassword() {
               className="admin-btn-primary w-full"
               disabled={submitting || !recovery}
             >
-              {submitting ? "Saving…" : "Save password"}
+              {submitting ? t("adminReset.saving") : t("adminReset.save")}
             </button>
           </form>
         )}
 
         <p className="mt-8 text-center text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           <Link to="/admin/sign-in" className="text-[#218c77] underline dark:text-[#4dc89f]">
-            ← Back to sign in
+            ← {t("adminReset.backSignIn")}
           </Link>
         </p>
       </div>

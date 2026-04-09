@@ -110,7 +110,7 @@ export async function createBooking({
   timeSlot,
 }) {
   if (!supabase) {
-    return { error: new Error("Supabase is not configured") };
+    return { error: new Error("Supabase nuk është konfiguruar") };
   }
 
   const dateObj =
@@ -123,7 +123,7 @@ export async function createBooking({
   if (bookingDateKey < todayKey) {
     return {
       data: null,
-      error: new Error("That date is no longer available."),
+      error: new Error("Ajo datë nuk është më e disponueshme."),
       code: "PAST_DATE",
     };
   }
@@ -131,7 +131,7 @@ export async function createBooking({
   if (isSlotStartInPast(dateObj, timeSlot)) {
     return {
       data: null,
-      error: new Error("That time slot has already passed."),
+      error: new Error("Ky interval orari ka kaluar."),
       code: "PAST_SLOT",
     };
   }
@@ -141,7 +141,7 @@ export async function createBooking({
     return {
       data: null,
       error: new Error(
-        "You've already had a meeting in the last 24 hours.",
+        "Keni pasur tashmë një takim në 24 orët e fundit.",
       ),
       code: "RECENT_BOOKING",
     };
@@ -176,7 +176,7 @@ export async function createBooking({
       return {
         data: null,
         error: new Error(
-          "You've already had a meeting in the last 24 hours.",
+          "Keni pasur tashmë një takim në 24 orët e fundit.",
         ),
         code: "RECENT_BOOKING",
       };
@@ -205,7 +205,7 @@ export async function deleteBookingAsAdmin(bookingId) {
 
     if (!response.ok) {
       return {
-        error: new Error(data.error || "Failed to remove booking"),
+        error: new Error(data.error || "Heqja e rezervimit dështoi"),
       };
     }
 

@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
 
   const signIn = useCallback(async (email, password) => {
     if (!supabase) {
-      return { error: new Error("Supabase is not configured") };
+      return { error: new Error("Supabase nuk është konfiguruar") };
     }
     return supabase.auth.signInWithPassword({ email, password });
   }, []);
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
 
   const requestPasswordReset = useCallback(async (email) => {
     if (!supabase) {
-      return { error: new Error("Supabase is not configured") };
+      return { error: new Error("Supabase nuk është konfiguruar") };
     }
     const redirectTo = `${window.location.origin}/admin/reset-password`;
     return supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
@@ -56,7 +56,7 @@ export function AuthProvider({ children }) {
 
   const updatePassword = useCallback(async (newPassword) => {
     if (!supabase) {
-      return { error: new Error("Supabase is not configured") };
+      return { error: new Error("Supabase nuk është konfiguruar") };
     }
     return supabase.auth.updateUser({ password: newPassword });
   }, []);

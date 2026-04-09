@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "../context/I18nContext";
 import {
   createTag,
   deleteTag,
@@ -14,6 +15,7 @@ const initialForm = {
 };
 
 function AdminPostTagsTab() {
+  const { t } = useI18n();
   const [tags, setTags] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
@@ -50,7 +52,7 @@ function AdminPostTagsTab() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this tag?")) return;
+    if (!window.confirm(t("adminTags.confirmDelete"))) return;
     const { error } = await deleteTag(id);
     if (error) {
       window.alert(error.message);
@@ -65,22 +67,22 @@ function AdminPostTagsTab() {
         <input
           value={form.name}
           onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-          placeholder="Tag name"
+          placeholder={t("adminTags.namePh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
         <input
           value={form.slug}
           onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))}
-          placeholder="Tag slug"
+          placeholder={t("adminTags.slugPh")}
           className="w-full rounded-md border px-3 py-2"
         />
-
+        <label className="text-sm text-slate-500">{t("adminTags.orderLabel")}</label>
         <input
           type="number"
           value={form.nav_order}
           onChange={(e) => setForm((p) => ({ ...p, nav_order: e.target.value }))}
-          placeholder="Nav order"
+          placeholder={t("adminTags.orderPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -92,14 +94,14 @@ function AdminPostTagsTab() {
               setForm((p) => ({ ...p, show_in_nav: e.target.checked }))
             }
           />
-          Show in nav
+          {t("adminTags.showNav")}
         </label>
 
         <button
           type="submit"
           className="rounded-md bg-[#218c77] px-5 py-2.5 text-white"
         >
-          {editingId ? "Update tag" : "Create tag"}
+          {editingId ? t("adminTags.update") : t("adminTags.create")}
         </button>
       </form>
 
@@ -128,16 +130,16 @@ function AdminPostTagsTab() {
                     nav_order: tag.nav_order || 0,
                   });
                 }}
-                className="rounded-md border px-3 py-2 text-sm"
+                className="rounded-md border px-3 py-2 text-sm hover:cursor-pointer hover:bg-gray-50"
               >
-                Edit
+                {t("adminTags.edit")}
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(tag.id)}
-                className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700"
+                className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700 hover:cursor-pointer hover:bg-red-50"
               >
-                Delete
+                {t("adminTags.delete")}
               </button>
             </div>
           </div>

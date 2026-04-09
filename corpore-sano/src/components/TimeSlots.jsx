@@ -1,4 +1,5 @@
 import { formatTime12h } from "../lib/timeSlots";
+import { useI18n } from "../context/I18nContext";
 
 function TimeSlots({
   selectedDate,
@@ -7,16 +8,18 @@ function TimeSlots({
   onTimeSelect,
   genderSelected,
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="time-slots">
-      <h3 className="time-slots__title">Available Times</h3>
+      <h3 className="time-slots__title">{t("schedule.slotsTitle")}</h3>
 
       {!genderSelected ? (
-        <p className="time-slots__empty">Select your gender first.</p>
+        <p className="time-slots__empty">{t("schedule.pickGenderFirst")}</p>
       ) : !selectedDate ? (
-        <p className="time-slots__empty">Please select a date first.</p>
+        <p className="time-slots__empty">{t("schedule.pickDateFirst")}</p>
       ) : slots.length === 0 ? (
-        <p className="time-slots__empty">No times available for this date.</p>
+        <p className="time-slots__empty">{t("schedule.noSlots")}</p>
       ) : (
         <div className="time-slots__grid">
           {slots.map((slot) => {

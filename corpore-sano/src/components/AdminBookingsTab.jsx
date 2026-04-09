@@ -6,28 +6,11 @@ import {
 import { fetchCurrentAdminProfile } from "../lib/adminsApi";
 import { formatDateKey, formatTime12h } from "../lib/timeSlots";
 import { useAuth } from "../context/AuthContext";
-
-function formatDateDisplay(yyyyMmDd) {
-  if (!yyyyMmDd || typeof yyyyMmDd !== "string") return "—";
-  const [y, m, d] = yyyyMmDd.split("-").map(Number);
-  if (!y || !m || !d) return yyyyMmDd;
-
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+import { useI18n } from "../context/I18nContext";
 
 function normalizeAdminLine(value) {
   const raw = String(value ?? "").trim().toLowerCase();
   return raw === "male" || raw === "female" ? raw : null;
-}
-
-function formatLineLabel(value) {
-  return value === "male" ? "Male" : value === "female" ? "Female" : "—";
 }
 
 function partitionBookings(rows, todayKey) {
@@ -66,6 +49,29 @@ function partitionBookings(rows, todayKey) {
 
 function AdminBookingsTab() {
   const { user } = useAuth();
+  const { t, intlLocaleTag } = useI18n();
+
+  function formatDateDisplay(yyyyMmDd) {
+    if (!yyyyMmDd || typeof yyyyMmDd !== "string") return "—";
+    const [y, m, d] = yyyyMmDd.split("-").map(Number);
+    if (!y || !m || !d) return yyyyMmDd;
+
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString(intlLocaleTag, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function formatLineLabel(value) {
+    return value === "male"
+      ? t("adminBookings.male")
+      : value === "female"
+        ? t("adminBookings.female")
+        : "—";
+  }
 
   const [adminProfile, setAdminProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -99,7 +105,7 @@ function AdminBookingsTab() {
 
       if (error) {
         setAdminProfile(null);
-        setProfileError(error.message || "Could not load admin profile.");
+        setProfileError(error.message || t("adminBookings.profileLoadFailed"));
       } else {
         setAdminProfile(data ?? null);
       }
@@ -112,23 +118,23 @@ function AdminBookingsTab() {
     return () => {
       cancelled = true;
     };
-  }, [user?.email]);
+  }, [user?.email, t]);
 
   const adminLine = useMemo(() => {
     return normalizeAdminLine(adminProfile?.gender);
   }, [adminProfile?.gender]);
 
   const configError = useMemo(() => {
-    if (!user?.id) return "You are not signed in.";
+    if (!user?.id) return t("adminBookings.notSignedIn");
     if (profileError) return profileError;
     if (!profileLoading && !adminProfile) {
-      return "This email does not have an active admin profile in public.admins.";
+      return t("adminBookings.noProfile");
     }
     if (!profileLoading && !adminLine) {
-      return "This admin profile is missing a valid gender value. Use male or female in public.admins.";
+      return t("adminBookings.badGender");
     }
     return null;
-  }, [user?.id, profileError, profileLoading, adminProfile, adminLine]);
+  }, [user?.id, profileError, profileLoading, adminProfile, adminLine, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,7 +160,7 @@ function AdminBookingsTab() {
 
       if (error) {
         setRows([]);
-        setLoadError(error.message || "Could not load bookings.");
+        setLoadError(error.message || t("adminBookings.loadFailed"));
       } else {
         setRows(Array.isArray(data) ? data : []);
         setLoadError(null);
@@ -168,7 +174,7 @@ function AdminBookingsTab() {
     return () => {
       cancelled = true;
     };
-  }, [adminLine, configError, profileLoading]);
+  }, [adminLine, configError, profileLoading, t]);
 
   const todayKey = useMemo(() => formatDateKey(new Date()), []);
   const { today, upcoming, past } = useMemo(
@@ -177,7 +183,7 @@ function AdminBookingsTab() {
   );
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Remove this appointment? This cannot be undone.")) {
+    if (!window.confirm(t("adminBookings.confirmRemove"))) {
       return;
     }
 
@@ -202,28 +208,28 @@ function AdminBookingsTab() {
           <thead>
             <tr className="border-b border-[#e1e5ec] bg-[#f5f8fa] dark:border-[#2a3441] dark:bg-[#1e2835]">
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Status
+                {t("adminBookings.status")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Date
+                {t("adminBookings.date")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Time
+                {t("adminBookings.time")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Name
+                {t("adminBookings.name")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Email
+                {t("adminBookings.email")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Topic
+                {t("adminBookings.topic")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Calendar
+                {t("adminBookings.calendar")}
               </th>
               <th className="px-3 py-2 font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                Actions
+                {t("adminBookings.actions")}
               </th>
             </tr>
           </thead>
@@ -237,11 +243,11 @@ function AdminBookingsTab() {
                 <td className="whitespace-nowrap px-3 py-2 text-[#103152] dark:text-[#e8ecf1]">
                   {r.verified_at ? (
                     <span className="text-[#3aa57d] dark:text-[#5dcc9f]">
-                      Verified
+                      {t("adminBookings.verified")}
                     </span>
                   ) : (
                     <span className="text-amber-800 dark:text-amber-200/90">
-                      Pending email
+                      {t("adminBookings.pendingEmail")}
                     </span>
                   )}
                 </td>
@@ -267,7 +273,7 @@ function AdminBookingsTab() {
                 </td>
 
                 <td className="whitespace-nowrap px-3 py-2 text-[#4d515c] dark:text-[#b8c4d0]">
-                  {r.google_event_id ? "Synced" : "—"}
+                  {r.google_event_id ? t("adminBookings.synced") : "—"}
                 </td>
 
                 <td className="whitespace-nowrap px-3 py-2">
@@ -277,7 +283,9 @@ function AdminBookingsTab() {
                     onClick={() => handleDelete(r.id)}
                     className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:bg-[#1e2835] dark:text-red-200 dark:hover:bg-red-950/40"
                   >
-                    {deletingId === r.id ? "Removing…" : "Remove"}
+                    {deletingId === r.id
+                      ? t("adminBookings.removing")
+                      : t("adminBookings.remove")}
                   </button>
                 </td>
               </tr>
@@ -291,7 +299,7 @@ function AdminBookingsTab() {
   if (loading || profileLoading) {
     return (
       <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-        Loading bookings…
+        {t("adminBookings.loading")}
       </p>
     );
   }
@@ -300,7 +308,9 @@ function AdminBookingsTab() {
     return (
       <div className="space-y-4">
         <p className="admin-hint">
-          Signed in as <strong>{adminEmail || "Unknown admin"}</strong>.
+          {t("adminBookings.signedInAs", {
+            email: adminEmail || t("adminBookings.unknownAdmin"),
+          })}
         </p>
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
           {configError}
@@ -312,7 +322,7 @@ function AdminBookingsTab() {
   if (loadError) {
     return (
       <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
-        Could not load bookings: {loadError}
+        {t("adminBookings.loadErrorPrefix")} {loadError}
       </p>
     );
   }
@@ -320,41 +330,50 @@ function AdminBookingsTab() {
   return (
     <div className="space-y-6">
       <p className="admin-hint">
-        Showing only <strong>{formatLineLabel(adminLine)}</strong> appointments
-        for this admin account.
+        {t("adminBookings.showingLine", {
+          line: formatLineLabel(adminLine),
+        })}
       </p>
 
       {!rows.length ? (
         <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-          No {adminLine} bookings yet.
+          {t("adminBookings.noBookingsLine", {
+            line: formatLineLabel(adminLine),
+          })}
         </p>
       ) : (
         <>
           <section className="admin-bookings-section">
-            <h3 className="admin-bookings-section__title">Today</h3>
+            <h3 className="admin-bookings-section__title">
+              {t("adminBookings.today")}
+            </h3>
             {today.length ? (
               renderTable(today)
             ) : (
               <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-                No appointments scheduled for today.
+                {t("adminBookings.noToday")}
               </p>
             )}
           </section>
 
           <section className="admin-bookings-section">
-            <h3 className="admin-bookings-section__title">Upcoming</h3>
+            <h3 className="admin-bookings-section__title">
+              {t("adminBookings.upcoming")}
+            </h3>
             {upcoming.length ? (
               renderTable(upcoming)
             ) : (
               <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-                No upcoming appointments.
+                {t("adminBookings.noUpcoming")}
               </p>
             )}
           </section>
 
           {past.length > 0 && (
             <section className="admin-bookings-section">
-              <h3 className="admin-bookings-section__title">Earlier dates</h3>
+              <h3 className="admin-bookings-section__title">
+                {t("adminBookings.past")}
+              </h3>
               {renderTable(past)}
             </section>
           )}
