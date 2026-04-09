@@ -5,6 +5,7 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
 import { useSiteContent } from "../context/SiteContentContext";
+import { isSectionHidden } from "../lib/sectionVisibility";
 import { getEmbedUrl } from "../script/videoHelpers";
 import VideoSlide from "./VideoSlide";
 import "../style/videoSwiper.css";
@@ -12,6 +13,7 @@ import "../style/videoSwiper.css";
 function VideosSection() {
   const { content } = useSiteContent();
   const { videoSectionHeading, videosViewAllLabel } = content.home;
+  const hideVideosPageLink = isSectionHidden(content, "videosPage");
 
   const videos = useMemo(
     () => content.videos.filter((video) => video.isPublished),
@@ -70,11 +72,16 @@ function VideosSection() {
           </div>
         )}
 
-        <div className="videos-section__view-all-wrap">
-          <Link className="videos-section__view-all py-[14px] px-[32px] md:py-[12px] md:px-[36px]" to="/videos">
-            {videosViewAllLabel}
-          </Link>
-        </div>
+        {!hideVideosPageLink ? (
+          <div className="videos-section__view-all-wrap">
+            <Link
+              className="videos-section__view-all py-[14px] px-[32px] md:py-[12px] md:px-[36px]"
+              to="/videos"
+            >
+              {videosViewAllLabel}
+            </Link>
+          </div>
+        ) : null}
 
         {activeVideo && (
           <div className="video-modal" onClick={() => setActiveVideo(null)}>

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -28,10 +28,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/book-meeting" element={<BookMeeting />} />
-            <Route path="/nutritionists" element={<Nutritionists />} />
+            <Route path="/nutritionists" element={<NutritionistsRoute />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/videos" element={<Videos />} />
+            <Route path="/videos" element={<VideosRoute />} />
             <Route path="/admin/sign-in" element={<AdminSignIn />} />
             <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
             <Route path="/admin/reset-password" element={<AdminResetPassword />} />
@@ -51,9 +51,11 @@ function App() {
                 </AdminGate>
               }
             />
-            <Route path="/posts" element={<PostsPage />} />
-            <Route path="/posts/:slug" element={<PostDetailPage />} />
-            <Route path="/posts/tag/:slug" element={<PostsByTagPage />} />
+            <Route element={<PostsRoutes />}>
+              <Route path="/posts" element={<PostsPage />} />
+              <Route path="/posts/:slug" element={<PostDetailPage />} />
+              <Route path="/posts/tag/:slug" element={<PostsByTagPage />} />
+            </Route>
           </Routes>
         </main>
         <Footer />

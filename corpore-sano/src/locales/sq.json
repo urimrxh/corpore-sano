@@ -3,7 +3,14 @@
     "global": {
       "consultationCta": "Konsultë falas",
       "consultationCtaFooter": "Konsultë falas",
-      "bilingualEnabled": true
+      "bilingualEnabled": true,
+      "sectionsHidden": {
+        "homeLatestPosts": false,
+        "homeVideos": false,
+        "videosPage": false,
+        "posts": false,
+        "nutritionists": false
+      }
     },
     "home": {
       "heroTitle": "Konsultimet për ushqyerjen online, thjesht dhe pa stres.",
@@ -355,6 +362,13 @@
       "footerCta": "Butoni CTA në fund të faqes",
       "bilingualEnabled": "Aktivizo dy gjuhët (Shqip / Anglisht)",
       "bilingualEnabledHint": "Kur është joaktive, faqja shfaqet vetëm në shqip dhe zgjedhësi i gjuhës në krye fshihet.",
+      "sectionsHiddenTitle": "Fshih në faqen publike",
+      "sectionsHiddenHint": "I shënuar = i fshehur për vizitorët. Ruhen për të dy gjuhët kur ruani.",
+      "hideHomeLatestPosts": "Fshih bllokun “postimet e fundit” në ballinë",
+      "hideHomeVideos": "Fshih bllokun e videove në ballinë",
+      "hideVideosPage": "Fshih faqen Videot (/videos) dhe lidhjen “Shiko të gjitha videot”",
+      "hidePosts": "Fshih postimet (blloku në ballinë, etiketat në menynë, faqet /posts)",
+      "hideNutritionists": "Fshih faqen Specialistët (/nutritionists)",
       "heroTitle": "Titulli kryesor",
       "heroDesc": "Përshkrimi kryesor",
       "videoHead": "Titulli i seksionit të videove",

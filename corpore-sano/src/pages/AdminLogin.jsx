@@ -313,6 +313,57 @@ function AdminLogin() {
                 {adminT("adminLogin.bilingualEnabledHint")}
               </p>
             </div>
+
+            <div className="admin-field mt-6 border-t border-[#e1e5ec] pt-6 dark:border-[#2a3441]">
+              <p className="mb-1 text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
+                {adminT("adminLogin.sectionsHiddenTitle")}
+              </p>
+              <p className="mb-4 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+                {adminT("adminLogin.sectionsHiddenHint")}
+              </p>
+              {(
+                [
+                  ["homeLatestPosts", "hideHomeLatestPosts"],
+                  ["homeVideos", "hideHomeVideos"],
+                  ["videosPage", "hideVideosPage"],
+                  ["posts", "hidePosts"],
+                  ["nutritionists", "hideNutritionists"],
+                ]
+              ).map(([key, labelKey]) => (
+                <label
+                  key={key}
+                  htmlFor={`g-hide-${key}`}
+                  className="mb-3 flex cursor-pointer items-start gap-3 font-normal"
+                >
+                  <input
+                    id={`g-hide-${key}`}
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-[#e1e5ec] text-[#218c77] focus:ring-[#218c77] dark:border-[#2a3441]"
+                    checked={draft.global.sectionsHidden?.[key] === true}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        global: {
+                          ...d.global,
+                          sectionsHidden: {
+                            homeLatestPosts: false,
+                            homeVideos: false,
+                            videosPage: false,
+                            posts: false,
+                            nutritionists: false,
+                            ...d.global.sectionsHidden,
+                            [key]: e.target.checked,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                  <span className="text-sm text-[#103152] dark:text-[#e8ecf1]">
+                    {adminT(`adminLogin.${labelKey}`)}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 
