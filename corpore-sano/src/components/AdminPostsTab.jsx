@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useI18n } from "../context/I18nContext";
+import { adminT } from "../lib/adminUi";
 import {
   createPost,
   deletePost,
@@ -21,11 +21,9 @@ const initialForm = {
 };
 
 function AdminPostsTab() {
-  const { t } = useI18n();
-
   function formatPostStatus(status) {
-    if (status === "published") return t("adminPosts.statusPublished");
-    if (status === "draft") return t("adminPosts.statusDraft");
+    if (status === "published") return adminT("adminPosts.statusPublished");
+    if (status === "draft") return adminT("adminPosts.statusDraft");
     return status || "";
   }
 
@@ -101,7 +99,7 @@ function AdminPostsTab() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm(t("adminPosts.confirmDelete"))) return;
+    if (!window.confirm(adminT("adminPosts.confirmDelete"))) return;
 
     const { error } = await deletePost(id);
     if (error) {
@@ -112,7 +110,7 @@ function AdminPostsTab() {
     loadAll();
   }
 
-  if (loading) return <p>{t("adminPosts.loading")}</p>;
+  if (loading) return <p>{adminT("adminPosts.loading")}</p>;
 
   return (
     <div className="space-y-8">
@@ -121,14 +119,14 @@ function AdminPostsTab() {
         className="space-y-4 rounded-xl border border-[#e1e5ec] bg-white p-5 dark:border-[#2a3441] dark:bg-[#1e2835]"
       >
         <h3 className="text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          {editingId ? t("adminPosts.editPost") : t("adminPosts.addPost")}
+          {editingId ? adminT("adminPosts.editPost") : adminT("adminPosts.addPost")}
         </h3>
 
         <input
           name="title"
           value={form.title}
           onChange={handleChange}
-          placeholder={t("adminPosts.titlePh")}
+          placeholder={adminT("adminPosts.titlePh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -136,7 +134,7 @@ function AdminPostsTab() {
           name="slug"
           value={form.slug}
           onChange={handleChange}
-          placeholder={t("adminPosts.slugPh")}
+          placeholder={adminT("adminPosts.slugPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -144,7 +142,7 @@ function AdminPostsTab() {
           name="description"
           value={form.description}
           onChange={handleChange}
-          placeholder={t("adminPosts.descPh")}
+          placeholder={adminT("adminPosts.descPh")}
           className="min-h-[140px] w-full rounded-md border px-3 py-2"
         />
 
@@ -152,7 +150,7 @@ function AdminPostsTab() {
           name="topic"
           value={form.topic}
           onChange={handleChange}
-          placeholder={t("adminPosts.topicPh")}
+          placeholder={adminT("adminPosts.topicPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -160,7 +158,7 @@ function AdminPostsTab() {
           name="author"
           value={form.author}
           onChange={handleChange}
-          placeholder={t("adminPosts.authorPh")}
+          placeholder={adminT("adminPosts.authorPh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -168,7 +166,7 @@ function AdminPostsTab() {
           name="image_url"
           value={form.image_url}
           onChange={handleChange}
-          placeholder={t("adminPosts.imagePh")}
+          placeholder={adminT("adminPosts.imagePh")}
           className="w-full rounded-md border px-3 py-2"
         />
 
@@ -178,7 +176,7 @@ function AdminPostsTab() {
           onChange={handleChange}
           className="w-full rounded-md border px-3 py-2"
         >
-          <option value="">{t("adminPosts.noTag")}</option>
+          <option value="">{adminT("adminPosts.noTag")}</option>
           {tags.map((tag) => (
             <option key={tag.id} value={tag.id}>
               {tag.name}
@@ -192,8 +190,8 @@ function AdminPostsTab() {
           onChange={handleChange}
           className="w-full rounded-md border px-3 py-2"
         >
-          <option value="draft">{t("adminPosts.draft")}</option>
-          <option value="published">{t("adminPosts.published")}</option>
+          <option value="draft">{adminT("adminPosts.draft")}</option>
+          <option value="published">{adminT("adminPosts.published")}</option>
         </select>
 
         <div className="flex gap-3">
@@ -213,7 +211,7 @@ function AdminPostsTab() {
               }}
               className="rounded-md border px-5 py-2.5"
             >
-              {t("adminPosts.cancel")}
+              {adminT("adminPosts.cancel")}
             </button>
           ) : null}
         </div>
@@ -241,14 +239,14 @@ function AdminPostsTab() {
                 onClick={() => handleEdit(post)}
                 className="rounded-md border px-3 py-2 text-sm"
               >
-                {t("adminPosts.edit")}
+                {adminT("adminPosts.edit")}
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(post.id)}
                 className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700"
               >
-                {t("adminPosts.delete")}
+                {adminT("adminPosts.delete")}
               </button>
             </div>
           </div>

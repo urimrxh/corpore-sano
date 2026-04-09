@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useAuth } from "../context/AuthContext";
-import { useI18n } from "../context/I18nContext";
+import { adminT } from "../lib/adminUi";
 import AdminBookingsTab from "../components/AdminBookingsTab";
 import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
@@ -25,49 +25,85 @@ function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+const ADMIN_EDIT_LOCALE_KEY = "corpore-sano-admin-edit-locale-v1";
+
+function readStoredAdminEditLocale() {
+  if (typeof window === "undefined") return "sq";
+  try {
+    const v = sessionStorage.getItem(ADMIN_EDIT_LOCALE_KEY);
+    if (v === "en" || v === "sq") return v;
+  } catch {
+    /* */
+  }
+  return "sq";
+}
+
+function writeStoredAdminEditLocale(/** @type {"sq"|"en"} */ v) {
+  try {
+    sessionStorage.setItem(ADMIN_EDIT_LOCALE_KEY, v);
+  } catch {
+    /* */
+  }
+}
+
 function AdminLogin() {
-  const { t } = useI18n();
   const { signOut, user } = useAuth();
   const {
-    content,
     siteBilingualEnabled,
-    replaceContent,
-    resetToDefaults,
+    siteContentRevision,
+    getMergedContentFor,
+    replaceContentFor,
+    resetToDefaultsFor,
     lastRemoteSaveError,
     remoteLoadError,
   } = useSiteContent();
 
+  const [adminEditLocale, setAdminEditLocaleState] = useState(readStoredAdminEditLocale);
+
+  function setAdminEditLocale(/** @type {"sq"|"en"} */ next) {
+    const v = next === "en" ? "en" : "sq";
+    setAdminEditLocaleState(v);
+    writeStoredAdminEditLocale(v);
+  }
+
   const TABS = useMemo(
     () => [
-      { id: "global", label: t("adminLogin.tabs.global") },
-      { id: "home", label: t("adminLogin.tabs.home") },
-      { id: "contact", label: t("adminLogin.tabs.contact") },
-      { id: "about", label: t("adminLogin.tabs.about") },
-      { id: "videos", label: t("adminLogin.tabs.videos") },
-      { id: "videosPage", label: t("adminLogin.tabs.videosPage") },
-      { id: "footer", label: t("adminLogin.tabs.footer") },
-      { id: "pages", label: t("adminLogin.tabs.pages") },
-      { id: "bookings", label: t("adminLogin.tabs.bookings") },
-      { id: "posts", label: t("adminLogin.tabs.posts") },
-      { id: "postTags", label: t("adminLogin.tabs.postTags") },
+      { id: "global", label: adminT("adminLogin.tabs.global") },
+      { id: "home", label: adminT("adminLogin.tabs.home") },
+      { id: "contact", label: adminT("adminLogin.tabs.contact") },
+      { id: "about", label: adminT("adminLogin.tabs.about") },
+      { id: "videos", label: adminT("adminLogin.tabs.videos") },
+      { id: "videosPage", label: adminT("adminLogin.tabs.videosPage") },
+      { id: "footer", label: adminT("adminLogin.tabs.footer") },
+      { id: "pages", label: adminT("adminLogin.tabs.pages") },
+      { id: "bookings", label: adminT("adminLogin.tabs.bookings") },
+      { id: "posts", label: adminT("adminLogin.tabs.posts") },
+      { id: "postTags", label: adminT("adminLogin.tabs.postTags") },
     ],
-    [t],
+    [],
   );
 
   const ABOUT_TEXT_PANEL_OPTIONS = useMemo(
     () => [
-      { value: "grey", label: t("adminLogin.panelGrey"), swatch: PANEL_SWATCH_BY_VALUE.grey },
-      { value: "green-teal", label: t("adminLogin.panelGreenTeal"), swatch: PANEL_SWATCH_BY_VALUE["green-teal"] },
-      { value: "green-mint", label: t("adminLogin.panelGreenMint"), swatch: PANEL_SWATCH_BY_VALUE["green-mint"] },
-      { value: "white", label: t("adminLogin.panelWhite"), swatch: PANEL_SWATCH_BY_VALUE.white },
-      { value: "navy", label: t("adminLogin.panelNavy"), swatch: PANEL_SWATCH_BY_VALUE.navy },
-      { value: "black", label: t("adminLogin.panelBlack"), swatch: PANEL_SWATCH_BY_VALUE.black },
+      { value: "grey", label: adminT("adminLogin.panelGrey"), swatch: PANEL_SWATCH_BY_VALUE.grey },
+      { value: "green-teal", label: adminT("adminLogin.panelGreenTeal"), swatch: PANEL_SWATCH_BY_VALUE["green-teal"] },
+      { value: "green-mint", label: adminT("adminLogin.panelGreenMint"), swatch: PANEL_SWATCH_BY_VALUE["green-mint"] },
+      { value: "white", label: adminT("adminLogin.panelWhite"), swatch: PANEL_SWATCH_BY_VALUE.white },
+      { value: "navy", label: adminT("adminLogin.panelNavy"), swatch: PANEL_SWATCH_BY_VALUE.navy },
+      { value: "black", label: adminT("adminLogin.panelBlack"), swatch: PANEL_SWATCH_BY_VALUE.black },
     ],
-    [t],
+    [],
   );
 
   const [tab, setTab] = useState("global");
-  const [draft, setDraft] = useState(() => clone(content));
+  const [draft, setDraft] = useState(() => {
+    const next = clone(getMergedContentFor(readStoredAdminEditLocale()));
+    next.global = {
+      ...next.global,
+      bilingualEnabled: siteBilingualEnabled,
+    };
+    return next;
+  });
   const [savedFlash, setSavedFlash] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
 
@@ -75,13 +111,18 @@ function AdminLogin() {
   const adminEmail = user?.email ?? "";
 
   useEffect(() => {
-    const next = clone(content);
+    const next = clone(getMergedContentFor(adminEditLocale));
     next.global = {
       ...next.global,
       bilingualEnabled: siteBilingualEnabled,
     };
     setDraft(next);
-  }, [content, siteBilingualEnabled]);
+  }, [
+    adminEditLocale,
+    siteBilingualEnabled,
+    siteContentRevision,
+    getMergedContentFor,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,19 +152,19 @@ function AdminLogin() {
       adminProfile?.full_name ||
       adminEmail.split("@")[0] ||
       adminEmail ||
-      t("adminLogin.fallbackName")
+      adminT("adminLogin.fallbackName")
     );
-  }, [adminProfile?.full_name, adminEmail, t]);
+  }, [adminProfile?.full_name, adminEmail]);
 
   function save() {
-    replaceContent(draft);
+    replaceContentFor(adminEditLocale, draft);
     setSavedFlash(true);
     window.setTimeout(() => setSavedFlash(false), 2000);
   }
 
   function handleReset() {
-    if (window.confirm(t("adminLogin.confirmReset"))) {
-      resetToDefaults();
+    if (window.confirm(adminT("adminLogin.confirmReset"))) {
+      resetToDefaultsFor(adminEditLocale);
     }
   }
 
@@ -132,34 +173,69 @@ function AdminLogin() {
       <div className="container admin-page">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <h1 className="mb-0 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
-            {t("adminLogin.pageTitle")}
+            {adminT("adminLogin.pageTitle")}
           </h1>
           <button
             type="button"
             className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50"
             onClick={() => signOut()}
           >
-            {t("adminLogin.signOut")}
+            {adminT("adminLogin.signOut")}
           </button>
         </div>
 
         <div className="mb-6 rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-4 dark:border-[#2a3441] dark:bg-[#1e2835]">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d515c] dark:text-[#8ea0b5]">
-            {t("adminLogin.accountLabel")}
+            {adminT("adminLogin.accountLabel")}
           </p>
           <h2 className="mt-1 text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]">
-            {t("adminLogin.welcome", { name: adminDisplayName })}
+            {adminT("adminLogin.welcome", { name: adminDisplayName })}
           </h2>
           <p className="mt-1 break-all text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-            {adminEmail || t("adminLogin.noEmail")}
+            {adminEmail || adminT("adminLogin.noEmail")}
           </p>
         </div>
 
         {remoteLoadError && (
           <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
-            {t("adminLogin.remoteLoad", { error: remoteLoadError })}
+            {adminT("adminLogin.remoteLoad", { error: remoteLoadError })}
           </p>
         )}
+
+        <div className="mb-4 rounded-xl border border-[#e1e5ec] bg-white px-4 py-3 dark:border-[#2a3441] dark:bg-[#121a22]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d515c] dark:text-[#8ea0b5]">
+            {adminT("adminLogin.editingLocaleLabel")}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg border border-[#e1e5ec] p-0.5 dark:border-[#2a3441]">
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  adminEditLocale === "sq"
+                    ? "bg-[#218c77] text-white"
+                    : "text-[#103152] hover:bg-[#f0f4f8] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835]"
+                }`}
+                onClick={() => setAdminEditLocale("sq")}
+              >
+                {adminT("adminLogin.editingLocaleSq")}
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  adminEditLocale === "en"
+                    ? "bg-[#218c77] text-white"
+                    : "text-[#103152] hover:bg-[#f0f4f8] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835]"
+                }`}
+                onClick={() => setAdminEditLocale("en")}
+              >
+                {adminT("adminLogin.editingLocaleEn")}
+              </button>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+            {adminT("adminLogin.editingLocaleHint")}
+          </p>
+        </div>
 
         <div className="admin-tabs" role="tablist">
           {TABS.map((tabItem) => (
@@ -179,7 +255,7 @@ function AdminLogin() {
         {tab === "global" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="g-cta">{t("adminLogin.headerCta")}</label>
+              <label htmlFor="g-cta">{adminT("adminLogin.headerCta")}</label>
               <input
                 id="g-cta"
                 type="text"
@@ -193,7 +269,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="g-cta2">{t("adminLogin.footerCta")}</label>
+              <label htmlFor="g-cta2">{adminT("adminLogin.footerCta")}</label>
               <input
                 id="g-cta2"
                 type="text"
@@ -230,11 +306,11 @@ function AdminLogin() {
                   }
                 />
                 <span className="text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                  {t("adminLogin.bilingualEnabled")}
+                  {adminT("adminLogin.bilingualEnabled")}
                 </span>
               </label>
               <p className="mt-2 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
-                {t("adminLogin.bilingualEnabledHint")}
+                {adminT("adminLogin.bilingualEnabledHint")}
               </p>
             </div>
           </div>
@@ -243,7 +319,7 @@ function AdminLogin() {
         {tab === "home" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="h-title">{t("adminLogin.heroTitle")}</label>
+              <label htmlFor="h-title">{adminT("adminLogin.heroTitle")}</label>
               <textarea
                 id="h-title"
                 value={draft.home.heroTitle}
@@ -256,7 +332,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="h-desc">{t("adminLogin.heroDesc")}</label>
+              <label htmlFor="h-desc">{adminT("adminLogin.heroDesc")}</label>
               <textarea
                 id="h-desc"
                 value={draft.home.heroDescription}
@@ -269,7 +345,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="h-vhead">{t("adminLogin.videoHead")}</label>
+              <label htmlFor="h-vhead">{adminT("adminLogin.videoHead")}</label>
               <input
                 id="h-vhead"
                 type="text"
@@ -283,7 +359,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="h-vall">{t("adminLogin.viewAllLabel")}</label>
+              <label htmlFor="h-vall">{adminT("adminLogin.viewAllLabel")}</label>
               <input
                 id="h-vall"
                 type="text"
@@ -302,7 +378,7 @@ function AdminLogin() {
         {tab === "contact" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="c-title">{t("adminLogin.pageTitleLabel")}</label>
+              <label htmlFor="c-title">{adminT("adminLogin.pageTitleLabel")}</label>
               <input
                 id="c-title"
                 type="text"
@@ -316,7 +392,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="c-intro">{t("adminLogin.contactIntro")}</label>
+              <label htmlFor="c-intro">{adminT("adminLogin.contactIntro")}</label>
               <textarea
                 id="c-intro"
                 value={draft.contact.pageIntro}
@@ -329,11 +405,11 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="c-bg">{t("adminLogin.bgUrl")}</label>
+              <label htmlFor="c-bg">{adminT("adminLogin.bgUrl")}</label>
               <input
                 id="c-bg"
                 type="url"
-                placeholder={t("adminLogin.bgPlaceholder")}
+                placeholder={adminT("adminLogin.bgPlaceholder")}
                 value={draft.contact.backgroundImageUrl}
                 onChange={(e) =>
                   setDraft((d) => ({
@@ -345,10 +421,10 @@ function AdminLogin() {
                   }))
                 }
               />
-              <p className="admin-hint">{t("adminLogin.bgHint")}</p>
+              <p className="admin-hint">{adminT("adminLogin.bgHint")}</p>
             </div>
             <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              {t("adminLogin.formLabels")}
+              {adminT("adminLogin.formLabels")}
             </h3>
             {Object.keys(draft.contact.form.labels).map((key) => (
               <div key={key} className="admin-field">
@@ -381,7 +457,7 @@ function AdminLogin() {
         {tab === "about" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="a-title">{t("adminLogin.pageTitleLabel")}</label>
+              <label htmlFor="a-title">{adminT("adminLogin.pageTitleLabel")}</label>
               <input
                 id="a-title"
                 type="text"
@@ -395,7 +471,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="a-intro">{t("adminLogin.aboutIntro")}</label>
+              <label htmlFor="a-intro">{adminT("adminLogin.aboutIntro")}</label>
               <textarea
                 id="a-intro"
                 value={draft.about.pageIntro}
@@ -409,13 +485,13 @@ function AdminLogin() {
             </div>
 
             <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              {t("adminLogin.sectionsTitle")}
+              {adminT("adminLogin.sectionsTitle")}
             </h3>
-            <p className="admin-hint mb-4">{t("adminLogin.sectionsHint")}</p>
+            <p className="admin-hint mb-4">{adminT("adminLogin.sectionsHint")}</p>
 
             {draft.about.sections.map((sec, index) => (
               <div key={sec.id} className="admin-card">
-                <h3>{t("adminLogin.sectionN", { n: index + 1 })}</h3>
+                <h3>{adminT("adminLogin.sectionN", { n: index + 1 })}</h3>
 
                 <div className="admin-field admin-field--inline">
                   <input
@@ -436,12 +512,12 @@ function AdminLogin() {
                       }))
                     }
                   />
-                  <label htmlFor={`a-il-${sec.id}`}>{t("adminLogin.imageLeft")}</label>
+                  <label htmlFor={`a-il-${sec.id}`}>{adminT("adminLogin.imageLeft")}</label>
                 </div>
 
                 <div className="admin-field">
                   <label htmlFor={`a-tp-${sec.id}`}>
-                    {t("adminLogin.textPanelBg")}
+                    {adminT("adminLogin.textPanelBg")}
                   </label>
                   <div className="admin-about-text-panel-row">
                     <select
@@ -481,7 +557,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.imageUrl")}</label>
+                  <label>{adminT("adminLogin.imageUrl")}</label>
                   <input
                     type="url"
                     value={sec.image}
@@ -500,7 +576,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.imageAlt")}</label>
+                  <label>{adminT("adminLogin.imageAlt")}</label>
                   <input
                     type="text"
                     value={sec.imageAlt}
@@ -521,7 +597,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.heading")}</label>
+                  <label>{adminT("adminLogin.heading")}</label>
                   <input
                     type="text"
                     value={sec.title}
@@ -540,7 +616,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.body")}</label>
+                  <label>{adminT("adminLogin.body")}</label>
                   <textarea
                     value={sec.body}
                     onChange={(e) =>
@@ -570,7 +646,7 @@ function AdminLogin() {
                     }))
                   }
                 >
-                  {t("adminLogin.removeSection")}
+                  {adminT("adminLogin.removeSection")}
                 </button>
               </div>
             ))}
@@ -599,7 +675,7 @@ function AdminLogin() {
                 }))
               }
             >
-              {t("adminLogin.addSection")}
+              {adminT("adminLogin.addSection")}
             </button>
           </div>
         )}
@@ -607,12 +683,12 @@ function AdminLogin() {
         {tab === "videos" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              {t("adminLogin.videosHint")}
+              {adminT("adminLogin.videosHint")}
             </p>
 
             {draft.videos.map((v, index) => (
               <div key={v.id} className="admin-card">
-                <h3>{t("adminLogin.videoN", { id: v.id })}</h3>
+                <h3>{adminT("adminLogin.videoN", { id: v.id })}</h3>
 
                 <div className="admin-field admin-field--inline">
                   <input
@@ -630,11 +706,11 @@ function AdminLogin() {
                       }))
                     }
                   />
-                  <label htmlFor={`v-pub-${v.id}`}>{t("adminLogin.published")}</label>
+                  <label htmlFor={`v-pub-${v.id}`}>{adminT("adminLogin.published")}</label>
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.videoTitle")}</label>
+                  <label>{adminT("adminLogin.videoTitle")}</label>
                   <input
                     type="text"
                     value={v.title}
@@ -650,7 +726,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.videoDesc")}</label>
+                  <label>{adminT("adminLogin.videoDesc")}</label>
                   <textarea
                     value={v.desc}
                     onChange={(e) =>
@@ -665,7 +741,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.videoUrl")}</label>
+                  <label>{adminT("adminLogin.videoUrl")}</label>
                   <input
                     type="url"
                     value={v.videoUrl}
@@ -681,7 +757,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.category")}</label>
+                  <label>{adminT("adminLogin.category")}</label>
                   <input
                     type="text"
                     value={v.category}
@@ -706,7 +782,7 @@ function AdminLogin() {
                     }))
                   }
                 >
-                  {t("adminLogin.removeVideo")}
+                  {adminT("adminLogin.removeVideo")}
                 </button>
               </div>
             ))}
@@ -737,7 +813,7 @@ function AdminLogin() {
                 })
               }
             >
-              {t("adminLogin.addVideo")}
+              {adminT("adminLogin.addVideo")}
             </button>
           </div>
         )}
@@ -745,7 +821,7 @@ function AdminLogin() {
         {tab === "videosPage" && (
           <div>
             <div className="admin-field">
-              <label>{t("adminLogin.pageTitleLabel")}</label>
+              <label>{adminT("adminLogin.pageTitleLabel")}</label>
               <input
                 type="text"
                 value={draft.videosPage.title}
@@ -758,7 +834,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>{t("adminLogin.videosPageIntro")}</label>
+              <label>{adminT("adminLogin.videosPageIntro")}</label>
               <textarea
                 value={draft.videosPage.intro}
                 onChange={(e) =>
@@ -775,7 +851,7 @@ function AdminLogin() {
         {tab === "footer" && (
           <div>
             <div className="admin-field">
-              <label>{t("adminLogin.brandName")}</label>
+              <label>{adminT("adminLogin.brandName")}</label>
               <input
                 type="text"
                 value={draft.footer.brandName}
@@ -788,7 +864,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>{t("adminLogin.phoneDisplay")}</label>
+              <label>{adminT("adminLogin.phoneDisplay")}</label>
               <input
                 type="text"
                 value={draft.footer.phone}
@@ -801,7 +877,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>{t("adminLogin.phoneHref")}</label>
+              <label>{adminT("adminLogin.phoneHref")}</label>
               <input
                 type="text"
                 value={draft.footer.phoneHref}
@@ -814,7 +890,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>{t("adminLogin.cityLine")}</label>
+              <label>{adminT("adminLogin.cityLine")}</label>
               <input
                 type="text"
                 value={draft.footer.cityLine}
@@ -827,7 +903,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>{t("adminLogin.address")}</label>
+              <label>{adminT("adminLogin.address")}</label>
               <textarea
                 value={draft.footer.address}
                 onChange={(e) =>
@@ -839,7 +915,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>{t("adminLogin.email")}</label>
+              <label>{adminT("adminLogin.email")}</label>
               <input
                 type="email"
                 value={draft.footer.email}
@@ -853,20 +929,20 @@ function AdminLogin() {
             </div>
 
             <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              {t("adminLogin.extraFooterTitle")}
+              {adminT("adminLogin.extraFooterTitle")}
             </h3>
 
-            <p className="admin-hint mb-4">{t("adminLogin.extraFooterHint")}</p>
+            <p className="admin-hint mb-4">{adminT("adminLogin.extraFooterHint")}</p>
 
             {(draft.footer.extraInfoFields ?? []).map((field, index) => (
               <div
                 key={field.id ?? `footer-extra-${index}`}
                 className="admin-card"
               >
-                <h3>{t("adminLogin.extraFieldN", { n: index + 1 })}</h3>
+                <h3>{adminT("adminLogin.extraFieldN", { n: index + 1 })}</h3>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.fieldType")}</label>
+                  <label>{adminT("adminLogin.fieldType")}</label>
                   <select
                     value={field.type ?? "text"}
                     onChange={(e) =>
@@ -893,15 +969,15 @@ function AdminLogin() {
                       }))
                     }
                   >
-                    <option value="text">{t("adminLogin.typeText")}</option>
-                    <option value="title">{t("adminLogin.typeTitle")}</option>
-                    <option value="phone">{t("adminLogin.typePhone")}</option>
-                    <option value="email">{t("adminLogin.typeEmail")}</option>
+                    <option value="text">{adminT("adminLogin.typeText")}</option>
+                    <option value="title">{adminT("adminLogin.typeTitle")}</option>
+                    <option value="phone">{adminT("adminLogin.typePhone")}</option>
+                    <option value="email">{adminT("adminLogin.typeEmail")}</option>
                   </select>
                 </div>
 
                 <div className="admin-field">
-                  <label>{t("adminLogin.value")}</label>
+                  <label>{adminT("adminLogin.value")}</label>
                   <input
                     type="text"
                     value={field.value ?? ""}
@@ -927,8 +1003,8 @@ function AdminLogin() {
                   <div className="admin-field">
                     <label>
                       {field.type === "phone"
-                        ? t("adminLogin.linkPhone")
-                        : t("adminLogin.linkEmail")}
+                        ? adminT("adminLogin.linkPhone")
+                        : adminT("adminLogin.linkEmail")}
                     </label>
                     <input
                       type="text"
@@ -967,7 +1043,7 @@ function AdminLogin() {
                     }))
                   }
                 >
-                  {t("adminLogin.removeField")}
+                  {adminT("adminLogin.removeField")}
                 </button>
               </div>
             ))}
@@ -995,11 +1071,11 @@ function AdminLogin() {
                 }))
               }
             >
-              {t("adminLogin.addFooterField")}
+              {adminT("adminLogin.addFooterField")}
             </button>
 
             <div className="admin-field">
-              <label>{t("adminLogin.copyright")}</label>
+              <label>{adminT("adminLogin.copyright")}</label>
               <input
                 type="text"
                 value={draft.footer.copyright}
@@ -1013,7 +1089,7 @@ function AdminLogin() {
             </div>
 
             <h3 className="mb-2 mt-4 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              {t("adminLogin.socialUrls")}
+              {adminT("adminLogin.socialUrls")}
             </h3>
 
             {["facebook", "instagram", "linkedin", "emailMailto"].map((k) => (
@@ -1041,9 +1117,9 @@ function AdminLogin() {
         {tab === "pages" && (
           <div>
             <div className="admin-card">
-              <h3>{t("adminLogin.bookMeetingCard")}</h3>
+              <h3>{adminT("adminLogin.bookMeetingCard")}</h3>
               <div className="admin-field">
-                <label>{t("adminLogin.videoTitle")}</label>
+                <label>{adminT("adminLogin.videoTitle")}</label>
                 <input
                   type="text"
                   value={draft.bookMeeting.title}
@@ -1056,7 +1132,7 @@ function AdminLogin() {
                 />
               </div>
               <div className="admin-field">
-                <label>{t("adminLogin.intro")}</label>
+                <label>{adminT("adminLogin.intro")}</label>
                 <textarea
                   value={draft.bookMeeting.intro}
                   onChange={(e) =>
@@ -1070,9 +1146,9 @@ function AdminLogin() {
             </div>
 
             <div className="admin-card">
-              <h3>{t("adminLogin.nutritionistsCard")}</h3>
+              <h3>{adminT("adminLogin.nutritionistsCard")}</h3>
               <div className="admin-field">
-                <label>{t("adminLogin.videoTitle")}</label>
+                <label>{adminT("adminLogin.videoTitle")}</label>
                 <input
                   type="text"
                   value={draft.nutritionists.title}
@@ -1088,7 +1164,7 @@ function AdminLogin() {
                 />
               </div>
               <div className="admin-field">
-                <label>{t("adminLogin.intro")}</label>
+                <label>{adminT("adminLogin.intro")}</label>
                 <textarea
                   value={draft.nutritionists.intro}
                   onChange={(e) =>
@@ -1109,7 +1185,7 @@ function AdminLogin() {
         {tab === "bookings" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              {t("adminLogin.bookingsHint")}
+              {adminT("adminLogin.bookingsHint")}
             </p>
             <AdminBookingsTab />
           </div>
@@ -1118,7 +1194,7 @@ function AdminLogin() {
         {tab === "posts" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              {t("adminLogin.postsHint")}
+              {adminT("adminLogin.postsHint")}
             </p>
             <AdminPostsTab />
           </div>
@@ -1127,7 +1203,7 @@ function AdminLogin() {
         {tab === "postTags" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              {t("adminLogin.tagsHint")}
+              {adminT("adminLogin.tagsHint")}
             </p>
             <AdminPostTagsTab />
           </div>
@@ -1136,25 +1212,25 @@ function AdminLogin() {
         {isContentTab && (
           <div className="admin-actions py-[24px] md:py-[12px]">
             <button type="button" className="admin-btn-primary" onClick={save}>
-              {t("adminLogin.save")}
+              {adminT("adminLogin.save")}
             </button>
             <button
               type="button"
               className="admin-btn-secondary"
               onClick={handleReset}
             >
-              {t("adminLogin.reset")}
+              {adminT("adminLogin.reset")}
             </button>
 
             {savedFlash && (
               <span className="text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f]">
-                {t("adminLogin.savedFlash")}
+                {adminT("adminLogin.savedFlash")}
               </span>
             )}
 
             {lastRemoteSaveError && (
               <span className="max-w-xl text-sm text-[#b91c1c] dark:text-[#fca5a5]">
-                {t("adminLogin.remoteSaveFailed", {
+                {adminT("adminLogin.remoteSaveFailed", {
                   error: lastRemoteSaveError,
                 })}
               </span>
