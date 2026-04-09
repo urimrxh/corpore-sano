@@ -17,6 +17,32 @@ import PostsPage from "./pages/PostsPage";
 import PostsByTagPage from "./pages/PostsByTagPage";
 import PostDetailPage from "./pages/PostDetailPage";
 import "./App.css";
+import { useSiteContent } from "./context/SiteContentContext";
+import { isSectionHidden } from "./lib/sectionVisibility";
+
+function PostsRoutes() {
+  const { content } = useSiteContent();
+  if (isSectionHidden(content, "posts")) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+}
+
+function VideosRoute() {
+  const { content } = useSiteContent();
+  if (isSectionHidden(content, "videosPage")) {
+    return <Navigate to="/" replace />;
+  }
+  return <Videos />;
+}
+
+function NutritionistsRoute() {
+  const { content } = useSiteContent();
+  if (isSectionHidden(content, "nutritionists")) {
+    return <Navigate to="/" replace />;
+  }
+  return <Nutritionists />;
+}
 
 function App() {
   return (
