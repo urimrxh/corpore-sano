@@ -10,6 +10,7 @@ import {
   fetchBusyTimeSlots,
 } from "../lib/bookingsApi";
 import { requestBookingVerificationEmail } from "../lib/bookingVerification";
+import { useI18n } from "../context/I18nContext";
 
 function ScheduleDateTime({
   fullName,
@@ -17,6 +18,7 @@ function ScheduleDateTime({
   gender,
   topic,
 }) {
+  const { t } = useI18n();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [slots, setSlots] = useState([]);
@@ -59,20 +61,32 @@ function ScheduleDateTime({
     setSelectedTime(time);
   };
 
+  function translateBookingError(error, code) {
+    if (code === "PAST_DATE") return t("errors.pastDate");
+    if (code === "PAST_SLOT") return t("errors.pastSlot");
+    if (code === "RECENT_BOOKING") return t("errors.recentBooking");
+    if (String(code) === "23505") return t("schedule.slotTaken");
+    const msg = error?.message || "";
+    if (msg.includes("Supabase") || msg.includes("nuk është konfiguruar") || msg.includes("not configured")) {
+      return t("errors.supabaseNotConfigured");
+    }
+    return msg || t("schedule.bookingFailed");
+  }
+
   async function handleBook() {
     setBookingMessage(null);
     setBookingError(null);
 
     if (!fullName?.trim() || !email?.trim()) {
-      setBookingError("Please enter your name and email above.");
+      setBookingError(t("schedule.enterNameEmail"));
       return;
     }
     if (!gender) {
-      setBookingError("Please select your gender so we can assign the right specialist.");
+      setBookingError(t("schedule.pickGenderSpecialist"));
       return;
     }
     if (!selectedTime) {
-      setBookingError("Please select a time slot.");
+      setBookingError(t("schedule.pickSlot"));
       return;
     }
 
@@ -88,17 +102,7 @@ function ScheduleDateTime({
 
     if (error) {
       setBookingBusy(false);
-      if (String(code) === "23505") {
-        setBookingError(
-          "That slot was just taken. Please pick another time.",
-        );
-      } else if (String(code) === "RECENT_BOOKING") {
-        setBookingError(
-          "You've already had a meeting in the last 24 hours.",
-        );
-      } else {
-        setBookingError(error.message || "Could not complete booking.");
-      }
+      setBookingError(translateBookingError(error, code));
       return;
     }
 
@@ -107,15 +111,11 @@ function ScheduleDateTime({
         bookingId: data.id,
       });
       if (ver.skipped) {
-        setBookingMessage(
-          "Thanks — your booking was saved. Verification could not be started (no browser URL). If you’re developing locally, set VITE_SEND_BOOKING_VERIFICATION_URL to your live function URL or run netlify dev.",
-        );
+        setBookingMessage(t("schedule.verifySkipped"));
       } else if (!ver.ok) {
         const st = ver.status;
         if (st === 401) {
-          setBookingError(
-            "Could not reach the verification service (unauthorized). If Netlify has BOOKING_FUNCTION_SECRET set, add the same value as VITE_BOOKING_FUNCTION_SECRET and redeploy — or remove that secret from Netlify and the site.",
-          );
+          setBookingError(t("schedule.verify401"));
         } else if (st === 502) {
           const raw =
             typeof ver.detail === "string" ? ver.detail.trim() : "";
@@ -123,29 +123,28 @@ function ScheduleDateTime({
             raw.length > 320 ? `${raw.slice(0, 320)}…` : raw;
           setBookingError(
             short
-              ? `Your booking was saved, but the email service rejected the send: ${short}`
-              : "Your booking was saved, but sending the email failed. In Netlify → Functions → send-booking-verification → Logs, look for “Resend error”. In Resend, check API key, verified domain for “from”, and that the recipient is allowed (sandbox only allows test addresses).",
+              ? t("schedule.verify502WithDetail", { detail: short })
+              : t("schedule.verify502Generic"),
           );
         } else {
+          const statusSuffix = st ? ` (${st})` : "";
           setBookingError(
-            `Your booking was saved, but we could not send the verification email${st ? ` (${st})` : ""}. Please contact us.`,
+            t("schedule.verifyOther", { status: statusSuffix }),
           );
         }
       } else {
         const payload = ver.data && typeof ver.data === "object" ? ver.data : {};
         if (payload.autoVerified) {
-          setBookingMessage(
-            "You’re booked. Your appointment is confirmed (email provider not configured on the server, so we confirmed it automatically).",
-          );
+          setBookingMessage(t("schedule.autoVerified"));
         } else if (payload.emailSent) {
-          setBookingMessage(
-            "Check your email to verify your appointment. Your time is reserved for you until you confirm (or we follow up manually).",
-          );
+          setBookingMessage(t("schedule.emailSent"));
         } else if (payload.alreadyVerified) {
-          setBookingMessage("This appointment is already verified.");
+          setBookingMessage(t("schedule.alreadyVerified"));
         } else {
           setBookingMessage(
-            `Check your email for a link to verify your appointment. You have ${BOOKING_PENDING_HOLD_MINUTES} minutes to confirm, or this booking will be cancelled.`,
+            t("schedule.verifyEmailMinutes", {
+              minutes: BOOKING_PENDING_HOLD_MINUTES,
+            }),
           );
         }
       }
@@ -158,10 +157,10 @@ function ScheduleDateTime({
   return (
     <section className="page-section" id="schedule-datetime">
       <div className="schedule-date-time">
-        <p className="schedule-date-time__title">Select a Date & Time</p>
+        <p className="schedule-date-time__title">{t("schedule.title")}</p>
         {!gender && (
           <p className="mb-4 text-center text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-            Choose your gender above to see available times for that team.
+            {t("schedule.pickGenderForSlots")}
           </p>
         )}
 
@@ -199,7 +198,7 @@ function ScheduleDateTime({
                 onClick={handleBook}
                 className="schedule-date-time__book-btn py-[14px] px-[32px] md:py-[16px] md:px-[120px] text-sm md:text-[18px] font-semibold rounded-md bg-[#3aa57d] text-white hover:bg-[#3aa57d]/80 transition-all duration-300 whitespace-nowrap hover:cursor-pointer mx-auto my-[02px] md:my-[20px] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {bookingBusy ? "Booking…" : "Book meeting"}
+                {bookingBusy ? t("schedule.booking") : t("schedule.bookMeeting")}
               </button>
             </div>
           </div>

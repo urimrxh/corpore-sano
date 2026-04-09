@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import "../style/admin.css";
 
 function AdminForgotPassword() {
+  const { t } = useI18n();
   const { authReady, requestPasswordReset } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState(null);
@@ -15,7 +17,7 @@ function AdminForgotPassword() {
       <section className="page-section">
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
-            Supabase is not configured.
+            {t("adminForgot.notConfigured")}
           </p>
         </div>
       </section>
@@ -39,20 +41,15 @@ function AdminForgotPassword() {
     <section className="page-section">
       <div className="container admin-page max-w-md">
         <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          Reset admin password
+          {t("adminForgot.title")}
         </h1>
         <p className="mb-6 text-[15px] text-[#4d515c] dark:text-[#b8c4d0]">
-          Enter the email for your admin account. We’ll send a link to set a new password.
-          New accounts are not created here — only staff added in Supabase can sign in.
+          {t("adminForgot.subtitle")}
         </p>
 
         {done ? (
           <p className="rounded-md border border-[#3aa57d]/40 bg-[#e8f5ef] px-3 py-3 text-sm text-[#103152] dark:border-[#3aa57d]/30 dark:bg-[#161d27] dark:text-[#b8c4d0]">
-            Check your email for a reset link. After you choose a new password, you can{" "}
-            <Link to="/admin/sign-in" className="text-[#218c77] underline dark:text-[#4dc89f]">
-              sign in
-            </Link>
-            .
+            {t("adminForgot.done")}
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,14 +74,14 @@ function AdminForgotPassword() {
               className="admin-btn-primary w-full"
               disabled={submitting}
             >
-              {submitting ? "Sending…" : "Send reset link"}
+              {submitting ? t("adminForgot.sending") : t("adminForgot.sendLink")}
             </button>
           </form>
         )}
 
         <p className="mt-8 text-center text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           <Link to="/admin/sign-in" className="text-[#218c77] underline dark:text-[#4dc89f]">
-            ← Back to sign in
+            ← {t("adminForgot.backSignIn")}
           </Link>
         </p>
       </div>

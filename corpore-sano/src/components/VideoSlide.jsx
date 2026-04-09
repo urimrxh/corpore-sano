@@ -1,6 +1,8 @@
 import { getVideoThumbnail } from "../script/videoHelpers";
+import { useI18n } from "../context/I18nContext";
 
 function VideoSlide({ video, onPlay }) {
+  const { t } = useI18n();
   return (
     <article
       className="video-slide"
@@ -36,7 +38,7 @@ function VideoSlide({ video, onPlay }) {
             <path fill="currentColor" d="M8 5v14l11-7z" />
           </svg>
         </span>
-        <span className="video-slide__play-label">Watch</span>
+        <span className="video-slide__play-label">{t("schedule.videoWatch")}</span>
       </div>
 
       <div className="video-slide__footer">

@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fetchPostBySlug } from "../lib/postsApi";
-
-function formatDate(value) {
-  if (!value) return "";
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
+import { useI18n } from "../context/I18nContext";
 
 function PostDetailPage() {
+  const { intlLocaleTag, t } = useI18n();
   const { slug } = useParams();
+
+  function formatDate(value) {
+    if (!value) return "";
+    return new Date(value).toLocaleDateString(intlLocaleTag, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +38,7 @@ function PostDetailPage() {
     return (
       <section className="page-section">
         <div className="container">
-          <p>Loading post...</p>
+          <p>{t("posts.loadingOne")}</p>
         </div>
       </section>
     );
@@ -46,7 +48,7 @@ function PostDetailPage() {
     return (
       <section className="page-section">
         <div className="container">
-          <p>Post not found.</p>
+          <p>{t("posts.notFound")}</p>
         </div>
       </section>
     );

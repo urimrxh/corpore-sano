@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useSiteContent } from "../context/SiteContentContext";
+import { useI18n } from "../context/I18nContext";
 import { getEmbedUrl } from "../script/videoHelpers";
 import VideoSlide from "../components/VideoSlide";
 import "../style/videoSwiper.css";
 
 function VideosPage() {
   const { content } = useSiteContent();
+  const { t } = useI18n();
   const { title, intro } = content.videosPage;
 
   const videos = useMemo(
@@ -17,7 +19,7 @@ function VideosPage() {
   if (!videos.length) {
     return (
       <section className="container py-10 md:py-14">
-        <p className="text-[#103152] dark:text-[#e8ecf1]">No videos yet.</p>
+        <p className="text-[#103152] dark:text-[#e8ecf1]">{t("videos.empty")}</p>
       </section>
     );
   }

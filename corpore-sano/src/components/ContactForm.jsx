@@ -1,19 +1,20 @@
 import { useState } from "react";
+import { useI18n } from "../context/I18nContext";
 import "../style/scheduleInputs.css";
 
 function ContactForm({ labels }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState("idle");
 
   const L = labels || {
-    fullName: "Full name",
-    email: "Email",
-    subject: "Subject",
-    message: "Message",
-    subjectPlaceholder: "What is your message about?",
-    messagePlaceholder: "Write your message here…",
-    submit: "Send message",
-    success:
-      "Thanks — your message has been recorded. We’ll get back to you soon.",
+    fullName: t("contactForm.fullName"),
+    email: t("contactForm.email"),
+    subject: t("contactForm.subject"),
+    message: t("contactForm.message"),
+    subjectPlaceholder: t("contactForm.subjectPlaceholder"),
+    messagePlaceholder: t("contactForm.messagePlaceholder"),
+    submit: t("contactForm.submit"),
+    success: t("contactForm.success"),
   };
 
   function handleSubmit(e) {

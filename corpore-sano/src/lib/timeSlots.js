@@ -18,14 +18,9 @@ export const BOOKING_SLOT_TIMES = (() => {
   return out;
 })();
 
+/** Shfaq orën në format 24-orësh (pa AM/PM), i zakonshëm në shqip. */
 export function formatTime12h(hhmm24) {
-  const [hStr, mStr] = hhmm24.split(":");
-  let h = Number(hStr);
-  const m = mStr ?? "00";
-  const ap = h >= 12 ? "PM" : "AM";
-  if (h === 0) h = 12;
-  else if (h > 12) h -= 12;
-  return `${h}:${m} ${ap}`;
+  return hhmm24;
 }
 
 /**

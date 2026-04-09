@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fetchPostsByTagSlug } from "../lib/postsApi";
 import PostCard from "../components/PostCard";
+import { useI18n } from "../context/I18nContext";
 
 function PostsByTagPage() {
+  const { t } = useI18n();
   const { slug } = useParams();
   const [tag, setTag] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -30,13 +32,13 @@ function PostsByTagPage() {
     <section className="page-section">
       <div className="container">
         <h1 className="mb-8 text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          {tag?.name || "Posts"}
+          {tag?.name || t("posts.fallbackTagTitle")}
         </h1>
 
         {loading ? (
-          <p>Loading posts...</p>
+          <p>{t("posts.loading")}</p>
         ) : !posts.length ? (
-          <p>No posts found in this section.</p>
+          <p>{t("posts.emptyTag")}</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {posts.map((post) => (

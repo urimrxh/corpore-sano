@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom";
-
-function formatDate(value) {
-  if (!value) return "";
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+import { useI18n } from "../context/I18nContext";
 
 function PostCard({ post }) {
+  const { intlLocaleTag, t } = useI18n();
+
+  function formatDate(value) {
+    if (!value) return "";
+    return new Date(value).toLocaleDateString(intlLocaleTag, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
   return (
     <Link to={`/posts/${post.slug}`} className="hover:translate-y-[-5px] transition-all duration-300 hover:brightness-[0.95]">
     <article className="overflow-hidden rounded-2xl border border-[#e1e5ec] shadow-sm dark:border-[#2a3441] bg-[#f5f8fa] dark:bg-[#1a2332]">
@@ -45,7 +47,7 @@ function PostCard({ post }) {
           to={`/posts/${post.slug}`}
           className="inline-flex items-center text-sm font-medium text-[#218c77] underline dark:text-[#4dc89f]"
         >
-          Read more
+          {t("posts.readMore")}
           </Link>
         </div>
       </article>

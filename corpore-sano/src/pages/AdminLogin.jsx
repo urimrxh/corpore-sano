@@ -1,40 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../context/I18nContext";
 import AdminBookingsTab from "../components/AdminBookingsTab";
 import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
 import { fetchCurrentAdminProfile } from "../lib/adminsApi";
 import "../style/admin.css";
 
-const TABS = [
-  { id: "global", label: "Global & CTAs" },
-  { id: "home", label: "Home" },
-  { id: "contact", label: "Contact" },
-  { id: "about", label: "About" },
-  { id: "videos", label: "Videos" },
-  { id: "videosPage", label: "Videos page" },
-  { id: "footer", label: "Footer" },
-  { id: "pages", label: "Other pages" },
-  { id: "bookings", label: "Bookings" },
-  { id: "posts", label: "Posts" },
-  { id: "postTags", label: "Post tags" },
-];
-
-const ABOUT_TEXT_PANEL_OPTIONS = [
-  { value: "grey", label: "Grey (#454d55) — default", swatch: "#454d55" },
-  { value: "green-teal", label: "Green teal (#218c77)", swatch: "#218c77" },
-  { value: "green-mint", label: "Green mint (#3aa57d)", swatch: "#3aa57d" },
-  { value: "white", label: "White (#ffffff)", swatch: "#ffffff" },
-  { value: "navy", label: "Navy (#103152)", swatch: "#103152" },
-  { value: "black", label: "Black (#0d1218)", swatch: "#0d1218" },
-];
+const PANEL_SWATCH_BY_VALUE = {
+  grey: "#454d55",
+  "green-teal": "#218c77",
+  "green-mint": "#3aa57d",
+  white: "#ffffff",
+  navy: "#103152",
+  black: "#0d1218",
+};
 
 function aboutPanelSwatchHex(theme) {
-  const key = theme ?? "grey";
-  return (
-    ABOUT_TEXT_PANEL_OPTIONS.find((o) => o.value === key)?.swatch ?? "#454d55"
-  );
+  return PANEL_SWATCH_BY_VALUE[theme ?? "grey"] ?? "#454d55";
 }
 
 function clone(obj) {
@@ -42,14 +26,45 @@ function clone(obj) {
 }
 
 function AdminLogin() {
+  const { t } = useI18n();
   const { signOut, user } = useAuth();
   const {
     content,
+    siteBilingualEnabled,
     replaceContent,
     resetToDefaults,
     lastRemoteSaveError,
     remoteLoadError,
   } = useSiteContent();
+
+  const TABS = useMemo(
+    () => [
+      { id: "global", label: t("adminLogin.tabs.global") },
+      { id: "home", label: t("adminLogin.tabs.home") },
+      { id: "contact", label: t("adminLogin.tabs.contact") },
+      { id: "about", label: t("adminLogin.tabs.about") },
+      { id: "videos", label: t("adminLogin.tabs.videos") },
+      { id: "videosPage", label: t("adminLogin.tabs.videosPage") },
+      { id: "footer", label: t("adminLogin.tabs.footer") },
+      { id: "pages", label: t("adminLogin.tabs.pages") },
+      { id: "bookings", label: t("adminLogin.tabs.bookings") },
+      { id: "posts", label: t("adminLogin.tabs.posts") },
+      { id: "postTags", label: t("adminLogin.tabs.postTags") },
+    ],
+    [t],
+  );
+
+  const ABOUT_TEXT_PANEL_OPTIONS = useMemo(
+    () => [
+      { value: "grey", label: t("adminLogin.panelGrey"), swatch: PANEL_SWATCH_BY_VALUE.grey },
+      { value: "green-teal", label: t("adminLogin.panelGreenTeal"), swatch: PANEL_SWATCH_BY_VALUE["green-teal"] },
+      { value: "green-mint", label: t("adminLogin.panelGreenMint"), swatch: PANEL_SWATCH_BY_VALUE["green-mint"] },
+      { value: "white", label: t("adminLogin.panelWhite"), swatch: PANEL_SWATCH_BY_VALUE.white },
+      { value: "navy", label: t("adminLogin.panelNavy"), swatch: PANEL_SWATCH_BY_VALUE.navy },
+      { value: "black", label: t("adminLogin.panelBlack"), swatch: PANEL_SWATCH_BY_VALUE.black },
+    ],
+    [t],
+  );
 
   const [tab, setTab] = useState("global");
   const [draft, setDraft] = useState(() => clone(content));
@@ -60,8 +75,13 @@ function AdminLogin() {
   const adminEmail = user?.email ?? "";
 
   useEffect(() => {
-    setDraft(clone(content));
-  }, [content]);
+    const next = clone(content);
+    next.global = {
+      ...next.global,
+      bilingualEnabled: siteBilingualEnabled,
+    };
+    setDraft(next);
+  }, [content, siteBilingualEnabled]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,9 +111,9 @@ function AdminLogin() {
       adminProfile?.full_name ||
       adminEmail.split("@")[0] ||
       adminEmail ||
-      "Admin"
+      t("adminLogin.fallbackName")
     );
-  }, [adminProfile?.full_name, adminEmail]);
+  }, [adminProfile?.full_name, adminEmail, t]);
 
   function save() {
     replaceContent(draft);
@@ -102,11 +122,7 @@ function AdminLogin() {
   }
 
   function handleReset() {
-    if (
-      window.confirm(
-        "Reset all site copy to defaults? This clears saved admin data in this browser.",
-      )
-    ) {
+    if (window.confirm(t("adminLogin.confirmReset"))) {
       resetToDefaults();
     }
   }
@@ -116,47 +132,46 @@ function AdminLogin() {
       <div className="container admin-page">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <h1 className="mb-0 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
-            Site content
+            {t("adminLogin.pageTitle")}
           </h1>
           <button
             type="button"
-            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
+            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50"
             onClick={() => signOut()}
           >
-            Sign out
+            {t("adminLogin.signOut")}
           </button>
         </div>
 
         <div className="mb-6 rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-4 dark:border-[#2a3441] dark:bg-[#1e2835]">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d515c] dark:text-[#8ea0b5]">
-            Admin account
+            {t("adminLogin.accountLabel")}
           </p>
           <h2 className="mt-1 text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]">
-            Welcome {adminDisplayName}
+            {t("adminLogin.welcome", { name: adminDisplayName })}
           </h2>
           <p className="mt-1 break-all text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-            {adminEmail || "No email found"}
+            {adminEmail || t("adminLogin.noEmail")}
           </p>
         </div>
 
         {remoteLoadError && (
           <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
-            Could not load site from Supabase: {remoteLoadError}. Using saved
-            browser data or defaults.
+            {t("adminLogin.remoteLoad", { error: remoteLoadError })}
           </p>
         )}
 
         <div className="admin-tabs" role="tablist">
-          {TABS.map((t) => (
+          {TABS.map((tabItem) => (
             <button
-              key={t.id}
+              key={tabItem.id}
               type="button"
               role="tab"
-              aria-selected={tab === t.id}
-              className={tab === t.id ? "admin-tabs__btn--active" : ""}
-              onClick={() => setTab(t.id)}
+              aria-selected={tab === tabItem.id}
+              className={tab === tabItem.id ? "admin-tabs__btn--active" : ""}
+              onClick={() => setTab(tabItem.id)}
             >
-              {t.label}
+              {tabItem.label}
             </button>
           ))}
         </div>
@@ -164,7 +179,7 @@ function AdminLogin() {
         {tab === "global" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="g-cta">Header “Free consultation” button</label>
+              <label htmlFor="g-cta">{t("adminLogin.headerCta")}</label>
               <input
                 id="g-cta"
                 type="text"
@@ -178,7 +193,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="g-cta2">Footer CTA button</label>
+              <label htmlFor="g-cta2">{t("adminLogin.footerCta")}</label>
               <input
                 id="g-cta2"
                 type="text"
@@ -194,13 +209,41 @@ function AdminLogin() {
                 }
               />
             </div>
+            <div className="admin-field">
+              <label
+                htmlFor="g-bilingual"
+                className="flex cursor-pointer items-start gap-3 font-normal"
+              >
+                <input
+                  id="g-bilingual"
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-[#e1e5ec] text-[#218c77] focus:ring-[#218c77] dark:border-[#2a3441]"
+                  checked={draft.global.bilingualEnabled !== false}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      global: {
+                        ...d.global,
+                        bilingualEnabled: e.target.checked,
+                      },
+                    }))
+                  }
+                />
+                <span className="text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
+                  {t("adminLogin.bilingualEnabled")}
+                </span>
+              </label>
+              <p className="mt-2 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+                {t("adminLogin.bilingualEnabledHint")}
+              </p>
+            </div>
           </div>
         )}
 
         {tab === "home" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="h-title">Hero title</label>
+              <label htmlFor="h-title">{t("adminLogin.heroTitle")}</label>
               <textarea
                 id="h-title"
                 value={draft.home.heroTitle}
@@ -213,7 +256,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="h-desc">Hero description</label>
+              <label htmlFor="h-desc">{t("adminLogin.heroDesc")}</label>
               <textarea
                 id="h-desc"
                 value={draft.home.heroDescription}
@@ -226,7 +269,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="h-vhead">Video section heading</label>
+              <label htmlFor="h-vhead">{t("adminLogin.videoHead")}</label>
               <input
                 id="h-vhead"
                 type="text"
@@ -240,7 +283,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="h-vall">“View all” link label</label>
+              <label htmlFor="h-vall">{t("adminLogin.viewAllLabel")}</label>
               <input
                 id="h-vall"
                 type="text"
@@ -259,7 +302,7 @@ function AdminLogin() {
         {tab === "contact" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="c-title">Page title</label>
+              <label htmlFor="c-title">{t("adminLogin.pageTitleLabel")}</label>
               <input
                 id="c-title"
                 type="text"
@@ -273,7 +316,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="c-intro">Intro</label>
+              <label htmlFor="c-intro">{t("adminLogin.contactIntro")}</label>
               <textarea
                 id="c-intro"
                 value={draft.contact.pageIntro}
@@ -286,11 +329,11 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="c-bg">Background image URL</label>
+              <label htmlFor="c-bg">{t("adminLogin.bgUrl")}</label>
               <input
                 id="c-bg"
                 type="url"
-                placeholder="Leave empty to use the default bundled image"
+                placeholder={t("adminLogin.bgPlaceholder")}
                 value={draft.contact.backgroundImageUrl}
                 onChange={(e) =>
                   setDraft((d) => ({
@@ -302,13 +345,10 @@ function AdminLogin() {
                   }))
                 }
               />
-              <p className="admin-hint">
-                Full URL (https://…) or a path under <code>/public</code> e.g.{" "}
-                <code>/my-bg.jpg</code>
-              </p>
+              <p className="admin-hint">{t("adminLogin.bgHint")}</p>
             </div>
             <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              Form labels
+              {t("adminLogin.formLabels")}
             </h3>
             {Object.keys(draft.contact.form.labels).map((key) => (
               <div key={key} className="admin-field">
@@ -341,7 +381,7 @@ function AdminLogin() {
         {tab === "about" && (
           <div>
             <div className="admin-field">
-              <label htmlFor="a-title">Page title</label>
+              <label htmlFor="a-title">{t("adminLogin.pageTitleLabel")}</label>
               <input
                 id="a-title"
                 type="text"
@@ -355,7 +395,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label htmlFor="a-intro">Page intro</label>
+              <label htmlFor="a-intro">{t("adminLogin.aboutIntro")}</label>
               <textarea
                 id="a-intro"
                 value={draft.about.pageIntro}
@@ -369,16 +409,13 @@ function AdminLogin() {
             </div>
 
             <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              Sections (alternating layout is automatic)
+              {t("adminLogin.sectionsTitle")}
             </h3>
-            <p className="admin-hint mb-4">
-              Each section has its own text-column background; colors adjust for
-              readable contrast.
-            </p>
+            <p className="admin-hint mb-4">{t("adminLogin.sectionsHint")}</p>
 
             {draft.about.sections.map((sec, index) => (
               <div key={sec.id} className="admin-card">
-                <h3>Section {index + 1}</h3>
+                <h3>{t("adminLogin.sectionN", { n: index + 1 })}</h3>
 
                 <div className="admin-field admin-field--inline">
                   <input
@@ -399,12 +436,12 @@ function AdminLogin() {
                       }))
                     }
                   />
-                  <label htmlFor={`a-il-${sec.id}`}>Image on the left</label>
+                  <label htmlFor={`a-il-${sec.id}`}>{t("adminLogin.imageLeft")}</label>
                 </div>
 
                 <div className="admin-field">
                   <label htmlFor={`a-tp-${sec.id}`}>
-                    Text column background (this section only)
+                    {t("adminLogin.textPanelBg")}
                   </label>
                   <div className="admin-about-text-panel-row">
                     <select
@@ -444,7 +481,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Image URL</label>
+                  <label>{t("adminLogin.imageUrl")}</label>
                   <input
                     type="url"
                     value={sec.image}
@@ -463,7 +500,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Image alt text</label>
+                  <label>{t("adminLogin.imageAlt")}</label>
                   <input
                     type="text"
                     value={sec.imageAlt}
@@ -484,7 +521,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Heading</label>
+                  <label>{t("adminLogin.heading")}</label>
                   <input
                     type="text"
                     value={sec.title}
@@ -503,7 +540,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Body</label>
+                  <label>{t("adminLogin.body")}</label>
                   <textarea
                     value={sec.body}
                     onChange={(e) =>
@@ -533,7 +570,7 @@ function AdminLogin() {
                     }))
                   }
                 >
-                  Remove section
+                  {t("adminLogin.removeSection")}
                 </button>
               </div>
             ))}
@@ -562,7 +599,7 @@ function AdminLogin() {
                 }))
               }
             >
-              + Add section
+              {t("adminLogin.addSection")}
             </button>
           </div>
         )}
@@ -570,13 +607,12 @@ function AdminLogin() {
         {tab === "videos" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              Only videos with “Published” checked appear on the site. YouTube
-              watch URLs work best.
+              {t("adminLogin.videosHint")}
             </p>
 
             {draft.videos.map((v, index) => (
               <div key={v.id} className="admin-card">
-                <h3>Video #{v.id}</h3>
+                <h3>{t("adminLogin.videoN", { id: v.id })}</h3>
 
                 <div className="admin-field admin-field--inline">
                   <input
@@ -594,11 +630,11 @@ function AdminLogin() {
                       }))
                     }
                   />
-                  <label htmlFor={`v-pub-${v.id}`}>Published</label>
+                  <label htmlFor={`v-pub-${v.id}`}>{t("adminLogin.published")}</label>
                 </div>
 
                 <div className="admin-field">
-                  <label>Title</label>
+                  <label>{t("adminLogin.videoTitle")}</label>
                   <input
                     type="text"
                     value={v.title}
@@ -614,7 +650,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Description</label>
+                  <label>{t("adminLogin.videoDesc")}</label>
                   <textarea
                     value={v.desc}
                     onChange={(e) =>
@@ -629,7 +665,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Video URL (YouTube)</label>
+                  <label>{t("adminLogin.videoUrl")}</label>
                   <input
                     type="url"
                     value={v.videoUrl}
@@ -645,7 +681,7 @@ function AdminLogin() {
                 </div>
 
                 <div className="admin-field">
-                  <label>Category</label>
+                  <label>{t("adminLogin.category")}</label>
                   <input
                     type="text"
                     value={v.category}
@@ -670,7 +706,7 @@ function AdminLogin() {
                     }))
                   }
                 >
-                  Remove video
+                  {t("adminLogin.removeVideo")}
                 </button>
               </div>
             ))}
@@ -701,7 +737,7 @@ function AdminLogin() {
                 })
               }
             >
-              + Add video
+              {t("adminLogin.addVideo")}
             </button>
           </div>
         )}
@@ -709,7 +745,7 @@ function AdminLogin() {
         {tab === "videosPage" && (
           <div>
             <div className="admin-field">
-              <label>Page title</label>
+              <label>{t("adminLogin.pageTitleLabel")}</label>
               <input
                 type="text"
                 value={draft.videosPage.title}
@@ -722,7 +758,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>Intro</label>
+              <label>{t("adminLogin.videosPageIntro")}</label>
               <textarea
                 value={draft.videosPage.intro}
                 onChange={(e) =>
@@ -739,7 +775,7 @@ function AdminLogin() {
         {tab === "footer" && (
           <div>
             <div className="admin-field">
-              <label>Brand name</label>
+              <label>{t("adminLogin.brandName")}</label>
               <input
                 type="text"
                 value={draft.footer.brandName}
@@ -752,7 +788,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>Phone (display)</label>
+              <label>{t("adminLogin.phoneDisplay")}</label>
               <input
                 type="text"
                 value={draft.footer.phone}
@@ -765,7 +801,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>Phone (href, digits only e.g. +38344123456)</label>
+              <label>{t("adminLogin.phoneHref")}</label>
               <input
                 type="text"
                 value={draft.footer.phoneHref}
@@ -778,7 +814,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>City line</label>
+              <label>{t("adminLogin.cityLine")}</label>
               <input
                 type="text"
                 value={draft.footer.cityLine}
@@ -791,7 +827,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>Address</label>
+              <label>{t("adminLogin.address")}</label>
               <textarea
                 value={draft.footer.address}
                 onChange={(e) =>
@@ -803,7 +839,7 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
-              <label>Email</label>
+              <label>{t("adminLogin.email")}</label>
               <input
                 type="email"
                 value={draft.footer.email}
@@ -815,8 +851,155 @@ function AdminLogin() {
                 }
               />
             </div>
+
+            <h3 className="mb-2 mt-6 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
+              {t("adminLogin.extraFooterTitle")}
+            </h3>
+
+            <p className="admin-hint mb-4">{t("adminLogin.extraFooterHint")}</p>
+
+            {(draft.footer.extraInfoFields ?? []).map((field, index) => (
+              <div
+                key={field.id ?? `footer-extra-${index}`}
+                className="admin-card"
+              >
+                <h3>{t("adminLogin.extraFieldN", { n: index + 1 })}</h3>
+
+                <div className="admin-field">
+                  <label>{t("adminLogin.fieldType")}</label>
+                  <select
+                    value={field.type ?? "text"}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        footer: {
+                          ...d.footer,
+                          extraInfoFields: (
+                            d.footer.extraInfoFields ?? []
+                          ).map((item, i) =>
+                            i === index
+                              ? {
+                                  ...item,
+                                  type: e.target.value,
+                                  href:
+                                    e.target.value === "text" ||
+                                    e.target.value === "title"
+                                      ? ""
+                                      : item.href ?? "",
+                                }
+                              : item,
+                          ),
+                        },
+                      }))
+                    }
+                  >
+                    <option value="text">{t("adminLogin.typeText")}</option>
+                    <option value="title">{t("adminLogin.typeTitle")}</option>
+                    <option value="phone">{t("adminLogin.typePhone")}</option>
+                    <option value="email">{t("adminLogin.typeEmail")}</option>
+                  </select>
+                </div>
+
+                <div className="admin-field">
+                  <label>{t("adminLogin.value")}</label>
+                  <input
+                    type="text"
+                    value={field.value ?? ""}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        footer: {
+                          ...d.footer,
+                          extraInfoFields: (
+                            d.footer.extraInfoFields ?? []
+                          ).map((item, i) =>
+                            i === index
+                              ? { ...item, value: e.target.value }
+                              : item,
+                          ),
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                {(field.type === "phone" || field.type === "email") && (
+                  <div className="admin-field">
+                    <label>
+                      {field.type === "phone"
+                        ? t("adminLogin.linkPhone")
+                        : t("adminLogin.linkEmail")}
+                    </label>
+                    <input
+                      type="text"
+                      value={field.href ?? ""}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          footer: {
+                            ...d.footer,
+                            extraInfoFields: (
+                              d.footer.extraInfoFields ?? []
+                            ).map((item, i) =>
+                              i === index
+                                ? { ...item, href: e.target.value }
+                                : item,
+                            ),
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="admin-btn-danger rounded-md px-3 py-1.5 text-sm font-semibold"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      footer: {
+                        ...d.footer,
+                        extraInfoFields: (
+                          d.footer.extraInfoFields ?? []
+                        ).filter((_, i) => i !== index),
+                      },
+                    }))
+                  }
+                >
+                  {t("adminLogin.removeField")}
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="admin-btn-secondary rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  footer: {
+                    ...d.footer,
+                    extraInfoFields: [
+                      ...(d.footer.extraInfoFields ?? []),
+                      {
+                        id: `footer-extra-${Date.now()}-${Math.random()
+                          .toString(36)
+                          .slice(2, 8)}`,
+                        type: "text",
+                        value: "",
+                        href: "",
+                      },
+                    ],
+                  },
+                }))
+              }
+            >
+              {t("adminLogin.addFooterField")}
+            </button>
+
             <div className="admin-field">
-              <label>Copyright line</label>
+              <label>{t("adminLogin.copyright")}</label>
               <input
                 type="text"
                 value={draft.footer.copyright}
@@ -830,7 +1013,7 @@ function AdminLogin() {
             </div>
 
             <h3 className="mb-2 mt-4 text-base font-semibold text-[#103152] dark:text-[#e8ecf1]">
-              Social URLs
+              {t("adminLogin.socialUrls")}
             </h3>
 
             {["facebook", "instagram", "linkedin", "emailMailto"].map((k) => (
@@ -858,9 +1041,9 @@ function AdminLogin() {
         {tab === "pages" && (
           <div>
             <div className="admin-card">
-              <h3>Book a meeting</h3>
+              <h3>{t("adminLogin.bookMeetingCard")}</h3>
               <div className="admin-field">
-                <label>Title</label>
+                <label>{t("adminLogin.videoTitle")}</label>
                 <input
                   type="text"
                   value={draft.bookMeeting.title}
@@ -873,7 +1056,7 @@ function AdminLogin() {
                 />
               </div>
               <div className="admin-field">
-                <label>Intro</label>
+                <label>{t("adminLogin.intro")}</label>
                 <textarea
                   value={draft.bookMeeting.intro}
                   onChange={(e) =>
@@ -887,9 +1070,9 @@ function AdminLogin() {
             </div>
 
             <div className="admin-card">
-              <h3>Nutritionists</h3>
+              <h3>{t("adminLogin.nutritionistsCard")}</h3>
               <div className="admin-field">
-                <label>Title</label>
+                <label>{t("adminLogin.videoTitle")}</label>
                 <input
                   type="text"
                   value={draft.nutritionists.title}
@@ -905,7 +1088,7 @@ function AdminLogin() {
                 />
               </div>
               <div className="admin-field">
-                <label>Intro</label>
+                <label>{t("adminLogin.intro")}</label>
                 <textarea
                   value={draft.nutritionists.intro}
                   onChange={(e) =>
@@ -926,9 +1109,7 @@ function AdminLogin() {
         {tab === "bookings" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              Consultation requests from the home page booking flow. Male
-              bookings use the male specialist calendar; female use the female
-              calendar when Google sync is configured.
+              {t("adminLogin.bookingsHint")}
             </p>
             <AdminBookingsTab />
           </div>
@@ -937,7 +1118,7 @@ function AdminLogin() {
         {tab === "posts" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              Create, edit, publish, and remove website posts.
+              {t("adminLogin.postsHint")}
             </p>
             <AdminPostsTab />
           </div>
@@ -946,8 +1127,7 @@ function AdminLogin() {
         {tab === "postTags" && (
           <div>
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              Manage post tags. Tags marked for navigation will appear as menu
-              items on the site.
+              {t("adminLogin.tagsHint")}
             </p>
             <AdminPostTagsTab />
           </div>
@@ -956,27 +1136,27 @@ function AdminLogin() {
         {isContentTab && (
           <div className="admin-actions py-[24px] md:py-[12px]">
             <button type="button" className="admin-btn-primary" onClick={save}>
-              Save changes
+              {t("adminLogin.save")}
             </button>
             <button
               type="button"
               className="admin-btn-secondary"
               onClick={handleReset}
             >
-              Reset to defaults
+              {t("adminLogin.reset")}
             </button>
 
             {savedFlash && (
               <span className="text-sm font-medium text-[#3aa57d] dark:text-[#5dcc9f]">
-                Saved locally.
+                {t("adminLogin.savedFlash")}
               </span>
             )}
 
             {lastRemoteSaveError && (
               <span className="max-w-xl text-sm text-[#b91c1c] dark:text-[#fca5a5]">
-                Supabase sync failed: {lastRemoteSaveError}. Check that you are
-                signed in (writes require authentication) and that RLS policies
-                allow updates.
+                {t("adminLogin.remoteSaveFailed", {
+                  error: lastRemoteSaveError,
+                })}
               </span>
             )}
           </div>

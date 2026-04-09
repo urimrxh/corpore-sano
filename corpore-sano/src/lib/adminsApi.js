@@ -6,7 +6,7 @@ export async function fetchCurrentAdminProfile(email) {
   if (!normalizedEmail) {
     return {
       data: null,
-      error: new Error("Missing admin email."),
+      error: new Error("Mungon emaili i administratorit."),
     };
   }
 
