@@ -120,7 +120,7 @@
     },
     "nutritionists": {
       "title": "Specialistët tanë të ushqyerjes",
-      "intro": "Kjo faqe prezanton nutritionistët tanë dhe profesionistët e ushqyerjes të Corpore Sano."
+      "intro": "Kjo faqe prezanton profesionistët e ushqyerjes të Corpore Sano."
     }
   },
   "ui": {
@@ -178,7 +178,7 @@
       "enterNameEmail": "Ju lutem shkruani emrin dhe emailin më sipër.",
       "pickGenderSpecialist": "Ju lutem zgjidhni gjininë që të mund t'ju caktojmë specialistin e duhur.",
       "pickSlot": "Ju lutem zgjidhni një termin.",
-      "slotTaken": "Ky termin sapo është caktuar. Ju lutem zgjidhni një termin tjetër.",
+      "slotTaken": "Ky termin është i zërë. Ju lutem zgjidhni një termin tjetër.",
       "recentBooking": "Keni pasur tashmë një takim në 24 orët e fundit.",
       "bookingFailed": "Rezervimi nuk mund të përfundohej.",
       "verifySkipped": "Faleminderit — rezervimi u ruajt. Verifikimi nuk nisi (mungon URL e shfletuesit). Nëse zhvilloni lokalisht, vendosni VITE_SEND_BOOKING_VERIFICATION_URL te URL-ja e funksionit live ose ekzekutoni netlify dev.",
@@ -187,15 +187,15 @@
       "verify502Generic": "Rezervimi u ruajt, por dërgimi i email-it dështoi. Në Netlify → Functions → send-booking-verification → Logs, kërkoni \"Resend error\". Tek Resend, kontrolloni çelësin API, domain-in e verifikuar për \"from\", dhe nëse marrësi lejohet (sandbox lejon vetëm adresa test).",
       "verifyOther": "Rezervimi u ruajt, por nuk dërguam email verifikimi{status}. Ju lutem na kontaktoni.",
       "autoVerified": "Takimi juaj u konfirmua (ofruesi i email-it nuk është konfiguruar në server, kështu që e konfirmuam automatikisht).",
-      "emailSent": "Kontrolloni emailin për të verifikuar takimin. Termini juaj është rezervuar derisa ta konfirmoni (ose të lidhemi manualisht).",
+      "emailSent": "Kontrolloni emailin për të verifikuar takimin. Termini juaj është rezervuar derisa ta konfirmoni.",
       "alreadyVerified": "Ky takim është verifikuar më parë.",
-      "verifyEmailMinutes": "Kontrolloni emailin për lidhjen e verifikimit. Keni {minutes} minuta për të konfirmuar, përndryshe rezervimi anulohet.",
+      "verifyEmailMinutes": "Kontrolloni emailin për linkun e verifikimit. Keni {minutes} minuta për ta konfirmuar, përndryshe termini anulohet.",
       "videoWatch": "Shiko"
     },
     "bookMeetingPage": {
       "verifyCalendarSyncFailed": "Takimi juaj është verifikuar. Nuk mund ta shtonim automatikisht në kalendarin tonë — ekipi do t'ju kontaktojë, ose kontrolloni emailin për ftesë kalendari nëse u dërgua.",
-      "verifySuccess": "Takimi juaj është verifikuar. Faleminderit — na shfaqemi atëherë.",
-      "verifyInvalid": "Kjo lidhje konfirmimi është e pavlefshme ose ka skaduar. Ju lutem rezervoni përsëri ose na kontaktoni.",
+      "verifySuccess": "Takimi juaj është verifikuar. Faleminderit — Shihemi së shpejti.",
+      "verifyInvalid": "Linku i konfirmimit është i pavlefshëm ose ka skaduar. Ju lutem caktoni një termin të ri përsëri ose na kontaktoni direkt.",
       "verifyAlready": "Ky takim ishte konfirmuar më parë.",
       "verifyError": "Nuk mundëm të konfirmojmë takimin. Ju lutem na kontaktoni.",
       "confirmedLine": "Takimi juaj u konfirmua me sukses.",

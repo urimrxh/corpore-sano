@@ -2,7 +2,7 @@ const BRAND = {
   name: process.env.EMAIL_BRAND_NAME || "Corpore Sano",
   website: process.env.EMAIL_WEBSITE_URL || "https://corporesano-ks.com",
   contactEmail: process.env.EMAIL_CONTACT_EMAIL || "info@corporesano-ks.com",
-  address: process.env.EMAIL_CONTACT_ADDRESS || "Prishtine, Kosovo",
+  address: process.env.EMAIL_CONTACT_ADDRESS || "Prishtinë, Kosova",
   logoUrl: process.env.EMAIL_LOGO_URL || "https://corporesano-ks.com/logo.png",
   replyTo:
     process.env.RESEND_REPLY_TO ||

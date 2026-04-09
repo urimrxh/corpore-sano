@@ -187,7 +187,7 @@
       "verify502Generic": "Your booking was saved, but sending the email failed. In Netlify → Functions → send-booking-verification → Logs, look for \"Resend error\". In Resend, check API key, verified domain for \"from\", and that the recipient is allowed (sandbox only allows test addresses).",
       "verifyOther": "Your booking was saved, but we could not send the verification email{status}. Please contact us.",
       "autoVerified": "You’re booked. Your appointment is confirmed (email provider not configured on the server, so we confirmed it automatically).",
-      "emailSent": "Check your email to verify your appointment. Your time is reserved until you confirm (or we follow up manually).",
+      "emailSent": "Check your email to verify your appointment. Your time is reserved until you confirm.",
       "alreadyVerified": "This appointment is already verified.",
       "verifyEmailMinutes": "Check your email for a link to verify your appointment. You have {minutes} minutes to confirm, or this booking will be cancelled.",
       "videoWatch": "Watch"
