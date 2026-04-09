@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useI18n } from "../context/I18nContext";
+import { adminT } from "../lib/adminUi";
 import "../style/admin.css";
 
 function AdminForgotPassword() {
-  const { t } = useI18n();
   const { authReady, requestPasswordReset } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState(null);
@@ -17,7 +16,7 @@ function AdminForgotPassword() {
       <section className="page-section">
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
-            {t("adminForgot.notConfigured")}
+            {adminT("adminForgot.notConfigured")}
           </p>
         </div>
       </section>
@@ -41,15 +40,15 @@ function AdminForgotPassword() {
     <section className="page-section">
       <div className="container admin-page max-w-md">
         <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          {t("adminForgot.title")}
+          {adminT("adminForgot.title")}
         </h1>
         <p className="mb-6 text-[15px] text-[#4d515c] dark:text-[#b8c4d0]">
-          {t("adminForgot.subtitle")}
+          {adminT("adminForgot.subtitle")}
         </p>
 
         {done ? (
           <p className="rounded-md border border-[#3aa57d]/40 bg-[#e8f5ef] px-3 py-3 text-sm text-[#103152] dark:border-[#3aa57d]/30 dark:bg-[#161d27] dark:text-[#b8c4d0]">
-            {t("adminForgot.done")}
+            {adminT("adminForgot.done")}
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -74,14 +73,14 @@ function AdminForgotPassword() {
               className="admin-btn-primary w-full"
               disabled={submitting}
             >
-              {submitting ? t("adminForgot.sending") : t("adminForgot.sendLink")}
+              {submitting ? adminT("adminForgot.sending") : adminT("adminForgot.sendLink")}
             </button>
           </form>
         )}
 
         <p className="mt-8 text-center text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           <Link to="/admin/sign-in" className="text-[#218c77] underline dark:text-[#4dc89f]">
-            ← {t("adminForgot.backSignIn")}
+            ← {adminT("adminForgot.backSignIn")}
           </Link>
         </p>
       </div>

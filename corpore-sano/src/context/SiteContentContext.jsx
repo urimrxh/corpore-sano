@@ -156,6 +156,8 @@ export function SiteContentProvider({ children }) {
       ? loadMergedFromStorage(locale)
       : mergeSavedWithBase(null, locale),
   );
+  /** Bumps when persisted site payload changes (any locale), so consumers can re-read storage. */
+  const [siteContentRevision, setSiteContentRevision] = useState(0);
   const [remoteLoadError, setRemoteLoadError] = useState(null);
   const [lastRemoteSaveError, setLastRemoteSaveError] = useState(null);
 
@@ -200,6 +202,7 @@ export function SiteContentProvider({ children }) {
       };
       writeV2Storage(local);
       setContentState(loadMergedFromStorage(locale));
+      setSiteContentRevision((n) => n + 1);
     }
 
     pull();
@@ -208,10 +211,15 @@ export function SiteContentProvider({ children }) {
     };
   }, []);
 
-  const replaceContent = useCallback(
-    (full) => {
-      const loc = locale === "en" ? "en" : "sq";
-      setContentState(full);
+  const getMergedContentFor = useCallback((targetLocale) => {
+    const loc = targetLocale === "en" ? "en" : "sq";
+    return loadMergedFromStorage(loc);
+  }, []);
+
+  const replaceContentFor = useCallback(
+    (targetLocale, full) => {
+      const loc = targetLocale === "en" ? "en" : "sq";
+      const uiLoc = locale === "en" ? "en" : "sq";
       const store = readV2Storage();
       store.locales = { ...store.locales, [loc]: full };
       const bFlag = full.global?.bilingualEnabled;
@@ -234,6 +242,11 @@ export function SiteContentProvider({ children }) {
         /* quota */
       }
 
+      if (loc === uiLoc) {
+        setContentState(loadMergedFromStorage(uiLoc));
+      }
+
+      setSiteContentRevision((n) => n + 1);
       setLastRemoteSaveError(null);
 
       if (!canUseSupabase()) return;
@@ -259,64 +272,90 @@ export function SiteContentProvider({ children }) {
     [locale],
   );
 
-  const resetToDefaults = useCallback(() => {
-    const loc = locale === "en" ? "en" : "sq";
-    const fresh = mergeSavedWithBase(null, loc);
-    setContentState(fresh);
-    setLastRemoteSaveError(null);
-    const store = readV2Storage();
-    const nextLocales = { ...store.locales };
-    delete nextLocales[loc];
-    store.locales = nextLocales;
-    store.version = 2;
-    try {
-      writeV2Storage(store);
-    } catch {
-      /* */
-    }
+  const replaceContent = useCallback(
+    (full) => replaceContentFor(locale === "en" ? "en" : "sq", full),
+    [locale, replaceContentFor],
+  );
 
-    if (!canUseSupabase()) return;
-
-    void (async () => {
-      const mergedRemote = {
-        version: 2,
-        locales: store.locales,
-      };
-      const { error } = await supabase.from(SITE_SETTINGS_TABLE).upsert(
-        {
-          id: SITE_SETTINGS_ID,
-          payload: mergedRemote,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      );
-      if (error) {
-        setLastRemoteSaveError(error.message);
+  const resetToDefaultsFor = useCallback(
+    (targetLocale) => {
+      const loc = targetLocale === "en" ? "en" : "sq";
+      const uiLoc = locale === "en" ? "en" : "sq";
+      const fresh = mergeSavedWithBase(null, loc);
+      if (loc === uiLoc) {
+        setContentState(fresh);
       }
-    })();
-  }, [locale]);
+      setLastRemoteSaveError(null);
+      const store = readV2Storage();
+      const nextLocales = { ...store.locales };
+      delete nextLocales[loc];
+      store.locales = nextLocales;
+      store.version = 2;
+      try {
+        writeV2Storage(store);
+      } catch {
+        /* */
+      }
+
+      setSiteContentRevision((n) => n + 1);
+
+      if (!canUseSupabase()) return;
+
+      void (async () => {
+        const mergedRemote = {
+          version: 2,
+          locales: store.locales,
+        };
+        const { error } = await supabase.from(SITE_SETTINGS_TABLE).upsert(
+          {
+            id: SITE_SETTINGS_ID,
+            payload: mergedRemote,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
+        if (error) {
+          setLastRemoteSaveError(error.message);
+        }
+      })();
+    },
+    [locale],
+  );
+
+  const resetToDefaults = useCallback(
+    () => resetToDefaultsFor(locale === "en" ? "en" : "sq"),
+    [locale, resetToDefaultsFor],
+  );
 
   /** Public sites: one toggle; canonical value lives on Albanian (`sq`) merged content. */
   const siteBilingualEnabled = useMemo(() => {
     const raw = readV2Storage();
     const merged = mergeSavedWithBase(raw.locales?.sq, "sq");
     return merged.global?.bilingualEnabled !== false;
-  }, [content]);
+  }, [content, siteContentRevision]);
 
   const value = useMemo(
     () => ({
       content,
       siteBilingualEnabled,
+      siteContentRevision,
+      getMergedContentFor,
       replaceContent,
+      replaceContentFor,
       resetToDefaults,
+      resetToDefaultsFor,
       remoteLoadError,
       lastRemoteSaveError,
     }),
     [
       content,
       siteBilingualEnabled,
+      siteContentRevision,
+      getMergedContentFor,
       replaceContent,
+      replaceContentFor,
       resetToDefaults,
+      resetToDefaultsFor,
       remoteLoadError,
       lastRemoteSaveError,
     ],
