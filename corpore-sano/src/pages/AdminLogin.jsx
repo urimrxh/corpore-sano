@@ -177,7 +177,7 @@ function AdminLogin() {
           </h1>
           <button
             type="button"
-            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50 hover:text-[#f5f8fa]"
+            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50 hover:text-black"
             onClick={() => signOut()}
           >
             {adminT("adminLogin.signOut")}
@@ -210,7 +210,7 @@ function AdminLogin() {
             <div className="inline-flex rounded-lg border border-[#e1e5ec] p-0.5 dark:border-[#2a3441]">
               <button
                 type="button"
-                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors hover:cursor-pointer ${
                   adminEditLocale === "sq"
                     ? "bg-[#218c77] text-white"
                     : "text-[#103152] hover:bg-[#f0f4f8] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835]"
@@ -221,7 +221,7 @@ function AdminLogin() {
               </button>
               <button
                 type="button"
-                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors hover:cursor-pointer ${
                   adminEditLocale === "en"
                     ? "bg-[#218c77] text-white"
                     : "text-[#103152] hover:bg-[#f0f4f8] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835]"
@@ -774,7 +774,7 @@ function AdminLogin() {
 
                 <button
                   type="button"
-                  className="mt-2 rounded-md bg-[#fef2f2] px-3 py-1.5 text-sm font-semibold text-[#b91c1c]"
+                  className="mt-2 rounded-md hover:cursor-pointer bg-[#fef2f2] px-3 py-1.5 text-sm font-semibold text-[#b91c1c] hover:bg-[#fca5a5] hover:text-[#fef2f2]"
                   onClick={() =>
                     setDraft((d) => ({
                       ...d,
@@ -789,7 +789,7 @@ function AdminLogin() {
 
             <button
               type="button"
-              className="rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
+              className="rounded-md hover:cursor-pointer border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50 hover:text-[#f5f8fa]"
               onClick={() =>
                 setDraft((d) => {
                   const nextId =
