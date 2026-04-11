@@ -1,6 +1,11 @@
 // src/lib/adminAvailability.js
 
 import { supabase } from "./supabase";
+import { generateTimeSlots, timeToMinutes } from "./timeSlots";
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && endA > startB;
+}
 
 export async function getAdminAvailabilityForDate(adminId, dateKey) {
   if (!adminId || !dateKey) {
@@ -9,6 +14,7 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
       startTime: null,
       endTime: null,
       slotDurationMinutes: null,
+      blockedRanges: [],
     };
   }
 
@@ -18,6 +24,7 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
   const [
     { data: weeklyRow, error: weeklyError },
     { data: overrideRow, error: overrideError },
+    { data: blockedRows, error: blockedError },
   ] = await Promise.all([
     supabase
       .from("admin_availability")
@@ -32,10 +39,18 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
       .eq("admin_id", adminId)
       .eq("override_date", dateKey)
       .maybeSingle(),
+
+    supabase
+      .from("admin_weekly_blocked_ranges")
+      .select("id, admin_id, day_of_week, start_time, end_time, note")
+      .eq("admin_id", adminId)
+      .eq("day_of_week", dayOfWeek)
+      .order("start_time", { ascending: true }),
   ]);
 
   if (weeklyError) throw weeklyError;
   if (overrideError) throw overrideError;
+  if (blockedError) throw blockedError;
 
   if (overrideRow) {
     if (!overrideRow.is_available) {
@@ -44,6 +59,7 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
         startTime: null,
         endTime: null,
         slotDurationMinutes: null,
+        blockedRanges: [],
       };
     }
 
@@ -55,6 +71,7 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
         overrideRow.slot_duration_minutes ??
         weeklyRow?.slot_duration_minutes ??
         30,
+      blockedRanges: blockedRows || [],
     };
   }
 
@@ -64,6 +81,7 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
       startTime: null,
       endTime: null,
       slotDurationMinutes: null,
+      blockedRanges: [],
     };
   }
 
@@ -72,5 +90,58 @@ export async function getAdminAvailabilityForDate(adminId, dateKey) {
     startTime: weeklyRow.start_time,
     endTime: weeklyRow.end_time,
     slotDurationMinutes: weeklyRow.slot_duration_minutes ?? 30,
+    blockedRanges: blockedRows || [],
+  };
+}
+
+export function removeBlockedSlots(slotTimes, durationMinutes, blockedRanges) {
+  if (!Array.isArray(blockedRanges) || blockedRanges.length === 0) {
+    return slotTimes;
+  }
+
+  return slotTimes.filter((slotTime) => {
+    const slotStart = timeToMinutes(slotTime);
+    const slotEnd = slotStart + durationMinutes;
+
+    const overlapsBlockedRange = blockedRanges.some((range) => {
+      const blockStart = timeToMinutes(range.start_time);
+      const blockEnd = timeToMinutes(range.end_time);
+
+      if (blockStart == null || blockEnd == null) {
+        return false;
+      }
+
+      return rangesOverlap(slotStart, slotEnd, blockStart, blockEnd);
+    });
+
+    return !overlapsBlockedRange;
+  });
+}
+
+export async function getAvailableSlotTimesForAdmin(adminId, dateKey) {
+  const availability = await getAdminAvailabilityForDate(adminId, dateKey);
+
+  if (!availability.isAvailable) {
+    return {
+      availability,
+      slotTimes: [],
+    };
+  }
+
+  const allSlotTimes = generateTimeSlots(
+    availability.startTime,
+    availability.endTime,
+    availability.slotDurationMinutes,
+  );
+
+  const filteredSlotTimes = removeBlockedSlots(
+    allSlotTimes,
+    availability.slotDurationMinutes,
+    availability.blockedRanges,
+  );
+
+  return {
+    availability,
+    slotTimes: filteredSlotTimes,
   };
 }
