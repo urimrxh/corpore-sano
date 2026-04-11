@@ -178,7 +178,7 @@ function AdminLogin() {
           </h1>
           <button
             type="button"
-            className="rounded-lg border border-[#e1e5ec] bg-[#f5f8fa] px-3 py-1.5 text-sm font-semibold text-[#103152] hover:cursor-pointer dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50 hover:text-black"
+            className="admin-btn-secondary admin-btn-secondary--sm"
             onClick={() => signOut()}
           >
             {adminT("adminLogin.signOut")}
@@ -359,7 +359,7 @@ function AdminLogin() {
                       }))
                     }
                   />
-                  <span className="text-sm text-[#103152] dark:text-[#e8ecf1]">
+                  <span className="ml-[5px] text-sm text-[#103152] dark:text-[#e8ecf1]">
                     {adminT(`adminLogin.${labelKey}`)}
                   </span>
                 </label>
@@ -705,7 +705,7 @@ function AdminLogin() {
 
             <button
               type="button"
-              className="admin-btn-secondary rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
+              className="admin-btn-secondary"
               onClick={() =>
                 setDraft((d) => ({
                   ...d,
@@ -826,7 +826,7 @@ function AdminLogin() {
 
                 <button
                   type="button"
-                  className="mt-2 rounded-md hover:cursor-pointer bg-[#fef2f2] px-3 py-1.5 text-sm font-semibold text-[#b91c1c] hover:bg-[#fca5a5] hover:text-[#fef2f2]"
+                  className="admin-btn-danger-soft mt-2"
                   onClick={() =>
                     setDraft((d) => ({
                       ...d,
@@ -841,7 +841,7 @@ function AdminLogin() {
 
             <button
               type="button"
-              className="rounded-md hover:cursor-pointer border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1] hover:bg-gray-50 hover:text-[#f5f8fa]"
+              className="admin-btn-secondary"
               onClick={() =>
                 setDraft((d) => {
                   const nextId =
@@ -1102,7 +1102,7 @@ function AdminLogin() {
 
             <button
               type="button"
-              className="admin-btn-secondary rounded-md border border-[#e1e5ec] bg-[#f5f8fa] px-4 py-2 text-sm font-semibold text-[#103152] dark:border-[#2a3441] dark:bg-[#1e2835] dark:text-[#e8ecf1]"
+              className="admin-btn-secondary"
               onClick={() =>
                 setDraft((d) => ({
                   ...d,

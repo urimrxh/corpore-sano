@@ -280,7 +280,7 @@ function AdminBookingsTab() {
                     type="button"
                     disabled={deletingId === r.id}
                     onClick={() => handleDelete(r.id)}
-                    className="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:bg-[#1e2835] dark:text-red-200 dark:hover:bg-red-950/40"
+                    className="cursor-pointer rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/50 dark:bg-[#1e2835] dark:text-red-200 dark:hover:bg-red-950/40"
                   >
                     {deletingId === r.id
                       ? adminT("adminBookings.removing")

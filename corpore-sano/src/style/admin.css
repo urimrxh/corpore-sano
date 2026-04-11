@@ -137,10 +137,9 @@
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  border: none;
 }
 
-/* Primary CTA — admin save, sign-in, anywhere outside .admin-actions */
+/* Primary CTA — admin save, sign-in */
 .admin-btn-primary {
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
@@ -162,16 +161,123 @@
   cursor: not-allowed;
 }
 
-.admin-actions .admin-btn-danger {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+.dark .admin-btn-primary:hover:not(:disabled) {
+  background: #45b88e;
 }
 
-.admin-actions .admin-btn-secondary {
+/* Secondary outline — reset, add section, sign out, cancel */
+.admin-btn-secondary {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid #e1e5ec;
   background: #f5f8fa;
   color: #103152;
-  border: 1px solid #e1e5ec;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-btn-secondary:hover:not(:disabled) {
+  background: #e8eef4;
+  border-color: #cbd5e1;
+}
+
+.admin-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dark .admin-btn-secondary {
+  border-color: #2a3441;
+  background: #1e2835;
+  color: #e8ecf1;
+}
+
+.dark .admin-btn-secondary:hover:not(:disabled) {
+  background: #252f3d;
+  border-color: #3d4a5c;
+}
+
+/* Danger outline — remove section, destructive actions */
+.admin-btn-danger {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+.admin-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dark .admin-btn-danger {
+  background: rgba(185, 28, 28, 0.15);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.dark .admin-btn-danger:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.25);
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+/* Compact soft danger — remove pause, remove video */
+.admin-btn-danger-soft {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-btn-danger-soft:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+.admin-btn-danger-soft:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dark .admin-btn-danger-soft {
+  background: rgba(185, 28, 28, 0.18);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.dark .admin-btn-danger-soft:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.28);
+  border-color: rgba(248, 113, 113, 0.55);
+}
+
+/* Smaller buttons for toolbars / table actions */
+.admin-btn-secondary--sm {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-btn-danger--sm {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .admin-card {
@@ -245,18 +351,6 @@
   border-top-color: #2a3441;
 }
 
-.dark .admin-actions .admin-btn-secondary {
-  background: #1e2835;
-  color: #e8ecf1;
-  border-color: #2a3441;
-}
-
-.dark .admin-actions .admin-btn-danger {
-  background: rgba(185, 28, 28, 0.15);
-  color: #fca5a5;
-  border-color: rgba(248, 113, 113, 0.35);
-}
-
 .dark .admin-card {
   border-color: #2a3441;
   background: #161d27;
@@ -268,4 +362,72 @@
 
 .dark .admin-hint {
   color: #9ca8b8;
+}
+
+.admin-availability-input-wrap {
+  border: 1px solid #d8e0ea;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.dark .admin-availability-input-wrap {
+  border-color: #2a3441;
+  background: #121a22;
+}
+
+.admin-availability-input {
+  width: 100%;
+  min-height: 42px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #103152;
+  font-size: 0.95rem;
+  box-shadow: none;
+}
+
+.dark .admin-availability-input {
+  color: #e8ecf1;
+}
+
+.admin-availability-input::placeholder {
+  color: #6b7280;
+}
+
+.dark .admin-availability-input::placeholder {
+  color: #8ea0b5;
+}
+
+.admin-availability-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-availability-input--time,
+.admin-availability-input--number {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.admin-availability-input--time::-webkit-calendar-picker-indicator {
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.dark .admin-availability-input--time::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
+}
+
+.admin-availability-input--number::-webkit-outer-spin-button,
+.admin-availability-input--number::-webkit-inner-spin-button {
+  opacity: 0.9;
+}
+
+.dark .admin-availability-input--number::-webkit-outer-spin-button,
+.dark .admin-availability-input--number::-webkit-inner-spin-button {
+  filter: invert(1) brightness(1.2);
 }
