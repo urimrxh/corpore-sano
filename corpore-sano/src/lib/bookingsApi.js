@@ -21,8 +21,9 @@ const TABLES = {
 
 const ADMIN_COLUMNS = {
   id: "id",
-  gender: "gender", // change to "specialist_gender" if needed
-  active: null, // set to "is_active" or "active" if you have it
+  email: "email",
+  gender: "gender", // change if needed
+  active: null, // e.g. "is_active" if you use one
 };
 
 const BOOKING_COLUMNS = {
@@ -45,8 +46,14 @@ function normalizeGender(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function buildSlotObjects(slotTimes, busyTimes, selectedDate) {
-  const busySet = new Set((busyTimes || []).map((value) => String(value).slice(0, 5)));
+  const busySet = new Set(
+    (busyTimes || []).map((value) => String(value).slice(0, 5)),
+  );
 
   return (slotTimes || []).map((time) => {
     let status = "free";
@@ -71,7 +78,7 @@ async function resolveAdminForGender(gender) {
   let query = supabase
     .from(TABLES.ADMINS)
     .select(
-      [ADMIN_COLUMNS.id, ADMIN_COLUMNS.gender]
+      [ADMIN_COLUMNS.id, ADMIN_COLUMNS.gender, ADMIN_COLUMNS.email]
         .filter(Boolean)
         .join(", "),
     )
@@ -114,7 +121,7 @@ async function fetchBusyTimeSlotsByAdmin(adminId, dateKey) {
 }
 
 async function hasRecentPendingBooking(email) {
-  const normalizedEmail = String(email || "").trim();
+  const normalizedEmail = normalizeEmail(email);
 
   if (!normalizedEmail) {
     return false;
@@ -178,6 +185,10 @@ async function validateSlotForAdmin(adminId, dateKey, timeSlot, selectedDate) {
   };
 }
 
+/* =========================
+   Public schedule functions
+   ========================= */
+
 export async function fetchBusyTimeSlots(dateKey, gender) {
   const admin = await resolveAdminForGender(gender);
 
@@ -188,6 +199,10 @@ export async function fetchBusyTimeSlots(dateKey, gender) {
   return fetchBusyTimeSlotsByAdmin(admin[ADMIN_COLUMNS.id], dateKey);
 }
 
+/**
+ * Kept only for backward compatibility.
+ * For the new dynamic availability flow, prefer fetchSlotsForDate().
+ */
 export function buildSlotsForDate(
   _dateKey,
   _gender,
@@ -234,9 +249,10 @@ export async function createBooking({
 }) {
   try {
     const dateKey = formatDateKey(bookingDate);
-    const selectedDate = bookingDate instanceof Date
-      ? bookingDate
-      : new Date(`${dateKey}T12:00:00`);
+    const selectedDate =
+      bookingDate instanceof Date
+        ? bookingDate
+        : new Date(`${dateKey}T12:00:00`);
 
     if (!dateKey || !timeSlot) {
       return {
@@ -348,3 +364,114 @@ export async function createBooking({
     };
   }
 }
+
+/* =========================
+   Admin booking functions
+   ========================= */
+
+export async function fetchBookingsAsAdmin(filters = {}) {
+  const {
+    adminId = null,
+    adminEmail = "",
+    gender = "",
+    statuses = [],
+  } = typeof filters === "object" && filters !== null ? filters : {};
+
+  let query = supabase.from(TABLES.BOOKINGS).select("*");
+
+  if (adminId) {
+    query = query.eq(BOOKING_COLUMNS.adminId, adminId);
+  }
+
+  if (gender) {
+    query = query.ilike(BOOKING_COLUMNS.gender, normalizeGender(gender));
+  }
+
+  if (Array.isArray(statuses) && statuses.length > 0) {
+    query = query.in(BOOKING_COLUMNS.status, statuses);
+  }
+
+  query = query
+    .order(BOOKING_COLUMNS.bookingDate, { ascending: true })
+    .order(BOOKING_COLUMNS.timeSlot, { ascending: true })
+    .order(BOOKING_COLUMNS.createdAt, { ascending: false });
+
+  const { data, error } = await query;
+
+  if (error) {
+    return {
+      data: [],
+      error,
+      code: error.code || null,
+    };
+  }
+
+  let rows = data || [];
+
+  if (!adminId && adminEmail) {
+    const normalizedAdminEmail = normalizeEmail(adminEmail);
+
+    rows = rows.filter((row) => {
+      const rowEmail = normalizeEmail(row?.assigned_admin_email || row?.admin_email || "");
+      return !rowEmail || rowEmail === normalizedAdminEmail;
+    });
+  }
+
+  return {
+    data: rows,
+    error: null,
+    code: null,
+  };
+}
+
+export async function deleteBookingAsAdmin(bookingId) {
+  if (!bookingId) {
+    return {
+      error: new Error("Missing booking id."),
+      code: "INVALID_BOOKING_ID",
+    };
+  }
+
+  const { error } = await supabase
+    .from(TABLES.BOOKINGS)
+    .delete()
+    .eq(BOOKING_COLUMNS.id, bookingId);
+
+  return {
+    error: error || null,
+    code: error?.code || null,
+  };
+}
+
+export async function updateBookingStatusAsAdmin(bookingId, status) {
+  if (!bookingId || !status) {
+    return {
+      data: null,
+      error: new Error("Missing booking id or status."),
+      code: "INVALID_INPUT",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from(TABLES.BOOKINGS)
+    .update({
+      [BOOKING_COLUMNS.status]: status,
+    })
+    .eq(BOOKING_COLUMNS.id, bookingId)
+    .select()
+    .single();
+
+  return {
+    data: data || null,
+    error: error || null,
+    code: error?.code || null,
+  };
+}
+
+/* =========================
+   Compatibility aliases
+   ========================= */
+
+export const fetchAdminBookings = fetchBookingsAsAdmin;
+export const fetchBookingsForAdmin = fetchBookingsAsAdmin;
+export const updateBookingAsAdminStatus = updateBookingStatusAsAdmin;

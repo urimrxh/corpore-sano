@@ -1,7 +1,7 @@
 // src/components/admin/AdminAvailabilitySettings.jsx
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../lib/supabase";
 
 const DAYS = [
   { value: 1, label: "Monday" },
