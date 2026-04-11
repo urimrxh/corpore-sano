@@ -8,6 +8,7 @@ import {
   isDateBeforeToday,
   isSlotStartInPast,
   slotToLocalDateRange,
+  timeToMinutes,
 } from "./timeSlots";
 import { getAdminAvailabilityForDate } from "./adminAvailability";
 
@@ -48,6 +49,38 @@ function normalizeGender(value) {
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && endA > startB;
+}
+
+function removeBlockedSlotTimes(slotTimes, durationMinutes, blockedRanges) {
+  if (!Array.isArray(blockedRanges) || blockedRanges.length === 0) {
+    return slotTimes;
+  }
+
+  return (slotTimes || []).filter((slotTime) => {
+    const slotStart = timeToMinutes(slotTime);
+    const slotEnd = slotStart + durationMinutes;
+
+    if (slotStart == null || Number.isNaN(slotEnd)) {
+      return false;
+    }
+
+    const overlapsBlockedRange = blockedRanges.some((range) => {
+      const blockStart = timeToMinutes(range?.start_time);
+      const blockEnd = timeToMinutes(range?.end_time);
+
+      if (blockStart == null || blockEnd == null) {
+        return false;
+      }
+
+      return rangesOverlap(slotStart, slotEnd, blockStart, blockEnd);
+    });
+
+    return !overlapsBlockedRange;
+  });
 }
 
 function buildSlotObjects(slotTimes, busyTimes, selectedDate) {
@@ -152,18 +185,41 @@ async function hasRecentPendingBooking(email) {
   }
 }
 
-async function validateSlotForAdmin(adminId, dateKey, timeSlot, selectedDate) {
+async function getAllowedSlotTimesForAdmin(adminId, dateKey) {
   const availability = await getAdminAvailabilityForDate(adminId, dateKey);
 
   if (!availability.isAvailable) {
-    return { valid: false, code: "PAST_DATE" };
+    return {
+      availability,
+      slotTimes: [],
+    };
   }
 
-  const allowedSlotTimes = generateTimeSlots(
+  const generatedSlotTimes = generateTimeSlots(
     availability.startTime,
     availability.endTime,
     availability.slotDurationMinutes,
   );
+
+  const filteredSlotTimes = removeBlockedSlotTimes(
+    generatedSlotTimes,
+    availability.slotDurationMinutes,
+    availability.blockedRanges || [],
+  );
+
+  return {
+    availability,
+    slotTimes: filteredSlotTimes,
+  };
+}
+
+async function validateSlotForAdmin(adminId, dateKey, timeSlot, selectedDate) {
+  const { availability, slotTimes: allowedSlotTimes } =
+    await getAllowedSlotTimesForAdmin(adminId, dateKey);
+
+  if (!availability.isAvailable) {
+    return { valid: false, code: "PAST_DATE" };
+  }
 
   if (!allowedSlotTimes.includes(timeSlot)) {
     return { valid: false, code: "PAST_SLOT" };
@@ -222,17 +278,14 @@ export async function fetchSlotsForDate(dateKey, gender, selectedDate) {
 
   const adminId = admin[ADMIN_COLUMNS.id];
 
-  const availability = await getAdminAvailabilityForDate(adminId, dateKey);
+  const { availability, slotTimes } = await getAllowedSlotTimesForAdmin(
+    adminId,
+    dateKey,
+  );
 
   if (!availability.isAvailable) {
     return [];
   }
-
-  const slotTimes = generateTimeSlots(
-    availability.startTime,
-    availability.endTime,
-    availability.slotDurationMinutes,
-  );
 
   const busyTimes = await fetchBusyTimeSlotsByAdmin(adminId, dateKey);
 
@@ -412,7 +465,9 @@ export async function fetchBookingsAsAdmin(filters = {}) {
     const normalizedAdminEmail = normalizeEmail(adminEmail);
 
     rows = rows.filter((row) => {
-      const rowEmail = normalizeEmail(row?.assigned_admin_email || row?.admin_email || "");
+      const rowEmail = normalizeEmail(
+        row?.assigned_admin_email || row?.admin_email || "",
+      );
       return !rowEmail || rowEmail === normalizedAdminEmail;
     });
   }
