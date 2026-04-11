@@ -3,6 +3,7 @@ import { useSiteContent } from "../context/SiteContentContext";
 import { useAuth } from "../context/AuthContext";
 import { adminT } from "../lib/adminUi";
 import AdminBookingsTab from "../components/AdminBookingsTab";
+import AdminAvailabilitySettings from "../components/AdminAvailabilitySettings";
 import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
 import { fetchCurrentAdminProfile } from "../lib/adminsApi";
@@ -107,7 +108,7 @@ function AdminLogin() {
   const [savedFlash, setSavedFlash] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
 
-  const isContentTab = !["posts", "postTags"].includes(tab);
+  const isContentTab = !["bookings", "posts", "postTags"].includes(tab);
   const adminEmail = user?.email ?? "";
 
   useEffect(() => {
@@ -1234,11 +1235,30 @@ function AdminLogin() {
         )}
 
         {tab === "bookings" && (
-          <div>
-            <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-              {adminT("adminLogin.bookingsHint")}
-            </p>
-            <AdminBookingsTab />
+          <div className="space-y-6">
+            <div>
+              <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+                {adminT("adminLogin.bookingsHint")}
+              </p>
+              <AdminBookingsTab />
+            </div>
+
+            <div className="rounded-2xl border border-[#e1e5ec] bg-white p-4 dark:border-[#2a3441] dark:bg-[#121a22] md:p-6">
+              <h2 className="text-lg font-semibold text-[#103152] dark:text-[#e8ecf1]">
+                Weekly availability
+              </h2>
+              <p className="mb-4 mt-1 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+                Set the working days, start time, end time, and slot duration for the currently logged-in admin.
+              </p>
+
+              {adminProfile?.id ? (
+                <AdminAvailabilitySettings adminId={adminProfile.id} />
+              ) : (
+                <p className="text-sm text-[#b91c1c] dark:text-[#fca5a5]">
+                  Could not load the active admin profile, so availability settings cannot be shown yet.
+                </p>
+              )}
+            </div>
           </div>
         )}
 

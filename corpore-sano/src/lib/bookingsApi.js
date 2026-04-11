@@ -1,104 +1,242 @@
-import { BOOKING_PENDING_HOLD_MS } from "./bookingConstants";
+// src/lib/bookingsApi.js
+
 import { supabase } from "./supabase";
+import { BOOKING_PENDING_HOLD_MINUTES } from "./bookingConstants";
 import {
-  BOOKING_SLOT_TIMES,
   formatDateKey,
+  generateTimeSlots,
+  isDateBeforeToday,
   isSlotStartInPast,
   slotToLocalDateRange,
 } from "./timeSlots";
-
-const BOOKINGS_TABLE = "bookings";
-
-/** Same window as RLS policy `004_bookings_rls_insert_and_delete.sql` (one booking per email per 24h). */
-const RECENT_BOOKING_WINDOW_MS = 24 * 60 * 60 * 1000;
+import { getAdminAvailabilityForDate } from "./adminAvailability";
 
 /**
- * Returns Set of "HH:MM" times already taken for this calendar line (gender + date).
- * Verified bookings always count. Unverified rows only count until they pass the
- * pending-hold window (then a server job deletes them).
+ * Change these only if your actual DB column names differ.
  */
-export async function fetchBusyTimeSlots(bookingDateKey, gender) {
-  if (!supabase || !gender || !bookingDateKey) {
-    return new Set();
-  }
+const TABLES = {
+  ADMINS: "admins",
+  BOOKINGS: "bookings",
+};
 
-  const { data, error } = await supabase
-    .from(BOOKINGS_TABLE)
-    .select("time_slot, verified_at, created_at")
-    .eq("booking_date", bookingDateKey)
-    .eq("gender", gender);
+const ADMIN_COLUMNS = {
+  id: "id",
+  email: "email",
+  gender: "gender", // change if needed
+  active: null, // e.g. "is_active" if you use one
+};
 
-  if (error) {
-    console.warn("fetchBusyTimeSlots:", error.message);
-    return new Set();
-  }
+const BOOKING_COLUMNS = {
+  id: "id",
+  adminId: "admin_id",
+  bookingDate: "booking_date", // change to "appointment_date" if needed
+  timeSlot: "time_slot", // change to "appointment_time" if needed
+  status: "status",
+  fullName: "full_name",
+  email: "email",
+  topic: "topic",
+  createdAt: "created_at",
+  gender: "gender",
+};
 
-  const now = Date.now();
-  const cutoff = now - BOOKING_PENDING_HOLD_MS;
-  const busy = new Set();
+const BUSY_STATUSES = ["pending", "confirmed", "verified"];
+const RECENT_BOOKING_STATUSES = ["pending"];
 
-  for (const row of data ?? []) {
-    if (row.verified_at) {
-      busy.add(row.time_slot);
-      continue;
-    }
-    const created = row.created_at
-      ? new Date(row.created_at).getTime()
-      : 0;
-    if (created >= cutoff) {
-      busy.add(row.time_slot);
-    }
-  }
-
-  return busy;
+function normalizeGender(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
-/**
- * True if this email already has a booking row created in the last 24 hours (case-insensitive).
- */
-export async function hasRecentBookingForEmail(email) {
-  if (!supabase || !email?.trim()) {
-    return false;
-  }
-
-  const cutoff = new Date(Date.now() - RECENT_BOOKING_WINDOW_MS).toISOString();
-  const { data, error } = await supabase
-    .from(BOOKINGS_TABLE)
-    .select("id")
-    .ilike("email", email.trim())
-    .gte("created_at", cutoff)
-    .limit(1);
-
-  if (error) {
-    console.warn("hasRecentBookingForEmail:", error.message);
-    return false;
-  }
-
-  return Boolean(data?.length);
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
-export function buildSlotsForDate(
-  bookingDateKey,
-  gender,
-  busyTimes,
-  selectedDate,
-) {
-  if (!gender) return [];
+function buildSlotObjects(slotTimes, busyTimes, selectedDate) {
+  const busySet = new Set(
+    (busyTimes || []).map((value) => String(value).slice(0, 5)),
+  );
 
-  const keyToday = formatDateKey(new Date());
-  const isToday = bookingDateKey === keyToday;
+  return (slotTimes || []).map((time) => {
+    let status = "free";
 
-  return BOOKING_SLOT_TIMES.map((time) => {
-    const busy = busyTimes.has(time);
-    const past =
-      isToday &&
-      selectedDate instanceof Date &&
-      isSlotStartInPast(selectedDate, time);
-    let status = "available";
-    if (busy) status = "busy";
-    else if (past) status = "past";
+    if (busySet.has(time)) {
+      status = "busy";
+    } else if (isSlotStartInPast(selectedDate, time)) {
+      status = "past";
+    }
+
     return { time, status };
   });
+}
+
+async function resolveAdminForGender(gender) {
+  const normalizedGender = normalizeGender(gender);
+
+  if (!normalizedGender) {
+    return null;
+  }
+
+  let query = supabase
+    .from(TABLES.ADMINS)
+    .select(
+      [ADMIN_COLUMNS.id, ADMIN_COLUMNS.gender, ADMIN_COLUMNS.email]
+        .filter(Boolean)
+        .join(", "),
+    )
+    .ilike(ADMIN_COLUMNS.gender, normalizedGender)
+    .limit(1);
+
+  if (ADMIN_COLUMNS.active) {
+    query = query.eq(ADMIN_COLUMNS.active, true);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] || null;
+}
+
+async function fetchBusyTimeSlotsByAdmin(adminId, dateKey) {
+  if (!adminId || !dateKey) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from(TABLES.BOOKINGS)
+    .select(`${BOOKING_COLUMNS.timeSlot}, ${BOOKING_COLUMNS.status}`)
+    .eq(BOOKING_COLUMNS.adminId, adminId)
+    .eq(BOOKING_COLUMNS.bookingDate, dateKey)
+    .in(BOOKING_COLUMNS.status, BUSY_STATUSES);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || [])
+    .map((row) => row?.[BOOKING_COLUMNS.timeSlot])
+    .filter(Boolean)
+    .map((value) => String(value).slice(0, 5));
+}
+
+async function hasRecentPendingBooking(email) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  const cutoff = new Date(
+    Date.now() - BOOKING_PENDING_HOLD_MINUTES * 60 * 1000,
+  ).toISOString();
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLES.BOOKINGS)
+      .select(BOOKING_COLUMNS.id)
+      .ilike(BOOKING_COLUMNS.email, normalizedEmail)
+      .in(BOOKING_COLUMNS.status, RECENT_BOOKING_STATUSES)
+      .gte(BOOKING_COLUMNS.createdAt, cutoff)
+      .limit(1);
+
+    if (error) {
+      console.warn("Recent booking check skipped:", error.message);
+      return false;
+    }
+
+    return Boolean(data?.length);
+  } catch (error) {
+    console.warn("Recent booking check failed:", error);
+    return false;
+  }
+}
+
+async function validateSlotForAdmin(adminId, dateKey, timeSlot, selectedDate) {
+  const availability = await getAdminAvailabilityForDate(adminId, dateKey);
+
+  if (!availability.isAvailable) {
+    return { valid: false, code: "PAST_DATE" };
+  }
+
+  const allowedSlotTimes = generateTimeSlots(
+    availability.startTime,
+    availability.endTime,
+    availability.slotDurationMinutes,
+  );
+
+  if (!allowedSlotTimes.includes(timeSlot)) {
+    return { valid: false, code: "PAST_SLOT" };
+  }
+
+  if (isSlotStartInPast(selectedDate, timeSlot)) {
+    return { valid: false, code: "PAST_SLOT" };
+  }
+
+  const busyTimes = await fetchBusyTimeSlotsByAdmin(adminId, dateKey);
+
+  if (busyTimes.includes(timeSlot)) {
+    return { valid: false, code: "23505" };
+  }
+
+  return {
+    valid: true,
+    availability,
+  };
+}
+
+/* =========================
+   Public schedule functions
+   ========================= */
+
+export async function fetchBusyTimeSlots(dateKey, gender) {
+  const admin = await resolveAdminForGender(gender);
+
+  if (!admin) {
+    return [];
+  }
+
+  return fetchBusyTimeSlotsByAdmin(admin[ADMIN_COLUMNS.id], dateKey);
+}
+
+/**
+ * Kept only for backward compatibility.
+ * For the new dynamic availability flow, prefer fetchSlotsForDate().
+ */
+export function buildSlotsForDate(
+  _dateKey,
+  _gender,
+  busyTimes = [],
+  selectedDate = new Date(),
+  slotTimes = [],
+) {
+  return buildSlotObjects(slotTimes, busyTimes, selectedDate);
+}
+
+export async function fetchSlotsForDate(dateKey, gender, selectedDate) {
+  const admin = await resolveAdminForGender(gender);
+
+  if (!admin) {
+    return [];
+  }
+
+  const adminId = admin[ADMIN_COLUMNS.id];
+
+  const availability = await getAdminAvailabilityForDate(adminId, dateKey);
+
+  if (!availability.isAvailable) {
+    return [];
+  }
+
+  const slotTimes = generateTimeSlots(
+    availability.startTime,
+    availability.endTime,
+    availability.slotDurationMinutes,
+  );
+
+  const busyTimes = await fetchBusyTimeSlotsByAdmin(adminId, dateKey);
+
+  return buildSlotObjects(slotTimes, busyTimes, selectedDate);
 }
 
 export async function createBooking({
@@ -109,144 +247,231 @@ export async function createBooking({
   bookingDate,
   timeSlot,
 }) {
-  if (!supabase) {
-    return { error: new Error("Supabase nuk është konfiguruar") };
-  }
+  try {
+    const dateKey = formatDateKey(bookingDate);
+    const selectedDate =
+      bookingDate instanceof Date
+        ? bookingDate
+        : new Date(`${dateKey}T12:00:00`);
 
-  const dateObj =
-    bookingDate instanceof Date ? bookingDate : new Date(bookingDate);
-  const y = dateObj.getFullYear();
-  const mo = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const da = String(dateObj.getDate()).padStart(2, "0");
-  const bookingDateKey = `${y}-${mo}-${da}`;
-  const todayKey = formatDateKey(new Date());
-  if (bookingDateKey < todayKey) {
-    return {
-      data: null,
-      error: new Error("Ajo datë nuk është më e disponueshme."),
-      code: "PAST_DATE",
-    };
-  }
-
-  if (isSlotStartInPast(dateObj, timeSlot)) {
-    return {
-      data: null,
-      error: new Error("Ky interval orari ka kaluar."),
-      code: "PAST_SLOT",
-    };
-  }
-
-  const recent = await hasRecentBookingForEmail(email);
-  if (recent) {
-    return {
-      data: null,
-      error: new Error(
-        "Keni pasur tashmë një takim në 24 orët e fundit.",
-      ),
-      code: "RECENT_BOOKING",
-    };
-  }
-
-  const { start, end } = slotToLocalDateRange(dateObj, timeSlot);
-
-  const row = {
-    full_name: fullName.trim(),
-    email: email.trim(),
-    gender,
-    topic: (topic || "").trim(),
-    booking_date: bookingDateKey,
-    time_slot: timeSlot,
-    slot_start: start.toISOString(),
-    slot_end: end.toISOString(),
-    verified_at: null,
-  };
-
-  const { data, error } = await supabase
-    .from(BOOKINGS_TABLE)
-    .insert(row)
-    .select("id")
-    .single();
-
-  if (error) {
-    const msg = error.message || "";
-    const rlsBlock =
-      msg.includes("row-level security") ||
-      msg.includes("violates row-level security");
-    if (rlsBlock && msg.toLowerCase().includes("bookings")) {
+    if (!dateKey || !timeSlot) {
       return {
         data: null,
-        error: new Error(
-          "Keni pasur tashmë një takim në 24 orët e fundit.",
-        ),
+        error: new Error("Invalid booking date or time slot."),
+        code: "INVALID_INPUT",
+      };
+    }
+
+    if (isDateBeforeToday(selectedDate)) {
+      return {
+        data: null,
+        error: new Error("Booking date is in the past."),
+        code: "PAST_DATE",
+      };
+    }
+
+    if (isSlotStartInPast(selectedDate, timeSlot)) {
+      return {
+        data: null,
+        error: new Error("Selected time slot is already in the past."),
+        code: "PAST_SLOT",
+      };
+    }
+
+    const admin = await resolveAdminForGender(gender);
+
+    if (!admin) {
+      return {
+        data: null,
+        error: new Error("No active admin found for the selected specialist."),
+        code: "NO_ADMIN",
+      };
+    }
+
+    const adminId = admin[ADMIN_COLUMNS.id];
+
+    const recentBookingExists = await hasRecentPendingBooking(email);
+
+    if (recentBookingExists) {
+      return {
+        data: null,
+        error: new Error("A recent pending booking already exists."),
         code: "RECENT_BOOKING",
       };
     }
-    return {
-      data: null,
-      error: new Error(error.message),
-      code: error.code,
-    };
-  }
 
-  return { data, error: null, code: null };
-}
+    const validation = await validateSlotForAdmin(
+      adminId,
+      dateKey,
+      timeSlot,
+      selectedDate,
+    );
 
-export async function deleteBookingAsAdmin(bookingId) {
-  try {
-    const response = await fetch("/.netlify/functions/delete-calendar-event", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ bookingId }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!validation.valid) {
       return {
-        error: new Error(data.error || "Heqja e rezervimit dështoi"),
+        data: null,
+        error: new Error("This slot is no longer available."),
+        code: validation.code,
       };
     }
 
-    return { error: null };
+    const durationMinutes = validation.availability.slotDurationMinutes ?? 30;
+    const { start, end } = slotToLocalDateRange(
+      selectedDate,
+      timeSlot,
+      durationMinutes,
+    );
+
+    const payload = {
+      [BOOKING_COLUMNS.fullName]: String(fullName || "").trim(),
+      [BOOKING_COLUMNS.email]: String(email || "").trim(),
+      [BOOKING_COLUMNS.gender]: gender,
+      [BOOKING_COLUMNS.topic]: topic || null,
+      [BOOKING_COLUMNS.adminId]: adminId,
+      [BOOKING_COLUMNS.bookingDate]: dateKey,
+      [BOOKING_COLUMNS.timeSlot]: timeSlot,
+      [BOOKING_COLUMNS.status]: "pending",
+    };
+
+    const { data, error } = await supabase
+      .from(TABLES.BOOKINGS)
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      return {
+        data: null,
+        error,
+        code: error.code || null,
+      };
+    }
+
+    return {
+      data: {
+        ...data,
+        slotStart: start.toISOString(),
+        slotEnd: end.toISOString(),
+      },
+      error: null,
+      code: null,
+    };
   } catch (error) {
-    return { error };
+    return {
+      data: null,
+      error,
+      code: error?.code || null,
+    };
   }
 }
 
-/**
- * @param {number} limit
- * @param {string | null} adminLine - optional: "male" | "female" from user_metadata.admin_line
- */
-export async function fetchBookingsForAdmin(limit = 200, adminLine = null) {
-  try {
-    const threeDaysAgoIso = new Date(
-      Date.now() - 3 * 24 * 60 * 60 * 1000
-    ).toISOString();
+/* =========================
+   Admin booking functions
+   ========================= */
 
-    let query = supabase
-      .from("bookings")
-      .select("*")
-      .gte("slot_start", threeDaysAgoIso)
-      .or("status.is.null,status.neq.cancelled")
-      .order("slot_start", { ascending: true })
-      .limit(limit);
+export async function fetchBookingsAsAdmin(filters = {}) {
+  const {
+    adminId = null,
+    adminEmail = "",
+    gender = "",
+    statuses = [],
+  } = typeof filters === "object" && filters !== null ? filters : {};
 
-    if (adminLine === "male" || adminLine === "female") {
-      query = query.eq("gender", adminLine);
-    }
+  let query = supabase.from(TABLES.BOOKINGS).select("*");
 
-    const { data, error } = await query;
+  if (adminId) {
+    query = query.eq(BOOKING_COLUMNS.adminId, adminId);
+  }
 
-    return {
-      data: data || [],
-      error: error || null,
-    };
-  } catch (error) {
+  if (gender) {
+    query = query.ilike(BOOKING_COLUMNS.gender, normalizeGender(gender));
+  }
+
+  if (Array.isArray(statuses) && statuses.length > 0) {
+    query = query.in(BOOKING_COLUMNS.status, statuses);
+  }
+
+  query = query
+    .order(BOOKING_COLUMNS.bookingDate, { ascending: true })
+    .order(BOOKING_COLUMNS.timeSlot, { ascending: true })
+    .order(BOOKING_COLUMNS.createdAt, { ascending: false });
+
+  const { data, error } = await query;
+
+  if (error) {
     return {
       data: [],
       error,
+      code: error.code || null,
     };
   }
+
+  let rows = data || [];
+
+  if (!adminId && adminEmail) {
+    const normalizedAdminEmail = normalizeEmail(adminEmail);
+
+    rows = rows.filter((row) => {
+      const rowEmail = normalizeEmail(row?.assigned_admin_email || row?.admin_email || "");
+      return !rowEmail || rowEmail === normalizedAdminEmail;
+    });
+  }
+
+  return {
+    data: rows,
+    error: null,
+    code: null,
+  };
 }
+
+export async function deleteBookingAsAdmin(bookingId) {
+  if (!bookingId) {
+    return {
+      error: new Error("Missing booking id."),
+      code: "INVALID_BOOKING_ID",
+    };
+  }
+
+  const { error } = await supabase
+    .from(TABLES.BOOKINGS)
+    .delete()
+    .eq(BOOKING_COLUMNS.id, bookingId);
+
+  return {
+    error: error || null,
+    code: error?.code || null,
+  };
+}
+
+export async function updateBookingStatusAsAdmin(bookingId, status) {
+  if (!bookingId || !status) {
+    return {
+      data: null,
+      error: new Error("Missing booking id or status."),
+      code: "INVALID_INPUT",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from(TABLES.BOOKINGS)
+    .update({
+      [BOOKING_COLUMNS.status]: status,
+    })
+    .eq(BOOKING_COLUMNS.id, bookingId)
+    .select()
+    .single();
+
+  return {
+    data: data || null,
+    error: error || null,
+    code: error?.code || null,
+  };
+}
+
+/* =========================
+   Compatibility aliases
+   ========================= */
+
+export const fetchAdminBookings = fetchBookingsAsAdmin;
+export const fetchBookingsForAdmin = fetchBookingsAsAdmin;
+export const updateBookingAsAdminStatus = updateBookingStatusAsAdmin;
