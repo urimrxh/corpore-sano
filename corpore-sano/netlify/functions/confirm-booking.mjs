@@ -1,7 +1,11 @@
 /**
  * GET ?token= — marks booking verified, then syncs Google Calendar.
- * Redirects to /book-meeting?verify=success|error|invalid
- * If calendar sync fails: ?verify=success&calendarSync=failed (still verified in DB).
+ * Redirects to /book-meeting?verify=success|error|missing|invalid
+ * If calendar sync fails: ?verify=success&calendarSync=failed
+ *
+ * Important:
+ * - token is NOT cleared immediately
+ * - repeated clicks/scanner hits still resolve to success
  */
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -9,16 +13,18 @@ import {
   getDeploySiteOrigin,
 } from "./lib/siteUrl.mjs";
 
-/** @returns {Promise<boolean>} true if create-calendar-event returned 2xx */
 async function triggerCalendarSync(bookingId) {
   const url = createCalendarEventFunctionUrl();
+
   if (!url) {
     console.error(
       "confirm-booking: missing deploy site URL (set URL or DEPLOY_PRIME_URL on Netlify); calendar sync skipped",
     );
     return false;
   }
+
   const secret = process.env.BOOKING_FUNCTION_SECRET;
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -28,7 +34,9 @@ async function triggerCalendarSync(bookingId) {
       },
       body: JSON.stringify({ bookingId }),
     });
+
     const text = await res.text();
+
     if (!res.ok) {
       console.error(
         "confirm-booking: create-calendar-event failed",
@@ -37,9 +45,13 @@ async function triggerCalendarSync(bookingId) {
       );
       return false;
     }
+
     return true;
   } catch (e) {
-    console.error("confirm-booking: calendar sync request error", e?.message || e);
+    console.error(
+      "confirm-booking: calendar sync request error",
+      e?.message || e,
+    );
     return false;
   }
 }
@@ -55,6 +67,7 @@ export const handler = async (event) => {
 
   const token = event.queryStringParameters?.token;
   const site = getDeploySiteOrigin();
+
   const redirect = (q) => ({
     statusCode: 302,
     headers: { Location: `${site}/book-meeting${q}` },
@@ -66,6 +79,7 @@ export const handler = async (event) => {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
   if (!supabaseUrl || !serviceKey) {
     return redirect("?verify=error");
   }
@@ -82,14 +96,19 @@ export const handler = async (event) => {
     return redirect("?verify=invalid");
   }
 
+  // Treat repeated opens as success
   if (booking.verified_at) {
-    return redirect("?verify=already");
+    return redirect("?verify=success");
   }
 
   const now = new Date().toISOString();
+
   const { error: updErr } = await supabase
     .from("bookings")
-    .update({ verified_at: now, verification_token: null })
+    .update({
+      verified_at: now,
+      // keep verification_token so repeated clicks still resolve to success
+    })
     .eq("id", booking.id);
 
   if (updErr) {
