@@ -127,7 +127,7 @@ function AdminPostsTab() {
           value={form.title}
           onChange={handleChange}
           placeholder={adminT("adminPosts.titlePh")}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
         <input
@@ -135,7 +135,7 @@ function AdminPostsTab() {
           value={form.slug}
           onChange={handleChange}
           placeholder={adminT("adminPosts.slugPh")}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
         <textarea
@@ -143,7 +143,7 @@ function AdminPostsTab() {
           value={form.description}
           onChange={handleChange}
           placeholder={adminT("adminPosts.descPh")}
-          className="min-h-[140px] w-full rounded-md border px-3 py-2"
+          className="min-h-[140px] w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
         <input
@@ -151,7 +151,7 @@ function AdminPostsTab() {
           value={form.topic}
           onChange={handleChange}
           placeholder={adminT("adminPosts.topicPh")}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
         <input
@@ -159,7 +159,7 @@ function AdminPostsTab() {
           value={form.author}
           onChange={handleChange}
           placeholder={adminT("adminPosts.authorPh")}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
         <input
@@ -167,14 +167,14 @@ function AdminPostsTab() {
           value={form.image_url}
           onChange={handleChange}
           placeholder={adminT("adminPosts.imagePh")}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
         />
 
         <select
           name="tag_id"
           value={form.tag_id}
           onChange={handleChange}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
         >
           <option value="">{adminT("adminPosts.noTag")}</option>
           {tags.map((tag) => (
@@ -188,17 +188,14 @@ function AdminPostsTab() {
           name="status"
           value={form.status}
           onChange={handleChange}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
         >
           <option value="draft">{adminT("adminPosts.draft")}</option>
           <option value="published">{adminT("adminPosts.published")}</option>
         </select>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            className="rounded-md bg-[#218c77] px-5 py-2.5 text-white"
-          >
+        <div className="flex flex-wrap gap-3">
+          <button type="submit" className="admin-btn-primary">
             {editingId ? "Përditëso postimin" : "Krijo postimin"}
           </button>
 
@@ -209,7 +206,7 @@ function AdminPostsTab() {
                 setEditingId(null);
                 setForm(initialForm);
               }}
-              className="rounded-md border px-5 py-2.5"
+              className="admin-btn-secondary"
             >
               {adminT("adminPosts.cancel")}
             </button>
@@ -233,18 +230,18 @@ function AdminPostsTab() {
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => handleEdit(post)}
-                className="rounded-md border px-3 py-2 text-sm"
+                className="admin-btn-secondary admin-btn-secondary--sm"
               >
                 {adminT("adminPosts.edit")}
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(post.id)}
-                className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700"
+                className="admin-btn-danger admin-btn-danger--sm"
               >
                 {adminT("adminPosts.delete")}
               </button>

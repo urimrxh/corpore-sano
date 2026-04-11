@@ -6,7 +6,6 @@ import {
   formatDateKey,
   generateTimeSlots,
   isDateBeforeToday,
-  isSlotStartInPast,
   slotToLocalDateRange,
   timeToMinutes,
 } from "./timeSlots";
@@ -90,13 +89,11 @@ function buildSlotObjects(slotTimes, busyTimes, selectedDate) {
 
   return (slotTimes || []).map((time) => {
     let status = "free";
-
+  
     if (busySet.has(time)) {
       status = "busy";
-    } else if (isSlotStartInPast(selectedDate, time)) {
-      status = "past";
     }
-
+  
     return { time, status };
   });
 }
@@ -225,10 +222,6 @@ async function validateSlotForAdmin(adminId, dateKey, timeSlot, selectedDate) {
     return { valid: false, code: "PAST_SLOT" };
   }
 
-  if (isSlotStartInPast(selectedDate, timeSlot)) {
-    return { valid: false, code: "PAST_SLOT" };
-  }
-
   const busyTimes = await fetchBusyTimeSlotsByAdmin(adminId, dateKey);
 
   if (busyTimes.includes(timeSlot)) {
@@ -320,14 +313,6 @@ export async function createBooking({
         data: null,
         error: new Error("Booking date is in the past."),
         code: "PAST_DATE",
-      };
-    }
-
-    if (isSlotStartInPast(selectedDate, timeSlot)) {
-      return {
-        data: null,
-        error: new Error("Selected time slot is already in the past."),
-        code: "PAST_SLOT",
       };
     }
 

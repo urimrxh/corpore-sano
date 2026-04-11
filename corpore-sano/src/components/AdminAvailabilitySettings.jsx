@@ -273,12 +273,10 @@ export default function AdminAvailabilitySettings({ adminId }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Weekly availability</h3>
-        <p className="mt-1 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-          Set the working days, start time, end time, slot duration, and recurring weekly pause times.
-        </p>
-      </div>
+      <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+        Set the working days, start time, end time, slot duration, and recurring
+        weekly pause times.
+      </p>
 
       {rows.map((row) => {
         const day = DAYS.find((d) => d.value === row.day_of_week);
@@ -287,10 +285,10 @@ export default function AdminAvailabilitySettings({ adminId }) {
         return (
           <div
             key={row.day_of_week}
-            className="rounded-2xl border border-[#d8e0ea] p-4 md:p-5"
+            className="rounded-2xl border border-[#d8e0ea] p-4 md:p-5 dark:border-[#2a3441]"
           >
             <div className="grid gap-3 md:grid-cols-4 md:items-center">
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-[#103152] dark:text-[#e8ecf1]">
                 <input
                   type="checkbox"
                   checked={row.is_enabled}
@@ -301,41 +299,47 @@ export default function AdminAvailabilitySettings({ adminId }) {
                 <span className="font-medium">{day?.label}</span>
               </label>
 
-              <input
-                type="time"
-                value={row.start_time || ""}
-                disabled={!row.is_enabled}
-                onChange={(e) =>
-                  updateRow(row.day_of_week, "start_time", e.target.value)
-                }
-                className="rounded-md border px-3 py-2"
-              />
+              <div className="admin-availability-input-wrap">
+                <input
+                  type="time"
+                  value={row.start_time || ""}
+                  disabled={!row.is_enabled}
+                  onChange={(e) =>
+                    updateRow(row.day_of_week, "start_time", e.target.value)
+                  }
+                  className="admin-availability-input admin-availability-input--time"
+                />
+              </div>
 
-              <input
-                type="time"
-                value={row.end_time || ""}
-                disabled={!row.is_enabled}
-                onChange={(e) =>
-                  updateRow(row.day_of_week, "end_time", e.target.value)
-                }
-                className="rounded-md border px-3 py-2"
-              />
+              <div className="admin-availability-input-wrap">
+                <input
+                  type="time"
+                  value={row.end_time || ""}
+                  disabled={!row.is_enabled}
+                  onChange={(e) =>
+                    updateRow(row.day_of_week, "end_time", e.target.value)
+                  }
+                  className="admin-availability-input admin-availability-input--time"
+                />
+              </div>
 
-              <input
-                type="number"
-                min="15"
-                step="15"
-                value={row.slot_duration_minutes || 30}
-                disabled={!row.is_enabled}
-                onChange={(e) =>
-                  updateRow(
-                    row.day_of_week,
-                    "slot_duration_minutes",
-                    Number(e.target.value),
-                  )
-                }
-                className="rounded-md border px-3 py-2"
-              />
+              <div className="admin-availability-input-wrap">
+                <input
+                  type="number"
+                  min="15"
+                  step="15"
+                  value={row.slot_duration_minutes || 30}
+                  disabled={!row.is_enabled}
+                  onChange={(e) =>
+                    updateRow(
+                      row.day_of_week,
+                      "slot_duration_minutes",
+                      Number(e.target.value),
+                    )
+                  }
+                  className="admin-availability-input admin-availability-input--number"
+                />
+              </div>
             </div>
 
             <div className="mt-4 rounded-xl bg-[#f8fafc] p-4 dark:bg-[#18212b]">
@@ -353,7 +357,7 @@ export default function AdminAvailabilitySettings({ adminId }) {
                   type="button"
                   disabled={!row.is_enabled}
                   onClick={() => addPause(row.day_of_week)}
-                  className="rounded-md border border-[#d8e0ea] bg-white px-3 py-2 text-sm font-medium text-[#103152] disabled:opacity-50 dark:border-[#2a3441] dark:bg-[#121a22] dark:text-[#e8ecf1]"
+                  className="admin-btn-secondary admin-btn-secondary--sm disabled:opacity-50"
                 >
                   Add pause
                 </button>
@@ -370,35 +374,39 @@ export default function AdminAvailabilitySettings({ adminId }) {
                       key={pause.id}
                       className="grid gap-3 rounded-xl border border-[#d8e0ea] bg-white p-3 md:grid-cols-[1fr_1fr_2fr_auto] md:items-center dark:border-[#2a3441] dark:bg-[#121a22]"
                     >
-                      <input
-                        type="time"
-                        value={pause.start_time || ""}
-                        disabled={!row.is_enabled}
-                        onChange={(e) =>
-                          updatePause(
-                            row.day_of_week,
-                            pause.id,
-                            "start_time",
-                            e.target.value,
-                          )
-                        }
-                        className="rounded-md border px-3 py-2"
-                      />
+                      <div className="admin-availability-input-wrap">
+                        <input
+                          type="time"
+                          value={pause.start_time || ""}
+                          disabled={!row.is_enabled}
+                          onChange={(e) =>
+                            updatePause(
+                              row.day_of_week,
+                              pause.id,
+                              "start_time",
+                              e.target.value,
+                            )
+                          }
+                          className="admin-availability-input admin-availability-input--time"
+                        />
+                      </div>
 
-                      <input
-                        type="time"
-                        value={pause.end_time || ""}
-                        disabled={!row.is_enabled}
-                        onChange={(e) =>
-                          updatePause(
-                            row.day_of_week,
-                            pause.id,
-                            "end_time",
-                            e.target.value,
-                          )
-                        }
-                        className="rounded-md border px-3 py-2"
-                      />
+                      <div className="admin-availability-input-wrap">
+                        <input
+                          type="time"
+                          value={pause.end_time || ""}
+                          disabled={!row.is_enabled}
+                          onChange={(e) =>
+                            updatePause(
+                              row.day_of_week,
+                              pause.id,
+                              "end_time",
+                              e.target.value,
+                            )
+                          }
+                          className="admin-availability-input admin-availability-input--time"
+                        />
+                      </div>
 
                       <input
                         type="text"
@@ -413,14 +421,14 @@ export default function AdminAvailabilitySettings({ adminId }) {
                             e.target.value,
                           )
                         }
-                        className="rounded-md border px-3 py-2"
+                        className="admin-availability-input"
                       />
 
                       <button
                         type="button"
                         disabled={!row.is_enabled}
                         onClick={() => removePause(row.day_of_week, pause.id)}
-                        className="rounded-md bg-[#fef2f2] px-3 py-2 text-sm font-semibold text-[#b91c1c] disabled:opacity-50"
+                        className="admin-btn-danger-soft disabled:opacity-50"
                       >
                         Remove
                       </button>
@@ -438,13 +446,15 @@ export default function AdminAvailabilitySettings({ adminId }) {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-md bg-[#3aa57d] px-5 py-3 text-white disabled:opacity-60"
+          className="admin-btn-primary disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save weekly availability"}
         </button>
 
         {message ? (
-          <p className="text-sm text-[#103152] dark:text-[#e8ecf1]">{message}</p>
+          <p className="text-sm text-[#103152] dark:text-[#e8ecf1]">
+            {message}
+          </p>
         ) : null}
       </div>
     </div>
