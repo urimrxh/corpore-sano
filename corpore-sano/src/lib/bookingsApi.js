@@ -22,15 +22,17 @@ const TABLES = {
 const ADMIN_COLUMNS = {
   id: "id",
   email: "email",
-  gender: "gender", // change if needed
-  active: null, // e.g. "is_active" if you use one
+  gender: "gender",
+  active: null,
 };
 
 const BOOKING_COLUMNS = {
   id: "id",
   adminId: "admin_id",
-  bookingDate: "booking_date", // change to "appointment_date" if needed
-  timeSlot: "time_slot", // change to "appointment_time" if needed
+  bookingDate: "booking_date",
+  timeSlot: "time_slot",
+  slotStart: "slot_start",
+  slotEnd: "slot_end",
   status: "status",
   fullName: "full_name",
   email: "email",
@@ -89,11 +91,11 @@ function buildSlotObjects(slotTimes, busyTimes, selectedDate) {
 
   return (slotTimes || []).map((time) => {
     let status = "free";
-  
+
     if (busySet.has(time)) {
       status = "busy";
     }
-  
+
     return { time, status };
   });
 }
@@ -248,10 +250,6 @@ export async function fetchBusyTimeSlots(dateKey, gender) {
   return fetchBusyTimeSlotsByAdmin(admin[ADMIN_COLUMNS.id], dateKey);
 }
 
-/**
- * Kept only for backward compatibility.
- * For the new dynamic availability flow, prefer fetchSlotsForDate().
- */
 export function buildSlotsForDate(
   _dateKey,
   _gender,
@@ -368,6 +366,8 @@ export async function createBooking({
       [BOOKING_COLUMNS.adminId]: adminId,
       [BOOKING_COLUMNS.bookingDate]: dateKey,
       [BOOKING_COLUMNS.timeSlot]: timeSlot,
+      [BOOKING_COLUMNS.slotStart]: start.toISOString(),
+      [BOOKING_COLUMNS.slotEnd]: end.toISOString(),
       [BOOKING_COLUMNS.status]: "pending",
     };
 
@@ -386,11 +386,7 @@ export async function createBooking({
     }
 
     return {
-      data: {
-        ...data,
-        slotStart: start.toISOString(),
-        slotEnd: end.toISOString(),
-      },
+      data: data || null,
       error: null,
       code: null,
     };
