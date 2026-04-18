@@ -10,6 +10,20 @@ const BRAND = {
     "info@corporesano-ks.com",
 };
 
+const RESEND_API_URL = "https://api.resend.com/emails";
+const RESEND_TIMEOUT_MS = 15000;
+
+function normalizeEmailList(value) {
+  return [
+    ...new Set(
+      (Array.isArray(value) ? value : [value])
+        .flatMap((entry) => String(entry || "").split(","))
+        .map((email) => email.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 export async function sendResendEmail({
   to,
   subject,
@@ -21,6 +35,12 @@ export async function sendResendEmail({
 }) {
   const resendKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
+  const recipients = normalizeEmailList(to);
+  const ccRecipients = normalizeEmailList(cc);
+  const bccRecipients = normalizeEmailList(bcc);
+  const replyToRecipient =
+    normalizeEmailList(replyTo || BRAND.replyTo)[0] || undefined;
+  const safeSubject = String(subject || "").trim();
 
   if (!resendKey) {
     throw new Error("Missing RESEND_API_KEY");
@@ -30,35 +50,82 @@ export async function sendResendEmail({
     throw new Error("Missing RESEND_FROM");
   }
 
+  if (!recipients.length) {
+    throw new Error("sendResendEmail: missing recipient email");
+  }
+
+  if (!safeSubject) {
+    throw new Error("sendResendEmail: missing email subject");
+  }
+
+  if (!html && !text) {
+    throw new Error("sendResendEmail: either html or text content is required");
+  }
+
   const payload = {
     from,
-    to: Array.isArray(to) ? to : [to],
-    subject,
-    html,
-    reply_to: replyTo || BRAND.replyTo,
+    to: recipients,
+    subject: safeSubject,
   };
 
+  if (html) payload.html = html;
   if (text) payload.text = text;
-  if (cc) payload.cc = Array.isArray(cc) ? cc : [cc];
-  if (bcc) payload.bcc = Array.isArray(bcc) ? bcc : [bcc];
+  if (replyToRecipient) payload.reply_to = replyToRecipient;
+  if (ccRecipients.length) payload.cc = ccRecipients;
+  if (bccRecipients.length) payload.bcc = bccRecipients;
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), RESEND_TIMEOUT_MS);
+
+  let res;
+
+  try {
+    res = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error(`Resend request timed out after ${RESEND_TIMEOUT_MS}ms`);
+    }
+
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const rawBody = await res.text();
+  let parsedBody = null;
+
+  try {
+    parsedBody = rawBody ? JSON.parse(rawBody) : null;
+  } catch {
+    parsedBody = null;
+  }
 
   if (!res.ok) {
-    const errorText = await res.text();
     throw new Error(
-      `Resend failed: ${res.status} ${res.statusText} ${errorText}`,
+      `Resend failed: ${res.status} ${res.statusText} ${rawBody}`,
     );
   }
 
-  return res.json().catch(() => null);
+  console.log(
+    "sendResendEmail: message accepted by Resend",
+    JSON.stringify({
+      to: recipients,
+      cc: ccRecipients,
+      bcc: bccRecipients,
+      subject: safeSubject,
+      resendId: parsedBody?.id || parsedBody?.data?.id || null,
+    }),
+  );
+
+  return parsedBody;
 }
 
 export function escapeHtml(value = "") {
@@ -66,7 +133,7 @@ export function escapeHtml(value = "") {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
