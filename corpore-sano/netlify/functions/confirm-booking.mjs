@@ -18,42 +18,46 @@ async function triggerCalendarSync(bookingId) {
 
   if (!url) {
     console.error(
-      "confirm-booking: missing deploy site URL (set URL or DEPLOY_PRIME_URL on Netlify); calendar sync skipped",
+      "confirm-booking: missing deploy site URL; calendar sync skipped",
     );
     return false;
   }
 
   const secret = process.env.BOOKING_FUNCTION_SECRET;
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(secret ? { "x-booking-secret": secret } : {}),
-      },
-      body: JSON.stringify({ bookingId }),
-    });
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(secret ? { "x-booking-secret": secret } : {}),
+        },
+        body: JSON.stringify({ bookingId }),
+      });
 
-    const text = await res.text();
+      const text = await res.text();
 
-    if (!res.ok) {
+      if (res.ok) {
+        return true;
+      }
+
       console.error(
-        "confirm-booking: create-calendar-event failed",
+        `confirm-booking: create-calendar-event failed (attempt ${attempt})`,
         res.status,
         text,
       );
-      return false;
+    } catch (e) {
+      console.error(
+        `confirm-booking: calendar sync request error (attempt ${attempt})`,
+        e?.message || e,
+      );
     }
 
-    return true;
-  } catch (e) {
-    console.error(
-      "confirm-booking: calendar sync request error",
-      e?.message || e,
-    );
-    return false;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
   }
+
+  return false;
 }
 
 export const handler = async (event) => {
@@ -96,7 +100,6 @@ export const handler = async (event) => {
     return redirect("?verify=invalid");
   }
 
-  // Treat repeated opens as success
   if (booking.verified_at) {
     return redirect("?verify=success");
   }
