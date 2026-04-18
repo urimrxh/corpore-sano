@@ -10,16 +10,17 @@ import {
   emailButton,
 } from "./lib/resendEmail.mjs";
 import { sendAdminReminderEmail } from "./lib/adminBookingEmails.mjs";
+import { getActiveAdminEmailsByGender } from "./lib/adminRecipients.mjs";
+import { createCalendarEventFunctionUrl } from "./lib/siteUrl.mjs";
 
 function normalizeRecipients(value) {
   return Array.isArray(value)
-    ? value.map((email) => String(email || "").trim()).filter(Boolean)
+    ? value.map((email) => String(email || "").trim().toLowerCase()).filter(Boolean)
     : [];
 }
 
 function getCalendarIdForGender(gender) {
   const value = String(gender || "").trim().toLowerCase();
-
   if (value === "male") return process.env.GOOGLE_CALENDAR_MALE_ID || "";
   if (value === "female") return process.env.GOOGLE_CALENDAR_FEMALE_ID || "";
   return "";
@@ -50,6 +51,64 @@ function getCalendarClient() {
   });
 
   return google.calendar({ version: "v3", auth });
+}
+
+async function triggerCalendarSyncForBooking(bookingId) {
+  const url = createCalendarEventFunctionUrl();
+  if (!url) return false;
+
+  const secret = process.env.BOOKING_FUNCTION_SECRET;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(secret ? { "x-booking-secret": secret } : {}),
+        },
+        body: JSON.stringify({ bookingId }),
+      });
+
+      if (res.ok) {
+        return true;
+      }
+
+      const text = await res.text().catch(() => "");
+      console.error(
+        `meeting-reminders: create-calendar-event failed (attempt ${attempt})`,
+        res.status,
+        text,
+      );
+    } catch (err) {
+      console.error(
+        `meeting-reminders: create-calendar-event request failed (attempt ${attempt})`,
+        err?.message || err,
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+  }
+
+  return false;
+}
+
+async function loadFreshBooking(supabase, bookingId) {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      `meeting-reminders: failed to reload booking ${bookingId}`,
+      error.message,
+    );
+    return null;
+  }
+
+  return data || null;
 }
 
 async function readEventLinks(calendarClient, calendarId, eventId) {
@@ -97,7 +156,7 @@ async function ensureMeetLink(calendarClient, calendarId, eventId) {
     );
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   links = await readEventLinks(calendarClient, calendarId, eventId);
   return links;
@@ -158,6 +217,34 @@ async function refreshBookingLinksIfNeeded(supabase, calendarClient, booking) {
   }
 }
 
+async function ensureAdminRecipients(supabase, booking) {
+  let recipients = normalizeRecipients(booking.admin_recipient_emails);
+
+  if (recipients.length) {
+    return recipients;
+  }
+
+  recipients = await getActiveAdminEmailsByGender(supabase, booking.gender);
+
+  if (!recipients.length) {
+    return [];
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ admin_recipient_emails: recipients })
+    .eq("id", booking.id);
+
+  if (error) {
+    console.error(
+      `meeting-reminders: failed to persist admin recipients for booking ${booking.id}`,
+      error.message
+    );
+  }
+
+  return recipients;
+}
+
 export default async (req) => {
   try {
     await req.json().catch(() => ({}));
@@ -204,9 +291,18 @@ export default async (req) => {
 
       let hydratedBooking = booking;
 
+      // Self-heal: if booking is verified but calendar sync never completed, try again now
+      if ((shouldSendUserReminder || shouldSendAdminReminder) && !hydratedBooking.google_event_id) {
+        await triggerCalendarSyncForBooking(hydratedBooking.id);
+        const fresh = await loadFreshBooking(supabase, hydratedBooking.id);
+        if (fresh) {
+          hydratedBooking = fresh;
+        }
+      }
+
       if (
         (shouldSendUserReminder || shouldSendAdminReminder) &&
-        booking.google_event_id
+        hydratedBooking.google_event_id
       ) {
         if (!calendarClient) {
           calendarClient = getCalendarClient();
@@ -215,7 +311,7 @@ export default async (req) => {
         hydratedBooking = await refreshBookingLinksIfNeeded(
           supabase,
           calendarClient,
-          booking
+          hydratedBooking
         );
       }
 
@@ -227,7 +323,7 @@ export default async (req) => {
 
           const albanianHtml = `
             <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(hydratedBooking.full_name || "aty")},</p>
-            <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që termini juaj fillon për rreth 15 minuta.</p>
+            <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që termini juaj fillon për rreth 10 minuta.</p>
             <p style="margin:0 0 24px 0;"><strong>Koha:</strong> ${escapeHtml(when)}</p>
             ${emailButton("Hyr në Google Meet", meetLink, "#2563eb")}
             <p style="margin:0;color:#6b7280;">Shihemi së shpejti.</p>
@@ -235,7 +331,7 @@ export default async (req) => {
 
           const englishHtml = `
             <p style="margin:0 0 16px 0;">Hi ${escapeHtml(hydratedBooking.full_name || "there")},</p>
-            <p style="margin:0 0 16px 0;">This is your appointment reminder. Your meeting starts in about 15 minutes.</p>
+            <p style="margin:0 0 16px 0;">This is your appointment reminder. Your meeting starts in about 10 minutes.</p>
             <p style="margin:0 0 24px 0;"><strong>Time:</strong> ${escapeHtml(when)}</p>
             ${emailButton("Join Google Meet", meetLink, "#111827")}
             <p style="margin:0;color:#6b7280;">We will see you shortly.</p>
@@ -243,9 +339,9 @@ export default async (req) => {
 
           const html = renderBilingualEmail({
             preheader:
-              "Rikujtesë për terminin tuaj që fillon për rreth 15 minuta. Reminder that your appointment starts in about 15 minutes.",
+              "Rikujtesë për terminin tuaj që fillon për rreth 10 minuta. Reminder that your appointment starts in about 10 minutes.",
             title:
-              "Rikujtesë për terminin | Reminder: your appointment starts in about 15 minutes",
+              "Rikujtesë për terminin | Reminder: your appointment starts in about 10 minutes",
             albanianHtml,
             englishHtml,
           });
@@ -253,7 +349,7 @@ export default async (req) => {
           const text = buildBilingualText({
             albanian: `Përshëndetje ${hydratedBooking.full_name || "aty"},
 
-Kjo është një rikujtesë që terminin tuaj fillon për rreth 15 minuta.
+Kjo është një rikujtesë që terminin tuaj fillon për rreth 10 minuta.
 
 Koha: ${when}
 
@@ -263,7 +359,7 @@ ${meetLink}
 Shihemi së shpejti.`,
             english: `Hi ${hydratedBooking.full_name || "there"},
 
-This is your appointment reminder. Your meeting starts in about 15 minutes.
+This is your appointment reminder. Your meeting starts in about 10 minutes.
 
 Time: ${when}
 
@@ -277,7 +373,7 @@ We will see you shortly.`,
             await sendResendEmail({
               to: hydratedBooking.email,
               subject:
-                "Rikujtesë për terminin | Reminder: your appointment starts in about 15 minutes",
+                "Rikujtesë për terminin | Reminder: your appointment starts in about 10 minutes",
               html,
               text,
             });
@@ -300,9 +396,7 @@ We will see you shortly.`,
       }
 
       if (shouldSendAdminReminder) {
-        const recipients = normalizeRecipients(
-          hydratedBooking.admin_recipient_emails
-        );
+        const recipients = await ensureAdminRecipients(supabase, hydratedBooking);
 
         if (!recipients.length) {
           console.warn(
@@ -321,7 +415,10 @@ We will see you shortly.`,
         try {
           await sendAdminReminderEmail({
             to: recipients,
-            booking: hydratedBooking,
+            booking: {
+              ...hydratedBooking,
+              admin_recipient_emails: recipients,
+            },
           });
 
           await supabase
