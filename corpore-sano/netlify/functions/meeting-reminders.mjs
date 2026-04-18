@@ -172,8 +172,8 @@ export default async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const now = Date.now();
-    const reminderWindowStart = new Date(now + 14 * 60 * 1000).toISOString();
-    const reminderWindowEnd = new Date(now + 16 * 60 * 1000).toISOString();
+    const reminderWindowStart = new Date(now + 9 * 60 * 1000).toISOString();
+    const reminderWindowEnd = new Date(now + 11 * 60 * 1000).toISOString();
 
     const { data: bookings, error } = await supabase
       .from("bookings")

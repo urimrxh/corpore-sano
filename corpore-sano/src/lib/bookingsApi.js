@@ -1,5 +1,3 @@
-// src/lib/bookingsApi.js
-
 import { supabase } from "./supabase";
 import { BOOKING_PENDING_HOLD_MINUTES } from "./bookingConstants";
 import {
@@ -11,9 +9,6 @@ import {
 } from "./timeSlots";
 import { getAdminAvailabilityForDate } from "./adminAvailability";
 
-/**
- * Change these only if your actual DB column names differ.
- */
 const TABLES = {
   ADMINS: "admins",
   BOOKINGS: "bookings",
@@ -43,6 +38,7 @@ const BOOKING_COLUMNS = {
 
 const BUSY_STATUSES = ["pending", "confirmed", "verified"];
 const RECENT_BOOKING_STATUSES = ["pending"];
+const MIN_BOOKING_LEAD_MINUTES = 10;
 
 function normalizeGender(value) {
   return String(value || "").trim().toLowerCase();
@@ -50,6 +46,15 @@ function normalizeGender(value) {
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function isSlotTooSoon(selectedDate, timeSlot) {
+  if (!selectedDate || !timeSlot) return true;
+
+  const slotStart = slotToLocalDateRange(selectedDate, timeSlot, 1).start;
+  const diffMs = slotStart.getTime() - Date.now();
+
+  return diffMs < MIN_BOOKING_LEAD_MINUTES * 60 * 1000;
 }
 
 function rangesOverlap(startA, endA, startB, endB) {
@@ -94,6 +99,8 @@ function buildSlotObjects(slotTimes, busyTimes, selectedDate) {
 
     if (busySet.has(time)) {
       status = "busy";
+    } else if (isSlotTooSoon(selectedDate, time)) {
+      status = "past";
     }
 
     return { time, status };
@@ -236,10 +243,6 @@ async function validateSlotForAdmin(adminId, dateKey, timeSlot, selectedDate) {
   };
 }
 
-/* =========================
-   Public schedule functions
-   ========================= */
-
 export async function fetchBusyTimeSlots(dateKey, gender) {
   const admin = await resolveAdminForGender(gender);
 
@@ -311,6 +314,14 @@ export async function createBooking({
         data: null,
         error: new Error("Booking date is in the past."),
         code: "PAST_DATE",
+      };
+    }
+
+    if (isSlotTooSoon(selectedDate, timeSlot)) {
+      return {
+        data: null,
+        error: new Error("This slot is too close to the current time."),
+        code: "PAST_SLOT",
       };
     }
 
@@ -398,10 +409,6 @@ export async function createBooking({
     };
   }
 }
-
-/* =========================
-   Admin booking functions
-   ========================= */
 
 export async function fetchBookingsAsAdmin(filters = {}) {
   const {
@@ -503,10 +510,6 @@ export async function updateBookingStatusAsAdmin(bookingId, status) {
     code: error?.code || null,
   };
 }
-
-/* =========================
-   Compatibility aliases
-   ========================= */
 
 export const fetchAdminBookings = fetchBookingsAsAdmin;
 export const fetchBookingsForAdmin = fetchBookingsAsAdmin;

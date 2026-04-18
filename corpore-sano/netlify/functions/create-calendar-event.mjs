@@ -47,8 +47,8 @@ async function waitForMeetLink(
   calendar,
   calendarId,
   eventId,
-  tries = 6,
-  delayMs = 2000,
+  tries = 12,
+  delayMs = 3000,
 ) {
   let lastEventLink = null;
   let lastStatus = "timeout";
@@ -111,10 +111,16 @@ async function forceMeetLink(calendar, calendarId, eventId) {
     );
   }
 
-  return waitForMeetLink(calendar, calendarId, eventId, 6, 2000);
+  return waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
 }
 
-async function ensureMeetLink(calendar, calendarId, eventId, currentMeetLink, currentEventLink) {
+async function ensureMeetLink(
+  calendar,
+  calendarId,
+  eventId,
+  currentMeetLink,
+  currentEventLink,
+) {
   if (currentMeetLink) {
     return {
       meetLink: currentMeetLink,
@@ -122,7 +128,7 @@ async function ensureMeetLink(calendar, calendarId, eventId, currentMeetLink, cu
     };
   }
 
-  let waited = await waitForMeetLink(calendar, calendarId, eventId, 6, 2000);
+  let waited = await waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
 
   if (waited.meetLink) {
     return {
@@ -154,7 +160,6 @@ async function refreshExistingEventLinks(calendar, calendarId, eventId) {
 
 async function sendVerificationConfirmedEmail(booking) {
   const when = formatAppointment(booking.slot_start);
-  const hasMeetLink = Boolean(booking.google_meet_link);
   const hasEventLink = Boolean(booking.google_event_link);
 
   const albanianHtml = `
@@ -171,11 +176,7 @@ async function sendVerificationConfirmedEmail(booking) {
         : ""
     }
     <p style="margin:0;color:#6b7280;">
-      ${
-        hasMeetLink
-          ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
-          : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
-      }
+      Linku i takimit do të dërgohet në emailin rikujtues rreth 10 minuta para terminit.
     </p>
   `;
 
@@ -193,11 +194,7 @@ async function sendVerificationConfirmedEmail(booking) {
         : ""
     }
     <p style="margin:0;color:#6b7280;">
-      ${
-        hasMeetLink
-          ? "You will also receive a reminder email about 15 minutes before the appointment."
-          : "The meeting link will be sent in the reminder email about 15 minutes before the appointment."
-      }
+      The meeting link will be sent in the reminder email about 10 minutes before the appointment.
     </p>
   `;
 
@@ -217,22 +214,14 @@ Termini juaj është konfirmuar me sukses.
 
 Koha: ${when}
 ${hasEventLink ? `Eventi në kalendar: ${booking.google_event_link}` : ""}
-${
-  hasMeetLink
-    ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
-    : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
-}`,
+Linku i takimit do të dërgohet në emailin rikujtues rreth 10 minuta para terminit.`,
     english: `Hi ${booking.full_name || "there"},
 
 Your appointment has been successfully verified.
 
 Time: ${when}
 ${hasEventLink ? `Calendar event: ${booking.google_event_link}` : ""}
-${
-  hasMeetLink
-    ? "You will also receive a reminder email about 15 minutes before the appointment."
-    : "The meeting link will be sent in the reminder email about 15 minutes before the appointment."
-}`,
+The meeting link will be sent in the reminder email about 10 minutes before the appointment.`,
   });
 
   await sendResendEmail({
@@ -505,7 +494,10 @@ export const handler = async (request) => {
       );
     }
 
-    await sendVerificationConfirmedEmailIfNeeded(supabase, enrichedExistingBooking);
+    await sendVerificationConfirmedEmailIfNeeded(
+      supabase,
+      enrichedExistingBooking,
+    );
 
     return {
       statusCode: 200,
@@ -597,6 +589,13 @@ export const handler = async (request) => {
 
     meetLink = ensured.meetLink || meetLink;
     eventLink = ensured.eventLink || eventLink;
+
+    if (!meetLink) {
+      console.warn(
+        "create-calendar-event: event created but Google Meet link is still missing after retries",
+        JSON.stringify({ bookingId, eventId, calendarId }),
+      );
+    }
   } catch (err) {
     console.error(
       "create-calendar-event: failed to ensure Meet link on new event",
