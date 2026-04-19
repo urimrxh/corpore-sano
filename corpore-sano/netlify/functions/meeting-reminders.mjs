@@ -389,7 +389,6 @@ We will see you shortly.`,
 
       if (shouldSendAdminReminder) {
         const recipients = await getAdminRecipients(supabase, hydratedBooking);
-        const reminderLink = getReminderLink(hydratedBooking);
 
         if (!recipients.length) {
           console.warn(
@@ -401,13 +400,7 @@ We will see you shortly.`,
         try {
           await sendAdminReminderEmail({
             to: recipients,
-            booking: {
-              ...hydratedBooking,
-              google_meet_link:
-                hydratedBooking.google_meet_link || reminderLink || null,
-              google_event_link:
-                hydratedBooking.google_event_link || reminderLink || null,
-            },
+            booking: hydratedBooking,
           });
 
           await supabase
