@@ -26,15 +26,11 @@ function headerGet(headers, name) {
 function normalizeRecipientEmails(value) {
   return [
     ...new Set(
-      (Array.isArray(value) ? value : [value])
+      (Array.isArray(value) ? value : [])
         .map((email) => String(email || "").trim().toLowerCase())
         .filter(Boolean),
     ),
   ];
-}
-
-function firstRecipient(value) {
-  return normalizeRecipientEmails(value)[0] || "";
 }
 
 function getMeetLinkFromEvent(event) {
@@ -51,8 +47,8 @@ async function waitForMeetLink(
   calendar,
   calendarId,
   eventId,
-  tries = 12,
-  delayMs = 3000,
+  tries = 6,
+  delayMs = 2000,
 ) {
   let lastEventLink = null;
   let lastStatus = "timeout";
@@ -91,133 +87,61 @@ async function waitForMeetLink(
   return { meetLink: null, eventLink: lastEventLink, status: lastStatus };
 }
 
-async function forceMeetLink(calendar, calendarId, eventId) {
-  try {
-    await calendar.events.patch({
-      calendarId,
-      eventId,
-      conferenceDataVersion: 1,
-      requestBody: {
-        conferenceData: {
-          createRequest: {
-            requestId: randomUUID(),
-            conferenceSolutionKey: {
-              type: "hangoutsMeet",
-            },
-          },
-        },
-      },
-    });
-  } catch (err) {
-    console.warn(
-      "create-calendar-event: failed to patch Meet onto event:",
-      err?.message || err,
-    );
-  }
-
-  return waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
-}
-
-async function ensureMeetLink(
-  calendar,
-  calendarId,
-  eventId,
-  currentMeetLink,
-  currentEventLink,
-) {
-  if (currentMeetLink) {
-    return {
-      meetLink: currentMeetLink,
-      eventLink: currentEventLink || null,
-    };
-  }
-
-  let waited = await waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
-
-  if (waited.meetLink) {
-    return {
-      meetLink: waited.meetLink,
-      eventLink: waited.eventLink || currentEventLink || null,
-    };
-  }
-
-  waited = await forceMeetLink(calendar, calendarId, eventId);
-
-  return {
-    meetLink: waited.meetLink || null,
-    eventLink: waited.eventLink || currentEventLink || null,
-  };
-}
-
-async function refreshExistingEventLinks(calendar, calendarId, eventId) {
-  const res = await calendar.events.get({
-    calendarId,
-    eventId,
-    conferenceDataVersion: 1,
-  });
-
-  return {
-    google_meet_link: getMeetLinkFromEvent(res?.data || null),
-    google_event_link: res?.data?.htmlLink || null,
-  };
-}
-
 async function sendVerificationConfirmedEmail(booking) {
-  const recipient = firstRecipient(booking.email);
-
-  if (!recipient) {
-    throw new Error("Booking email missing for verification confirmation email");
-  }
-
-  const fullName = String(booking.full_name || "").trim();
   const when = formatAppointment(booking.slot_start);
-  const eventLink = String(booking.google_event_link || "").trim();
-  const meetLink = String(booking.google_meet_link || "").trim();
-  const hasEventLink = Boolean(eventLink);
-  const hasMeetLink = Boolean(meetLink);
+  const hasMeetLink = Boolean(booking.google_meet_link);
+  const hasEventLink = Boolean(booking.google_event_link);
 
   const albanianHtml = `
-    <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(fullName || "aty")},</p>
+    <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(booking.full_name || "aty")},</p>
     <p style="margin:0 0 16px 0;">Termini juaj është konfirmuar me sukses.</p>
     <p style="margin:0 0 16px 0;"><strong>Koha:</strong> ${escapeHtml(when)}</p>
     ${
       hasEventLink
-        ? emailButton("Hap eventin në kalendar", eventLink, "#2563eb")
+        ? emailButton(
+            "Hap eventin në kalendar",
+            booking.google_event_link,
+            "#2563eb",
+          )
         : ""
     }
     ${
       hasMeetLink
-        ? emailButton("Hyr në Google Meet", meetLink, "#16a34a")
+        ? emailButton("Hyr në takim", booking.google_meet_link, "#2563eb")
         : ""
     }
     <p style="margin:0;color:#6b7280;">
       ${
         hasMeetLink
-          ? "Mund të përdorni linkun e mësipërm për t’iu bashkuar takimit në kohën e terminit."
-          : "Nëse linku i takimit nuk është gati ende, ai do të dërgohet në emailin rikujtues rreth 10 minuta para terminit."
+          ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
+          : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
       }
     </p>
   `;
 
   const englishHtml = `
-    <p style="margin:0 0 16px 0;">Hi ${escapeHtml(fullName || "there")},</p>
+    <p style="margin:0 0 16px 0;">Hi ${escapeHtml(booking.full_name || "there")},</p>
     <p style="margin:0 0 16px 0;">Your appointment has been successfully verified.</p>
     <p style="margin:0 0 16px 0;"><strong>Time:</strong> ${escapeHtml(when)}</p>
     ${
       hasEventLink
-        ? emailButton("Open calendar event", eventLink, "#111827")
+        ? emailButton(
+            "Open calendar event",
+            booking.google_event_link,
+            "#111827",
+          )
         : ""
     }
     ${
       hasMeetLink
-        ? emailButton("Join Google Meet", meetLink, "#16a34a")
+        ? emailButton("Join meeting", booking.google_meet_link, "#111827")
         : ""
     }
     <p style="margin:0;color:#6b7280;">
       ${
         hasMeetLink
-          ? "You can use the link above to join the meeting at the appointment time."
-          : "If the meeting link is not ready yet, it will be sent in the reminder email about 10 minutes before the appointment."
+          ? "You will also receive a reminder email about 15 minutes before the appointment."
+          : "The meeting link will be sent again in the reminder email about 15 minutes before the appointment."
       }
     </p>
   `;
@@ -232,77 +156,53 @@ async function sendVerificationConfirmedEmail(booking) {
   });
 
   const text = buildBilingualText({
-    albanian: `Përshëndetje ${fullName || "aty"},
+    albanian: `Përshëndetje ${booking.full_name || "aty"},
 
 Termini juaj është konfirmuar me sukses.
 
 Koha: ${when}
-${hasEventLink ? `Eventi në kalendar: ${eventLink}` : ""}
-${hasMeetLink ? `Google Meet: ${meetLink}` : ""}
+${hasEventLink ? `Eventi në kalendar: ${booking.google_event_link}` : ""}
+${hasMeetLink ? `Google Meet: ${booking.google_meet_link}` : ""}
 ${
   hasMeetLink
-    ? "Mund të përdorni linkun e mësipërm për t’iu bashkuar takimit në kohën e terminit."
-    : "Nëse linku i takimit nuk është gati ende, ai do të dërgohet në emailin rikujtues rreth 10 minuta para terminit."
+    ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
+    : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
 }`,
-    english: `Hi ${fullName || "there"},
+    english: `Hi ${booking.full_name || "there"},
 
 Your appointment has been successfully verified.
 
 Time: ${when}
-${hasEventLink ? `Calendar event: ${eventLink}` : ""}
-${hasMeetLink ? `Google Meet: ${meetLink}` : ""}
+${hasEventLink ? `Calendar event: ${booking.google_event_link}` : ""}
+${hasMeetLink ? `Google Meet: ${booking.google_meet_link}` : ""}
 ${
   hasMeetLink
-    ? "You can use the link above to join the meeting at the appointment time."
-    : "If the meeting link is not ready yet, it will be sent in the reminder email about 10 minutes before the appointment."
+    ? "You will also receive a reminder email about 15 minutes before the appointment."
+    : "The meeting link will be sent again in the reminder email about 15 minutes before the appointment."
 }`,
   });
 
-  console.log(
-    "create-calendar-event: sending verification confirmation email",
-    JSON.stringify({
-      bookingId: booking.id,
-      to: recipient,
-      hasEventLink,
-      hasMeetLink,
-    }),
-  );
-
-  const resendResult = await sendResendEmail({
-    to: recipient,
+  await sendResendEmail({
+    to: booking.email,
     subject:
       "Termini juaj është konfirmuar | Your appointment has been successfully verified",
     html,
     text,
   });
-
-  console.log(
-    "create-calendar-event: verification confirmation email sent",
-    JSON.stringify({
-      bookingId: booking.id,
-      to: recipient,
-      resendId: resendResult?.id || resendResult?.data?.id || null,
-    }),
-  );
 }
 
 async function sendVerificationConfirmedEmailIfNeeded(supabase, booking) {
   if (booking.verification_confirmation_sent_at) {
-    console.log(
-      "create-calendar-event: verification confirmation email already marked as sent",
-      JSON.stringify({ bookingId: booking.id }),
-    );
     return;
   }
 
   try {
     await sendVerificationConfirmedEmail(booking);
 
-    const sentAt = new Date().toISOString();
     const { error } = await supabase
       .from("bookings")
       .update({
-        verification_confirmation_sent_at: sentAt,
+        verification_confirmation_sent_at: new Date().toISOString(),
       })
       .eq("id", booking.id);
 
@@ -311,18 +211,11 @@ async function sendVerificationConfirmedEmailIfNeeded(supabase, booking) {
         "create-calendar-event: failed to save verification_confirmation_sent_at",
         error.message,
       );
-      return;
     }
-
-    booking.verification_confirmation_sent_at = sentAt;
   } catch (emailErr) {
     console.error(
       "create-calendar-event: verification confirmation email failed",
-      JSON.stringify({
-        bookingId: booking.id,
-        email: firstRecipient(booking.email) || null,
-        error: emailErr?.message || String(emailErr),
-      }),
+      emailErr?.message || emailErr,
     );
   }
 }
@@ -467,6 +360,34 @@ export const handler = async (request) => {
     };
   }
 
+  const existingJoinLink =
+    booking.google_meet_link || booking.google_event_link || null;
+
+  if (booking.google_event_id) {
+    try {
+      await notifyAdminsForBooking(supabase, booking);
+    } catch (adminErr) {
+      console.error(
+        "create-calendar-event: existing-event admin notification failed",
+        adminErr?.message || adminErr,
+      );
+    }
+
+    await sendVerificationConfirmedEmailIfNeeded(supabase, booking);
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ok: true,
+        skipped: true,
+        id: booking.google_event_id,
+        googleMeetLink: existingJoinLink,
+        googleEventLink: booking.google_event_link || null,
+      }),
+    };
+  }
+
   const normalizedGender = String(booking.gender || "").trim().toLowerCase();
   const calendarId =
     normalizedGender === "male"
@@ -501,89 +422,6 @@ export const handler = async (request) => {
 
   const calendar = google.calendar({ version: "v3", auth });
 
-  if (booking.google_event_id) {
-    let existingMeetLink = booking.google_meet_link || null;
-    let existingEventLink = booking.google_event_link || null;
-
-    if (!existingMeetLink || !existingEventLink) {
-      try {
-        const refreshed = await refreshExistingEventLinks(
-          calendar,
-          calendarId,
-          booking.google_event_id,
-        );
-
-        existingMeetLink = refreshed.google_meet_link || existingMeetLink;
-        existingEventLink = refreshed.google_event_link || existingEventLink;
-
-        if (!existingMeetLink) {
-          const forced = await ensureMeetLink(
-            calendar,
-            calendarId,
-            booking.google_event_id,
-            existingMeetLink,
-            existingEventLink,
-          );
-
-          existingMeetLink = forced.meetLink || existingMeetLink;
-          existingEventLink = forced.eventLink || existingEventLink;
-        }
-
-        const { error: refreshSaveError } = await supabase
-          .from("bookings")
-          .update({
-            google_meet_link: existingMeetLink,
-            google_event_link: existingEventLink,
-          })
-          .eq("id", bookingId);
-
-        if (refreshSaveError) {
-          console.error(
-            "create-calendar-event: failed to persist refreshed existing event links",
-            refreshSaveError.message,
-          );
-        }
-      } catch (err) {
-        console.error(
-          "create-calendar-event: failed to refresh existing event links",
-          err?.message || err,
-        );
-      }
-    }
-
-    const enrichedExistingBooking = {
-      ...booking,
-      google_meet_link: existingMeetLink,
-      google_event_link: existingEventLink,
-    };
-
-    try {
-      await notifyAdminsForBooking(supabase, enrichedExistingBooking);
-    } catch (adminErr) {
-      console.error(
-        "create-calendar-event: existing-event admin notification failed",
-        adminErr?.message || adminErr,
-      );
-    }
-
-    await sendVerificationConfirmedEmailIfNeeded(
-      supabase,
-      enrichedExistingBooking,
-    );
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ok: true,
-        skipped: true,
-        id: booking.google_event_id,
-        googleMeetLink: existingMeetLink,
-        googleEventLink: existingEventLink,
-      }),
-    };
-  }
-
   const descriptionLines = [
     booking.topic,
     `Email: ${booking.email}`,
@@ -591,7 +429,7 @@ export const handler = async (request) => {
   ].filter(Boolean);
 
   const baseEvent = {
-    summary: `Consultation - ${booking.full_name}`,
+    summary: `Consultation — ${booking.full_name}`,
     description: descriptionLines.join("\n"),
     start: { dateTime: booking.slot_start },
     end: { dateTime: booking.slot_end },
@@ -650,29 +488,17 @@ export const handler = async (request) => {
     };
   }
 
-  try {
-    const ensured = await ensureMeetLink(
-      calendar,
-      calendarId,
-      eventId,
-      meetLink,
-      eventLink,
-    );
-
-    meetLink = ensured.meetLink || meetLink;
-    eventLink = ensured.eventLink || eventLink;
-
-    if (!meetLink) {
+  if (!meetLink) {
+    try {
+      const waited = await waitForMeetLink(calendar, calendarId, eventId, 6, 2000);
+      meetLink = waited.meetLink || meetLink;
+      eventLink = waited.eventLink || eventLink;
+    } catch (pollErr) {
       console.warn(
-        "create-calendar-event: event created but Google Meet link is still missing after retries",
-        JSON.stringify({ bookingId, eventId, calendarId }),
+        "create-calendar-event: polling for Meet link failed:",
+        pollErr?.message || pollErr,
       );
     }
-  } catch (err) {
-    console.error(
-      "create-calendar-event: failed to ensure Meet link on new event",
-      err?.message || err,
-    );
   }
 
   const { error: updErr } = await supabase

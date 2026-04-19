@@ -98,7 +98,7 @@ export async function sendAdminReminderEmail({ to, booking }) {
 
   const albanianHtml = `
     <p style="margin:0 0 16px 0;">Përshëndetje,</p>
-    <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që një termin fillon për rreth 10 minuta.</p>
+    <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që një termin fillon për rreth 15 minuta.</p>
     <p style="margin:0 0 8px 0;"><strong>Emri i plotë:</strong> ${escapeHtml(booking.full_name || "")}</p>
     <p style="margin:0 0 8px 0;"><strong>Gjinia:</strong> ${escapeHtml(genderLabelSq(booking.gender))}</p>
     <p style="margin:0 0 8px 0;"><strong>Email i klientit:</strong> ${escapeHtml(booking.email || "")}</p>
@@ -112,7 +112,7 @@ export async function sendAdminReminderEmail({ to, booking }) {
 
   const englishHtml = `
     <p style="margin:0 0 16px 0;">Hi,</p>
-    <p style="margin:0 0 16px 0;">This is a reminder that an appointment starts in about 10 minutes.</p>
+    <p style="margin:0 0 16px 0;">This is a reminder that an appointment starts in about 15 minutes.</p>
     <p style="margin:0 0 8px 0;"><strong>Full name:</strong> ${escapeHtml(booking.full_name || "")}</p>
     <p style="margin:0 0 8px 0;"><strong>Gender:</strong> ${escapeHtml(genderLabelEn(booking.gender))}</p>
     <p style="margin:0 0 8px 0;"><strong>Client email:</strong> ${escapeHtml(booking.email || "")}</p>
@@ -126,7 +126,7 @@ export async function sendAdminReminderEmail({ to, booking }) {
 
   const html = renderBilingualEmail({
     preheader:
-      "Rikujtesë për terminin që fillon për rreth 10 minuta. Reminder for an appointment starting in about 10 minutes.",
+      "Rikujtesë për terminin që fillon për rreth 15 minuta. Reminder for an appointment starting in about 15 minutes.",
     title: `Rikujtesë për terminin | Appointment reminder`,
     albanianHtml,
     englishHtml,
@@ -135,7 +135,7 @@ export async function sendAdminReminderEmail({ to, booking }) {
   const text = buildBilingualText({
     albanian: `Përshëndetje,
 
-Kjo është një rikujtesë që një termin fillon për rreth 10 minuta.
+Kjo është një rikujtesë që një termin fillon për rreth 15 minuta.
 
 Emri i plotë: ${booking.full_name || ""}
 Gjinia: ${genderLabelSq(booking.gender)}
@@ -144,7 +144,7 @@ Termini: ${when}
 ${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
     english: `Hi,
 
-This is a reminder that an appointment starts in about 10 minutes.
+This is a reminder that an appointment starts in about 15 minutes.
 
 Full name: ${booking.full_name || ""}
 Gender: ${genderLabelEn(booking.gender)}
