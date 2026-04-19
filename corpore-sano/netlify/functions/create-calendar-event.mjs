@@ -47,8 +47,8 @@ async function waitForMeetLink(
   calendar,
   calendarId,
   eventId,
-  tries = 6,
-  delayMs = 2000,
+  tries = 12,
+  delayMs = 3000,
 ) {
   let lastEventLink = null;
   let lastStatus = "timeout";
@@ -69,6 +69,16 @@ async function waitForMeetLink(
     lastEventLink = eventLink || lastEventLink;
     lastStatus = status || lastStatus;
 
+    console.log(
+      "create-calendar-event: meet poll",
+      JSON.stringify({
+        eventId,
+        try: i + 1,
+        status: status || null,
+        hasMeetLink: Boolean(meetLink),
+      }),
+    );
+
     if (meetLink && status === "success") {
       return { meetLink, eventLink, status };
     }
@@ -85,6 +95,82 @@ async function waitForMeetLink(
   }
 
   return { meetLink: null, eventLink: lastEventLink, status: lastStatus };
+}
+
+async function forceMeetLink(calendar, calendarId, eventId) {
+  try {
+    await calendar.events.patch({
+      calendarId,
+      eventId,
+      conferenceDataVersion: 1,
+      requestBody: {
+        conferenceData: {
+          createRequest: {
+            requestId: randomUUID(),
+            conferenceSolutionKey: {
+              type: "hangoutsMeet",
+            },
+          },
+        },
+      },
+    });
+
+    console.log(
+      "create-calendar-event: requested fresh Meet createRequest via patch",
+      JSON.stringify({ eventId, calendarId }),
+    );
+  } catch (err) {
+    console.warn(
+      "create-calendar-event: failed to patch Meet onto event:",
+      err?.message || err,
+    );
+  }
+
+  return waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
+}
+
+async function ensureMeetLink(
+  calendar,
+  calendarId,
+  eventId,
+  currentMeetLink,
+  currentEventLink,
+) {
+  if (currentMeetLink) {
+    return {
+      meetLink: currentMeetLink,
+      eventLink: currentEventLink || null,
+    };
+  }
+
+  let waited = await waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
+
+  if (waited.meetLink) {
+    return {
+      meetLink: waited.meetLink,
+      eventLink: waited.eventLink || currentEventLink || null,
+    };
+  }
+
+  waited = await forceMeetLink(calendar, calendarId, eventId);
+
+  return {
+    meetLink: waited.meetLink || null,
+    eventLink: waited.eventLink || currentEventLink || null,
+  };
+}
+
+async function refreshExistingEventLinks(calendar, calendarId, eventId) {
+  const res = await calendar.events.get({
+    calendarId,
+    eventId,
+    conferenceDataVersion: 1,
+  });
+
+  return {
+    google_meet_link: getMeetLinkFromEvent(res?.data || null),
+    google_event_link: res?.data?.htmlLink || null,
+  };
 }
 
 async function sendVerificationConfirmedEmail(booking) {
@@ -113,8 +199,8 @@ async function sendVerificationConfirmedEmail(booking) {
     <p style="margin:0;color:#6b7280;">
       ${
         hasMeetLink
-          ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
-          : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
+          ? "Do të pranoni edhe një email rikujtues rreth 10 minuta para terminit."
+          : "Linku i takimit do të dërgohet në emailin rikujtues rreth 10 minuta para terminit."
       }
     </p>
   `;
@@ -140,8 +226,8 @@ async function sendVerificationConfirmedEmail(booking) {
     <p style="margin:0;color:#6b7280;">
       ${
         hasMeetLink
-          ? "You will also receive a reminder email about 15 minutes before the appointment."
-          : "The meeting link will be sent again in the reminder email about 15 minutes before the appointment."
+          ? "You will also receive a reminder email about 10 minutes before the appointment."
+          : "The meeting link will be sent again in the reminder email about 10 minutes before the appointment."
       }
     </p>
   `;
@@ -165,8 +251,8 @@ ${hasEventLink ? `Eventi në kalendar: ${booking.google_event_link}` : ""}
 ${hasMeetLink ? `Google Meet: ${booking.google_meet_link}` : ""}
 ${
   hasMeetLink
-    ? "Do të pranoni edhe një email rikujtues rreth 15 minuta para terminit."
-    : "Linku i takimit do të dërgohet në emailin rikujtues rreth 15 minuta para terminit."
+    ? "Do të pranoni edhe një email rikujtues rreth 10 minuta para terminit."
+    : "Linku i takimit do të dërgohet në emailin rikujtues rreth 10 minuta para terminit."
 }`,
     english: `Hi ${booking.full_name || "there"},
 
@@ -177,8 +263,8 @@ ${hasEventLink ? `Calendar event: ${booking.google_event_link}` : ""}
 ${hasMeetLink ? `Google Meet: ${booking.google_meet_link}` : ""}
 ${
   hasMeetLink
-    ? "You will also receive a reminder email about 15 minutes before the appointment."
-    : "The meeting link will be sent again in the reminder email about 15 minutes before the appointment."
+    ? "You will also receive a reminder email about 10 minutes before the appointment."
+    : "The meeting link will be sent again in the reminder email about 10 minutes before the appointment."
 }`,
   });
 
@@ -360,34 +446,6 @@ export const handler = async (request) => {
     };
   }
 
-  const existingJoinLink =
-    booking.google_meet_link || booking.google_event_link || null;
-
-  if (booking.google_event_id) {
-    try {
-      await notifyAdminsForBooking(supabase, booking);
-    } catch (adminErr) {
-      console.error(
-        "create-calendar-event: existing-event admin notification failed",
-        adminErr?.message || adminErr,
-      );
-    }
-
-    await sendVerificationConfirmedEmailIfNeeded(supabase, booking);
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ok: true,
-        skipped: true,
-        id: booking.google_event_id,
-        googleMeetLink: existingJoinLink,
-        googleEventLink: booking.google_event_link || null,
-      }),
-    };
-  }
-
   const normalizedGender = String(booking.gender || "").trim().toLowerCase();
   const calendarId =
     normalizedGender === "male"
@@ -422,6 +480,87 @@ export const handler = async (request) => {
 
   const calendar = google.calendar({ version: "v3", auth });
 
+  if (booking.google_event_id) {
+    let existingMeetLink = booking.google_meet_link || null;
+    let existingEventLink = booking.google_event_link || null;
+
+    try {
+      const refreshed = await refreshExistingEventLinks(
+        calendar,
+        calendarId,
+        booking.google_event_id,
+      );
+
+      existingMeetLink = refreshed.google_meet_link || existingMeetLink;
+      existingEventLink = refreshed.google_event_link || existingEventLink;
+
+      if (!existingMeetLink) {
+        const ensured = await ensureMeetLink(
+          calendar,
+          calendarId,
+          booking.google_event_id,
+          existingMeetLink,
+          existingEventLink,
+        );
+
+        existingMeetLink = ensured.meetLink || existingMeetLink;
+        existingEventLink = ensured.eventLink || existingEventLink;
+      }
+
+      const { error: refreshErr } = await supabase
+        .from("bookings")
+        .update({
+          google_meet_link: existingMeetLink,
+          google_event_link: existingEventLink,
+        })
+        .eq("id", bookingId);
+
+      if (refreshErr) {
+        console.error(
+          "create-calendar-event: failed to save refreshed existing event links",
+          refreshErr.message,
+        );
+      }
+    } catch (err) {
+      console.error(
+        "create-calendar-event: failed to refresh existing event links",
+        err?.message || err,
+      );
+    }
+
+    const enrichedExistingBooking = {
+      ...booking,
+      google_meet_link: existingMeetLink,
+      google_event_link: existingEventLink,
+    };
+
+    try {
+      await notifyAdminsForBooking(supabase, enrichedExistingBooking);
+    } catch (adminErr) {
+      console.error(
+        "create-calendar-event: existing-event admin notification failed",
+        adminErr?.message || adminErr,
+      );
+    }
+
+    await sendVerificationConfirmedEmailIfNeeded(
+      supabase,
+      enrichedExistingBooking,
+    );
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ok: true,
+        skipped: true,
+        id: booking.google_event_id,
+        googleMeetLink: existingMeetLink,
+        googleEventLink: existingEventLink,
+      }),
+    };
+  }
+
   const descriptionLines = [
     booking.topic,
     `Email: ${booking.email}`,
@@ -429,7 +568,7 @@ export const handler = async (request) => {
   ].filter(Boolean);
 
   const baseEvent = {
-    summary: `Consultation — ${booking.full_name}`,
+    summary: `Consultation - ${booking.full_name}`,
     description: descriptionLines.join("\n"),
     start: { dateTime: booking.slot_start },
     end: { dateTime: booking.slot_end },
@@ -488,17 +627,29 @@ export const handler = async (request) => {
     };
   }
 
-  if (!meetLink) {
-    try {
-      const waited = await waitForMeetLink(calendar, calendarId, eventId, 6, 2000);
-      meetLink = waited.meetLink || meetLink;
-      eventLink = waited.eventLink || eventLink;
-    } catch (pollErr) {
+  try {
+    const ensured = await ensureMeetLink(
+      calendar,
+      calendarId,
+      eventId,
+      meetLink,
+      eventLink,
+    );
+
+    meetLink = ensured.meetLink || meetLink;
+    eventLink = ensured.eventLink || eventLink;
+
+    if (!meetLink) {
       console.warn(
-        "create-calendar-event: polling for Meet link failed:",
-        pollErr?.message || pollErr,
+        "create-calendar-event: event created but Google Meet link is still missing after retries",
+        JSON.stringify({ bookingId, eventId, calendarId }),
       );
     }
+  } catch (pollErr) {
+    console.warn(
+      "create-calendar-event: ensureMeetLink failed:",
+      pollErr?.message || pollErr,
+    );
   }
 
   const { error: updErr } = await supabase
