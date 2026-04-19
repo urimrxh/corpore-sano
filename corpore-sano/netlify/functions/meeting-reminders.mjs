@@ -10,11 +10,17 @@ import {
   emailButton,
 } from "./lib/resendEmail.mjs";
 import { sendAdminReminderEmail } from "./lib/adminBookingEmails.mjs";
+import { getActiveAdminEmailsByGender } from "./lib/adminRecipients.mjs";
 
 function normalizeRecipients(value) {
-  return Array.isArray(value)
-    ? value.map((email) => String(email || "").trim()).filter(Boolean)
-    : [];
+  return [
+    ...new Set(
+      (Array.isArray(value) ? value : [value])
+        .flatMap((entry) => String(entry || "").split(","))
+        .map((email) => email.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function getCalendarIdForGender(gender) {
@@ -29,7 +35,7 @@ function getMeetLinkFromEvent(event) {
   return (
     event?.hangoutLink ||
     event?.conferenceData?.entryPoints?.find(
-      (entry) => entry.entryPointType === "video"
+      (entry) => entry.entryPointType === "video",
     )?.uri ||
     null
   );
@@ -50,6 +56,14 @@ function getCalendarClient() {
   });
 
   return google.calendar({ version: "v3", auth });
+}
+
+function getReminderLink(booking) {
+  return booking?.google_meet_link || booking?.google_event_link || "";
+}
+
+function hasMeetLink(booking) {
+  return Boolean(booking?.google_meet_link);
 }
 
 async function readEventLinks(calendarClient, calendarId, eventId) {
@@ -93,7 +107,7 @@ async function ensureMeetLink(calendarClient, calendarId, eventId) {
   } catch (patchErr) {
     console.warn(
       `meeting-reminders: failed to request Meet link for event ${eventId}`,
-      patchErr?.message || patchErr
+      patchErr?.message || patchErr,
     );
   }
 
@@ -117,7 +131,7 @@ async function refreshBookingLinksIfNeeded(supabase, calendarClient, booking) {
     const links = await ensureMeetLink(
       calendarClient,
       calendarId,
-      booking.google_event_id
+      booking.google_event_id,
     );
 
     const google_meet_link = links.google_meet_link || null;
@@ -139,7 +153,7 @@ async function refreshBookingLinksIfNeeded(supabase, calendarClient, booking) {
       if (error) {
         console.error(
           `meeting-reminders: failed to persist refreshed links for booking ${booking.id}`,
-          error.message
+          error.message,
         );
       }
     }
@@ -152,10 +166,43 @@ async function refreshBookingLinksIfNeeded(supabase, calendarClient, booking) {
   } catch (err) {
     console.error(
       `meeting-reminders: failed to refresh links for booking ${booking.id}`,
-      err?.message || err
+      err?.message || err,
     );
     return booking;
   }
+}
+
+async function getAdminRecipients(supabase, booking) {
+  let recipients = normalizeRecipients(booking.admin_recipient_emails);
+
+  if (!recipients.length) {
+    recipients = await getActiveAdminEmailsByGender(supabase, booking.gender);
+  }
+
+  if (!recipients.length) {
+    return [];
+  }
+
+  const currentStored = normalizeRecipients(booking.admin_recipient_emails);
+  const changed =
+    recipients.length !== currentStored.length ||
+    recipients.some((email) => !currentStored.includes(email));
+
+  if (changed) {
+    const { error } = await supabase
+      .from("bookings")
+      .update({ admin_recipient_emails: recipients })
+      .eq("id", booking.id);
+
+    if (error) {
+      console.error(
+        `meeting-reminders: failed to persist admin recipients for booking ${booking.id}`,
+        error.message,
+      );
+    }
+  }
+
+  return recipients;
 }
 
 export default async (req) => {
@@ -172,8 +219,10 @@ export default async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const now = Date.now();
-    const reminderWindowStart = new Date(now + 14 * 60 * 1000).toISOString();
-    const reminderWindowEnd = new Date(now + 16 * 60 * 1000).toISOString();
+
+    // 10-minute reminder window with 1 minute tolerance on each side
+    const reminderWindowStart = new Date(now + 9 * 60 * 1000).toISOString();
+    const reminderWindowEnd = new Date(now + 11 * 60 * 1000).toISOString();
 
     const { data: bookings, error } = await supabase
       .from("bookings")
@@ -215,105 +264,136 @@ export default async (req) => {
         hydratedBooking = await refreshBookingLinksIfNeeded(
           supabase,
           calendarClient,
-          booking
+          booking,
         );
       }
 
       if (shouldSendUserReminder) {
-        const meetLink = hydratedBooking.google_meet_link;
+        const when = formatAppointment(hydratedBooking.slot_start);
+        const reminderLink = getReminderLink(hydratedBooking);
+        const useMeetLink = hasMeetLink(hydratedBooking);
 
-        if (meetLink) {
-          const when = formatAppointment(hydratedBooking.slot_start);
+        const albanianHtml = `
+          <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(hydratedBooking.full_name || "aty")},</p>
+          <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që termini juaj fillon për rreth 10 minuta.</p>
+          <p style="margin:0 0 24px 0;"><strong>Koha:</strong> ${escapeHtml(when)}</p>
+          ${
+            reminderLink
+              ? emailButton(
+                  useMeetLink ? "Hyr në Google Meet" : "Hap eventin në kalendar",
+                  reminderLink,
+                  "#2563eb",
+                )
+              : ""
+          }
+          <p style="margin:0;color:#6b7280;">
+            ${
+              reminderLink
+                ? "Shihemi së shpejti."
+                : "Ju lutemi kontrolloni emailin e konfirmimit ose kalendarin tuaj për linkun e takimit."
+            }
+          </p>
+        `;
 
-          const albanianHtml = `
-            <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(hydratedBooking.full_name || "aty")},</p>
-            <p style="margin:0 0 16px 0;">Kjo është një rikujtesë që termini juaj fillon për rreth 15 minuta.</p>
-            <p style="margin:0 0 24px 0;"><strong>Koha:</strong> ${escapeHtml(when)}</p>
-            ${emailButton("Hyr në Google Meet", meetLink, "#2563eb")}
-            <p style="margin:0;color:#6b7280;">Shihemi së shpejti.</p>
-          `;
+        const englishHtml = `
+          <p style="margin:0 0 16px 0;">Hi ${escapeHtml(hydratedBooking.full_name || "there")},</p>
+          <p style="margin:0 0 16px 0;">This is your appointment reminder. Your meeting starts in about 10 minutes.</p>
+          <p style="margin:0 0 24px 0;"><strong>Time:</strong> ${escapeHtml(when)}</p>
+          ${
+            reminderLink
+              ? emailButton(
+                  useMeetLink ? "Join Google Meet" : "Open calendar event",
+                  reminderLink,
+                  "#111827",
+                )
+              : ""
+          }
+          <p style="margin:0;color:#6b7280;">
+            ${
+              reminderLink
+                ? "We will see you shortly."
+                : "Please check your confirmation email or calendar for the meeting link."
+            }
+          </p>
+        `;
 
-          const englishHtml = `
-            <p style="margin:0 0 16px 0;">Hi ${escapeHtml(hydratedBooking.full_name || "there")},</p>
-            <p style="margin:0 0 16px 0;">This is your appointment reminder. Your meeting starts in about 15 minutes.</p>
-            <p style="margin:0 0 24px 0;"><strong>Time:</strong> ${escapeHtml(when)}</p>
-            ${emailButton("Join Google Meet", meetLink, "#111827")}
-            <p style="margin:0;color:#6b7280;">We will see you shortly.</p>
-          `;
+        const html = renderBilingualEmail({
+          preheader:
+            "Rikujtesë për terminin tuaj që fillon për rreth 10 minuta. Reminder that your appointment starts in about 10 minutes.",
+          title:
+            "Rikujtesë për terminin | Reminder: your appointment starts in about 10 minutes",
+          albanianHtml,
+          englishHtml,
+        });
 
-          const html = renderBilingualEmail({
-            preheader:
-              "Rikujtesë për terminin tuaj që fillon për rreth 15 minuta. Reminder that your appointment starts in about 15 minutes.",
-            title:
-              "Rikujtesë për terminin | Reminder: your appointment starts in about 15 minutes",
-            albanianHtml,
-            englishHtml,
-          });
+        const text = buildBilingualText({
+          albanian: `Përshëndetje ${hydratedBooking.full_name || "aty"},
 
-          const text = buildBilingualText({
-            albanian: `Përshëndetje ${hydratedBooking.full_name || "aty"},
-
-Kjo është një rikujtesë që terminin tuaj fillon për rreth 15 minuta.
+Kjo është një rikujtesë që termini juaj fillon për rreth 10 minuta.
 
 Koha: ${when}
 
-Hyr në Google Meet:
-${meetLink}
+${
+  reminderLink
+    ? `${useMeetLink ? "Hyr në Google Meet" : "Hap eventin në kalendar"}:
+${reminderLink}`
+    : "Ju lutemi kontrolloni emailin e konfirmimit ose kalendarin tuaj për linkun e takimit."
+}
 
 Shihemi së shpejti.`,
-            english: `Hi ${hydratedBooking.full_name || "there"},
+          english: `Hi ${hydratedBooking.full_name || "there"},
 
-This is your appointment reminder. Your meeting starts in about 15 minutes.
+This is your appointment reminder. Your meeting starts in about 10 minutes.
 
 Time: ${when}
 
-Join Google Meet:
-${meetLink}
+${
+  reminderLink
+    ? `${useMeetLink ? "Join Google Meet" : "Open calendar event"}:
+${reminderLink}`
+    : "Please check your confirmation email or calendar for the meeting link."
+}
 
 We will see you shortly.`,
+        });
+
+        try {
+          await sendResendEmail({
+            to: hydratedBooking.email,
+            subject:
+              "Rikujtesë për terminin | Reminder: your appointment starts in about 10 minutes",
+            html,
+            text,
           });
 
-          try {
-            await sendResendEmail({
-              to: hydratedBooking.email,
-              subject:
-                "Rikujtesë për terminin | Reminder: your appointment starts in about 15 minutes",
-              html,
-              text,
-            });
+          const sentAt = new Date().toISOString();
 
-            await supabase
-              .from("bookings")
-              .update({ meeting_reminder_sent_at: new Date().toISOString() })
-              .eq("id", hydratedBooking.id);
-          } catch (emailErr) {
-            console.error(
-              `meeting-reminders: user reminder failed for booking ${hydratedBooking.id}`,
-              emailErr?.message || emailErr
-            );
-          }
-        } else {
-          console.warn(
-            `meeting-reminders: skipped user reminder for booking ${hydratedBooking.id} because no Google Meet link was available`
+          await supabase
+            .from("bookings")
+            .update({
+              meeting_reminder_sent_at: sentAt,
+              meeting_link_sent_at: reminderLink ? sentAt : hydratedBooking.meeting_link_sent_at || null,
+            })
+            .eq("id", hydratedBooking.id);
+
+          console.log(
+            `meeting-reminders: user reminder sent for booking ${hydratedBooking.id} using ${useMeetLink ? "google_meet_link" : reminderLink ? "google_event_link" : "no_link"}`
+          );
+        } catch (emailErr) {
+          console.error(
+            `meeting-reminders: user reminder failed for booking ${hydratedBooking.id}`,
+            emailErr?.message || emailErr,
           );
         }
       }
 
       if (shouldSendAdminReminder) {
-        const recipients = normalizeRecipients(
-          hydratedBooking.admin_recipient_emails
-        );
+        const recipients = await getAdminRecipients(supabase, hydratedBooking);
+        const reminderLink = getReminderLink(hydratedBooking);
 
         if (!recipients.length) {
           console.warn(
-            `meeting-reminders: skipped admin reminder for booking ${hydratedBooking.id} because no admin recipients were stored`
-          );
-          continue;
-        }
-
-        if (!hydratedBooking.google_meet_link) {
-          console.warn(
-            `meeting-reminders: skipped admin reminder for booking ${hydratedBooking.id} because no Google Meet link was available`
+            `meeting-reminders: skipped admin reminder for booking ${hydratedBooking.id} because no admin recipients were available`,
           );
           continue;
         }
@@ -321,17 +401,27 @@ We will see you shortly.`,
         try {
           await sendAdminReminderEmail({
             to: recipients,
-            booking: hydratedBooking,
+            booking: {
+              ...hydratedBooking,
+              google_meet_link:
+                hydratedBooking.google_meet_link || reminderLink || null,
+              google_event_link:
+                hydratedBooking.google_event_link || reminderLink || null,
+            },
           });
 
           await supabase
             .from("bookings")
             .update({ admin_reminder_sent_at: new Date().toISOString() })
             .eq("id", hydratedBooking.id);
+
+          console.log(
+            `meeting-reminders: admin reminder sent for booking ${hydratedBooking.id} to ${recipients.join(", ")}`,
+          );
         } catch (emailErr) {
           console.error(
             `meeting-reminders: admin reminder failed for booking ${hydratedBooking.id}`,
-            emailErr?.message || emailErr
+            emailErr?.message || emailErr,
           );
         }
       }
