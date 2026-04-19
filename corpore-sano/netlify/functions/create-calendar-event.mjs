@@ -43,77 +43,101 @@ function getMeetLinkFromEvent(event) {
   );
 }
 
+function getCalendarIdForGender(gender, calMale, calFemale) {
+  const normalizedGender = String(gender || "").trim().toLowerCase();
+
+  if (normalizedGender === "male") return calMale || "";
+  if (normalizedGender === "female") return calFemale || "";
+  return "";
+}
+
+async function readEventLinks(calendar, calendarId, eventId) {
+  const res = await calendar.events.get({
+    calendarId,
+    eventId,
+    conferenceDataVersion: 1,
+  });
+
+  const event = res?.data || null;
+
+  return {
+    google_meet_link: getMeetLinkFromEvent(event),
+    google_event_link: event?.htmlLink || null,
+    conference_status:
+      event?.conferenceData?.createRequest?.status?.statusCode || null,
+  };
+}
+
 async function waitForMeetLink(
   calendar,
   calendarId,
   eventId,
-  tries = 12,
-  delayMs = 3000,
+  tries = 2,
+  delayMs = 2000,
 ) {
-  let lastEventLink = null;
-  let lastStatus = "timeout";
+  let lastLinks = {
+    google_meet_link: null,
+    google_event_link: null,
+    conference_status: "timeout",
+  };
 
   for (let i = 0; i < tries; i += 1) {
-    const res = await calendar.events.get({
-      calendarId,
-      eventId,
-      conferenceDataVersion: 1,
-    });
-
-    const event = res?.data || null;
-    const status =
-      event?.conferenceData?.createRequest?.status?.statusCode || null;
-    const meetLink = getMeetLinkFromEvent(event);
-    const eventLink = event?.htmlLink || null;
-
-    lastEventLink = eventLink || lastEventLink;
-    lastStatus = status || lastStatus;
+    const links = await readEventLinks(calendar, calendarId, eventId);
+    lastLinks = links;
 
     console.log(
       "create-calendar-event: meet poll",
       JSON.stringify({
         eventId,
         try: i + 1,
-        status: status || null,
-        hasMeetLink: Boolean(meetLink),
+        status: links.conference_status,
+        hasMeetLink: Boolean(links.google_meet_link),
       }),
     );
 
-    if (meetLink && status === "success") {
-      return { meetLink, eventLink, status };
+    if (links.google_meet_link) {
+      return links;
     }
 
-    if (meetLink) {
-      return { meetLink, eventLink, status };
+    if (links.conference_status === "failure") {
+      return links;
     }
 
-    if (status === "failure") {
-      return { meetLink: null, eventLink, status };
+    if (i < tries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
-
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  return { meetLink: null, eventLink: lastEventLink, status: lastStatus };
+  return lastLinks;
 }
 
-async function forceMeetLink(calendar, calendarId, eventId) {
-  try {
-    await calendar.events.patch({
-      calendarId,
-      eventId,
-      conferenceDataVersion: 1,
-      requestBody: {
-        conferenceData: {
-          createRequest: {
-            requestId: randomUUID(),
-            conferenceSolutionKey: {
-              type: "hangoutsMeet",
-            },
+async function patchMeetRequest(calendar, calendarId, eventId) {
+  await calendar.events.patch({
+    calendarId,
+    eventId,
+    conferenceDataVersion: 1,
+    requestBody: {
+      conferenceData: {
+        createRequest: {
+          requestId: randomUUID(),
+          conferenceSolutionKey: {
+            type: "hangoutsMeet",
           },
         },
       },
-    });
+    },
+  });
+}
+
+async function ensureMeetLinkQuick(calendar, calendarId, eventId) {
+  let links = await waitForMeetLink(calendar, calendarId, eventId, 2, 2000);
+
+  if (links.google_meet_link) {
+    return links;
+  }
+
+  try {
+    await patchMeetRequest(calendar, calendarId, eventId);
 
     console.log(
       "create-calendar-event: requested fresh Meet createRequest via patch",
@@ -124,53 +148,30 @@ async function forceMeetLink(calendar, calendarId, eventId) {
       "create-calendar-event: failed to patch Meet onto event:",
       err?.message || err,
     );
+    return links;
   }
 
-  return waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
-}
-
-async function ensureMeetLink(
-  calendar,
-  calendarId,
-  eventId,
-  currentMeetLink,
-  currentEventLink,
-) {
-  if (currentMeetLink) {
-    return {
-      meetLink: currentMeetLink,
-      eventLink: currentEventLink || null,
-    };
-  }
-
-  let waited = await waitForMeetLink(calendar, calendarId, eventId, 12, 3000);
-
-  if (waited.meetLink) {
-    return {
-      meetLink: waited.meetLink,
-      eventLink: waited.eventLink || currentEventLink || null,
-    };
-  }
-
-  waited = await forceMeetLink(calendar, calendarId, eventId);
+  const patchedLinks = await waitForMeetLink(calendar, calendarId, eventId, 2, 2000);
 
   return {
-    meetLink: waited.meetLink || null,
-    eventLink: waited.eventLink || currentEventLink || null,
+    google_meet_link: patchedLinks.google_meet_link || links.google_meet_link,
+    google_event_link: patchedLinks.google_event_link || links.google_event_link,
+    conference_status: patchedLinks.conference_status || links.conference_status,
   };
 }
 
-async function refreshExistingEventLinks(calendar, calendarId, eventId) {
-  const res = await calendar.events.get({
-    calendarId,
-    eventId,
-    conferenceDataVersion: 1,
-  });
+async function persistBookingLinks(supabase, bookingId, values) {
+  const payload = {};
 
-  return {
-    google_meet_link: getMeetLinkFromEvent(res?.data || null),
-    google_event_link: res?.data?.htmlLink || null,
-  };
+  if ("google_event_id" in values) payload.google_event_id = values.google_event_id;
+  if ("google_event_link" in values) payload.google_event_link = values.google_event_link;
+  if ("google_meet_link" in values) payload.google_meet_link = values.google_meet_link;
+
+  const { error } = await supabase.from("bookings").update(payload).eq("id", bookingId);
+
+  if (error) {
+    throw error;
+  }
 }
 
 async function sendVerificationConfirmedEmail(booking) {
@@ -446,13 +447,7 @@ export const handler = async (request) => {
     };
   }
 
-  const normalizedGender = String(booking.gender || "").trim().toLowerCase();
-  const calendarId =
-    normalizedGender === "male"
-      ? calMale
-      : normalizedGender === "female"
-        ? calFemale
-        : "";
+  const calendarId = getCalendarIdForGender(booking.gender, calMale, calFemale);
 
   if (!calendarId) {
     return {
@@ -485,7 +480,7 @@ export const handler = async (request) => {
     let existingEventLink = booking.google_event_link || null;
 
     try {
-      const refreshed = await refreshExistingEventLinks(
+      const refreshed = await readEventLinks(
         calendar,
         calendarId,
         booking.google_event_id,
@@ -495,32 +490,20 @@ export const handler = async (request) => {
       existingEventLink = refreshed.google_event_link || existingEventLink;
 
       if (!existingMeetLink) {
-        const ensured = await ensureMeetLink(
+        const ensured = await ensureMeetLinkQuick(
           calendar,
           calendarId,
           booking.google_event_id,
-          existingMeetLink,
-          existingEventLink,
         );
 
-        existingMeetLink = ensured.meetLink || existingMeetLink;
-        existingEventLink = ensured.eventLink || existingEventLink;
+        existingMeetLink = ensured.google_meet_link || existingMeetLink;
+        existingEventLink = ensured.google_event_link || existingEventLink;
       }
 
-      const { error: refreshErr } = await supabase
-        .from("bookings")
-        .update({
-          google_meet_link: existingMeetLink,
-          google_event_link: existingEventLink,
-        })
-        .eq("id", bookingId);
-
-      if (refreshErr) {
-        console.error(
-          "create-calendar-event: failed to save refreshed existing event links",
-          refreshErr.message,
-        );
-      }
+      await persistBookingLinks(supabase, bookingId, {
+        google_meet_link: existingMeetLink,
+        google_event_link: existingEventLink,
+      });
     } catch (err) {
       console.error(
         "create-calendar-event: failed to refresh existing event links",
@@ -617,8 +600,8 @@ export const handler = async (request) => {
   }
 
   const eventId = insertRes?.data?.id;
-  let meetLink = getMeetLinkFromEvent(insertRes?.data);
-  let eventLink = insertRes?.data?.htmlLink || null;
+  const initialMeetLink = getMeetLinkFromEvent(insertRes?.data);
+  const initialEventLink = insertRes?.data?.htmlLink || null;
 
   if (!eventId) {
     return {
@@ -628,41 +611,13 @@ export const handler = async (request) => {
   }
 
   try {
-    const ensured = await ensureMeetLink(
-      calendar,
-      calendarId,
-      eventId,
-      meetLink,
-      eventLink,
-    );
-
-    meetLink = ensured.meetLink || meetLink;
-    eventLink = ensured.eventLink || eventLink;
-
-    if (!meetLink) {
-      console.warn(
-        "create-calendar-event: event created but Google Meet link is still missing after retries",
-        JSON.stringify({ bookingId, eventId, calendarId }),
-      );
-    }
-  } catch (pollErr) {
-    console.warn(
-      "create-calendar-event: ensureMeetLink failed:",
-      pollErr?.message || pollErr,
-    );
-  }
-
-  const { error: updErr } = await supabase
-    .from("bookings")
-    .update({
+    await persistBookingLinks(supabase, bookingId, {
       google_event_id: eventId,
-      google_meet_link: meetLink,
-      google_event_link: eventLink,
-    })
-    .eq("id", bookingId);
-
-  if (updErr) {
-    console.error("create-calendar-event: Supabase update failed", updErr);
+      google_event_link: initialEventLink,
+      google_meet_link: initialMeetLink,
+    });
+  } catch (updErr) {
+    console.error("create-calendar-event: initial Supabase update failed", updErr);
 
     return {
       statusCode: 500,
@@ -674,11 +629,11 @@ export const handler = async (request) => {
     };
   }
 
-  const enrichedBooking = {
+  let enrichedBooking = {
     ...booking,
     google_event_id: eventId,
-    google_meet_link: meetLink,
-    google_event_link: eventLink,
+    google_event_link: initialEventLink,
+    google_meet_link: initialMeetLink,
   };
 
   try {
@@ -692,14 +647,50 @@ export const handler = async (request) => {
 
   await sendVerificationConfirmedEmailIfNeeded(supabase, enrichedBooking);
 
+  try {
+    if (!initialMeetLink) {
+      const ensured = await ensureMeetLinkQuick(calendar, calendarId, eventId);
+
+      if (
+        ensured.google_meet_link &&
+        ensured.google_meet_link !== enrichedBooking.google_meet_link
+      ) {
+        await persistBookingLinks(supabase, bookingId, {
+          google_meet_link: ensured.google_meet_link,
+          google_event_link:
+            ensured.google_event_link || enrichedBooking.google_event_link,
+        });
+
+        console.log(
+          "create-calendar-event: Meet link obtained after initial save",
+          JSON.stringify({
+            bookingId,
+            eventId,
+            hasMeetLink: true,
+          }),
+        );
+      } else if (!ensured.google_meet_link) {
+        console.warn(
+          "create-calendar-event: event saved and emails sent, but Google Meet link is still missing after quick retries",
+          JSON.stringify({ bookingId, eventId, calendarId }),
+        );
+      }
+    }
+  } catch (meetErr) {
+    console.warn(
+      "create-calendar-event: post-save Meet refresh failed:",
+      meetErr?.message || meetErr,
+    );
+  }
+
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ok: true,
       googleEventId: eventId,
-      googleMeetLink: meetLink,
-      googleEventLink: eventLink,
+      googleMeetLink: initialMeetLink,
+      googleEventLink: initialEventLink,
     }),
   };
 };
