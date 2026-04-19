@@ -106,6 +106,8 @@ export async function sendAdminReminderEmail({ to, booking }) {
     ${
       booking.google_meet_link
         ? emailButton("Hyr në Google Meet", booking.google_meet_link, "#2563eb")
+        : booking.google_event_link
+        ? emailButton("Hap eventin në kalendar", booking.google_event_link, "#2563eb")
         : ""
     }
   `;
@@ -120,6 +122,8 @@ export async function sendAdminReminderEmail({ to, booking }) {
     ${
       booking.google_meet_link
         ? emailButton("Join Google Meet", booking.google_meet_link, "#111827")
+        : booking.google_event_link
+        ? emailButton("Open calendar event", booking.google_event_link, "#111827")
         : ""
     }
   `;
@@ -141,7 +145,7 @@ Emri i plotë: ${booking.full_name || ""}
 Gjinia: ${genderLabelSq(booking.gender)}
 Email i klientit: ${booking.email || ""}
 Termini: ${when}
-${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
+${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : booking.google_event_link ? `Ngjarja në kalendar: ${booking.google_event_link}` : ""}`.trim(),
     english: `Hi,
 
 This is a reminder that an appointment starts in about 15 minutes.
@@ -150,7 +154,7 @@ Full name: ${booking.full_name || ""}
 Gender: ${genderLabelEn(booking.gender)}
 Client email: ${booking.email || ""}
 Appointment: ${when}
-${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ""}`.trim(),
+${booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : booking.google_event_link ? `Calendar event: ${booking.google_event_link}` : ""}`.trim(),
   });
 
   await sendResendEmail({
