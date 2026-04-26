@@ -14,6 +14,43 @@ function isFutureAppointment(slotStart) {
   return Number.isFinite(time) && time > Date.now();
 }
 
+function getCalendarClient() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const redirectUri =
+    process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+    "https://developers.google.com/oauthplayground";
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "Missing Google OAuth env vars: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN",
+    );
+  }
+
+  const auth = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+  auth.setCredentials({
+    refresh_token: refreshToken,
+  });
+
+  return google.calendar({ version: "v3", auth });
+}
+
+function getCalendarIdForGender(gender) {
+  const normalizedGender = String(gender || "").trim().toLowerCase();
+
+  if (normalizedGender === "male") {
+    return process.env.GOOGLE_CALENDAR_MALE_ID || "";
+  }
+
+  if (normalizedGender === "female") {
+    return process.env.GOOGLE_CALENDAR_FEMALE_ID || "";
+  }
+
+  return "";
+}
+
 async function sendClientCancellationEmail(booking) {
   const when = formatAppointment(booking.slot_start);
 
@@ -21,7 +58,7 @@ async function sendClientCancellationEmail(booking) {
     <p style="margin:0 0 16px 0;">Përshëndetje ${escapeHtml(booking.full_name || "aty")},</p>
     <p style="margin:0 0 16px 0;">Termini juaj është anuluar nga administratori.</p>
     <p style="margin:0 0 16px 0;"><strong>Koha e planifikuar:</strong> ${escapeHtml(when)}</p>
-    <p style="margin:0;color:#6b7280;">Nëse deshironi, mund të rezervoni një termin të ri nga faqja.</p>
+    <p style="margin:0;color:#6b7280;">Nëse dëshironi, mund të rezervoni një termin të ri nga faqja.</p>
   `;
 
   const englishHtml = `
@@ -46,7 +83,7 @@ Termini juaj është anuluar nga administratori.
 
 Koha e planifikuar: ${when}
 
-Nëse deshironi, mund të rezervoni një termin të ri nga faqja.`,
+Nëse dëshironi, mund të rezervoni një termin të ri nga faqja.`,
     english: `Hi ${booking.full_name || "there"},
 
 Your appointment has been cancelled by the admin.
@@ -91,10 +128,19 @@ export const handler = async (request) => {
     };
   }
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceKey) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Missing Supabase env vars",
+      }),
+    };
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey);
 
   const { data: booking, error: fetchErr } = await supabase
     .from("bookings")
@@ -112,13 +158,7 @@ export const handler = async (request) => {
   const shouldEmailClient = isFutureAppointment(booking.slot_start);
 
   if (booking.google_event_id) {
-    const normalizedGender = String(booking.gender || "").trim().toLowerCase();
-    const calendarId =
-      normalizedGender === "male"
-        ? process.env.GOOGLE_CALENDAR_MALE_ID
-        : normalizedGender === "female"
-          ? process.env.GOOGLE_CALENDAR_FEMALE_ID
-          : "";
+    const calendarId = getCalendarIdForGender(booking.gender);
 
     if (!calendarId) {
       return {
@@ -129,22 +169,17 @@ export const handler = async (request) => {
       };
     }
 
-    let credentials;
+    let calendar;
     try {
-      credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    } catch {
+      calendar = getCalendarClient();
+    } catch (authErr) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_JSON" }),
+        body: JSON.stringify({
+          error: authErr?.message || "Google OAuth setup failed",
+        }),
       };
     }
-
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ["https://www.googleapis.com/auth/calendar"],
-    });
-
-    const calendar = google.calendar({ version: "v3", auth });
 
     try {
       await calendar.events.delete({
