@@ -7,6 +7,7 @@ import BookingScheduler from "../components/BookMeeting";
 import HeroWaves from "../components/HeroWaves";
 import VideosSection from "../components/VideoSection";
 import HomeLatestPostsSection from "../components/HomeLatestPostsSection";
+import HomeHeroBanner from "../components/home/HomeHeroBanner";
 import Seo, { SITE_URL } from "../components/Seo";
 import { SEO_HOME_DESCRIPTION, SEO_HOME_TITLE } from "../seoCopy";
 
@@ -47,6 +48,7 @@ function Home() {
   return (
     <>
       <Seo title={SEO_HOME_TITLE} description={SEO_HOME_DESCRIPTION} path="/" jsonLd={HOME_JSON_LD} />
+      <HomeHeroBanner />
       <section className="hero">
         <HeroWaves />
 
