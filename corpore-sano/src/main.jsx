@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
 import App from './App.jsx'
 import './style/global.css'
@@ -10,14 +11,16 @@ import { AuthProvider } from './context/AuthContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <I18nProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <SiteContentProvider>
-            <App />
-          </SiteContentProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </I18nProvider>
+    <HelmetProvider>
+      <I18nProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SiteContentProvider>
+              <App />
+            </SiteContentProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </I18nProvider>
+    </HelmetProvider>
   </StrictMode>,
 )

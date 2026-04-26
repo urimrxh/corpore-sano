@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchPublishedPosts } from "../lib/postsApi";
 import PostCard from "../components/PostCard";
 import { useI18n } from "../context/I18nContext";
+import Seo from "../components/Seo";
 
 function PostsPage() {
   const { t } = useI18n();
@@ -26,6 +27,11 @@ function PostsPage() {
 
   return (
     <section className="page-section">
+      <Seo
+        title="Articles and Updates | Corpore Sano"
+        description="Read articles and updates from Corpore Sano on nutrition, health, and wellbeing."
+        path="/posts"
+      />
       <div className="container">
         <h1 className="mb-8 text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
           {t("posts.allPosts")}

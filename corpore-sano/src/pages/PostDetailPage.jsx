@@ -1,7 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fetchPostBySlug } from "../lib/postsApi";
 import { useI18n } from "../context/I18nContext";
+import Seo, { SITE_NAME, resolveAbsoluteUrl } from "../components/Seo";
+
+function buildArticleJsonLd(post) {
+  if (!post?.title || post.description == null || post.description === "") return null;
+  const imageUrl = post.image_url ? resolveAbsoluteUrl(post.image_url) : undefined;
+  const author = post.author
+    ? { "@type": "Person", "name": post.author }
+    : { "@type": "Organization", "name": SITE_NAME };
+  const publisher = {
+    "@type": "Organization",
+    name: SITE_NAME,
+    logo: {
+      "@type": "ImageObject",
+      url: "https://corporesano-ks.com/logo.png",
+    },
+  };
+  const o = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.description,
+    author,
+    publisher,
+  };
+  if (imageUrl) o.image = imageUrl;
+  const pub = post.published_at || post.created_at;
+  if (pub) o.datePublished = pub;
+  if (post.updated_at) o.dateModified = post.updated_at;
+  return o;
+}
 
 function PostDetailPage() {
   const { intlLocaleTag, t } = useI18n();
@@ -34,9 +64,20 @@ function PostDetailPage() {
     };
   }, [slug]);
 
+  const listFallbackSeo = (
+    <Seo
+      title="Articles and Updates | Corpore Sano"
+      description="Read articles and updates from Corpore Sano on nutrition, health, and wellbeing."
+      path={`/posts/${slug}`}
+    />
+  );
+
+  const articleLd = useMemo(() => (post ? buildArticleJsonLd(post) : null), [post]);
+
   if (loading) {
     return (
       <section className="page-section">
+        {listFallbackSeo}
         <div className="container">
           <p>{t("posts.loadingOne")}</p>
         </div>
@@ -47,6 +88,7 @@ function PostDetailPage() {
   if (!post) {
     return (
       <section className="page-section">
+        {listFallbackSeo}
         <div className="container">
           <p>{t("posts.notFound")}</p>
         </div>
@@ -54,8 +96,18 @@ function PostDetailPage() {
     );
   }
 
+  const seoImage = post.image_url ? resolveAbsoluteUrl(post.image_url) : undefined;
+
   return (
     <section className="page-section">
+      <Seo
+        title={`${post.title} | ${SITE_NAME}`}
+        description={post.description}
+        path={`/posts/${slug}`}
+        image={seoImage}
+        type="article"
+        jsonLd={articleLd || undefined}
+      />
       <div className="container max-w-4xl">
         {post.image_url ? (
           <img

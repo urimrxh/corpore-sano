@@ -7,6 +7,23 @@ import BookingScheduler from "../components/BookMeeting";
 import HeroWaves from "../components/HeroWaves";
 import VideosSection from "../components/VideoSection";
 import HomeLatestPostsSection from "../components/HomeLatestPostsSection";
+import Seo, { SITE_URL } from "../components/Seo";
+
+const HOME_JSON_LD = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Corpore Sano",
+    url: SITE_URL,
+    logo: "https://corporesano-ks.com/logo.png",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Corpore Sano",
+    url: SITE_URL,
+  },
+];
 
 function Home() {
   const { content } = useSiteContent();
@@ -28,6 +45,12 @@ function Home() {
 
   return (
     <>
+      <Seo
+        title="Corpore Sano | Nutrition and Health Consultations in Kosovo"
+        description="Book professional online nutrition and health consultations with Corpore Sano in Kosovo."
+        path="/"
+        jsonLd={HOME_JSON_LD}
+      />
       <section className="hero">
         <HeroWaves />
 

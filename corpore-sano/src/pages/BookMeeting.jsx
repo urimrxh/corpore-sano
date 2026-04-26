@@ -2,6 +2,7 @@ import { useSiteContent } from "../context/SiteContentContext";
 import { useI18n } from "../context/I18nContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import BookingScheduler from "../components/BookMeeting";
+import Seo from "../components/Seo";
 
 function BookMeetingPage() {
   const { content } = useSiteContent();
@@ -50,8 +51,14 @@ function BookMeetingPage() {
 
   if (isVerifiedSuccess && verifyBanner) {
     return (
-      <section className="page-section">
-        <div className="container">
+      <>
+        <Seo
+          title="Book an Online Consultation | Corpore Sano"
+          description="Schedule an online nutrition or health consultation with Corpore Sano at a time that suits you."
+          path="/book-meeting"
+        />
+        <section className="page-section">
+          <div className="container">
           <div className="mx-auto max-w-2xl">
             <h1 className="mb-3 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
               {title}
@@ -75,11 +82,18 @@ function BookMeetingPage() {
           </div>
         </div>
       </section>
+      </>
     );
   }
 
   return (
-    <section className="page-section">
+    <>
+      <Seo
+        title="Book an Online Consultation | Corpore Sano"
+        description="Schedule an online nutrition or health consultation with Corpore Sano at a time that suits you."
+        path="/book-meeting"
+      />
+      <section className="page-section">
       <div className="container">
         <h1 className="mb-3 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
           {title}
@@ -113,6 +127,7 @@ function BookMeetingPage() {
         <BookingScheduler />
       </div>
     </section>
+    </>
   );
 }
 
