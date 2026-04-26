@@ -14,6 +14,49 @@ export function normalizeCtaUrl(url) {
   return `https://${t}`;
 }
 
+const BANNER_HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+/**
+ * Valid banner text colour for storage (hex only). Empty string = use theme CSS.
+ * @param {string|null|undefined} value
+ * @returns {string}
+ */
+export function sanitizeHeroBannerColor(value) {
+  const t = (value || "").trim();
+  if (!t) return "";
+  return BANNER_HEX_COLOR.test(t) ? t : "";
+}
+
+/**
+ * Inline style for title/subtitle when a valid hex colour is set; otherwise undefined (keep CSS defaults).
+ * @param {string|null|undefined} value
+ * @returns {{ color: string }|undefined}
+ */
+export function bannerTextColorStyle(value) {
+  const c = sanitizeHeroBannerColor(value);
+  if (!c) return undefined;
+  return { color: c };
+}
+
+/**
+ * Value for <input type="color"> when the stored value may be empty or 3-digit hex.
+ * @param {string|null|undefined} stored
+ * @returns {string} 7-char #rrggbb
+ */
+export function heroBannerColorPickerValue(stored) {
+  const t = (stored || "").trim();
+  if (BANNER_HEX_COLOR.test(t)) {
+    if (t.length === 4) {
+      const r = t[1];
+      const g = t[2];
+      const b = t[3];
+      return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+    }
+    return t.toLowerCase();
+  }
+  return "#ffffff";
+}
+
 /**
  * @returns {Promise<{ data: object[], error: Error|null }>}
  */
@@ -89,6 +132,8 @@ export async function createHeroBanner(payload) {
     subtitle_en: (payload.subtitle_en || "").trim(),
     cta_label_en: (payload.cta_label_en || "").trim(),
     cta_url: normalizeCtaUrl(payload.cta_url),
+    title_color: sanitizeHeroBannerColor(payload.title_color),
+    subtitle_color: sanitizeHeroBannerColor(payload.subtitle_color),
   };
   const { data, error } = await supabase.from("hero_banners").insert(row).select().single();
   return { data, error };
@@ -112,6 +157,8 @@ export async function updateHeroBanner(id, payload) {
     subtitle_en: (payload.subtitle_en || "").trim(),
     cta_label_en: (payload.cta_label_en || "").trim(),
     cta_url: normalizeCtaUrl(payload.cta_url),
+    title_color: sanitizeHeroBannerColor(payload.title_color),
+    subtitle_color: sanitizeHeroBannerColor(payload.subtitle_color),
   };
   const { data, error } = await supabase.from("hero_banners").update(row).eq("id", id).select().single();
   return { data, error };
