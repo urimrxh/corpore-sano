@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { fetchPostBySlug } from "../lib/postsApi";
 import { useI18n } from "../context/I18nContext";
 import Seo, { SITE_NAME, resolveAbsoluteUrl } from "../components/Seo";
+import { SEO_POSTS_DESCRIPTION, SEO_POSTS_TITLE } from "../seoCopy";
 
 function buildArticleJsonLd(post) {
   if (!post?.title || post.description == null || post.description === "") return null;
@@ -65,11 +66,7 @@ function PostDetailPage() {
   }, [slug]);
 
   const listFallbackSeo = (
-    <Seo
-      title="Articles and Updates | Corpore Sano"
-      description="Read articles and updates from Corpore Sano on nutrition, health, and wellbeing."
-      path={`/posts/${slug}`}
-    />
+    <Seo title={SEO_POSTS_TITLE} description={SEO_POSTS_DESCRIPTION} path={`/posts/${slug}`} />
   );
 
   const articleLd = useMemo(() => (post ? buildArticleJsonLd(post) : null), [post]);

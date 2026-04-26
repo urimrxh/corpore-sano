@@ -9,6 +9,7 @@ import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
 import { fetchCurrentAdminProfile } from "../lib/adminsApi";
 import Seo from "../components/Seo";
+import { SEO_ADMIN_DESCRIPTION, SEO_ADMIN_TITLE } from "../seoCopy";
 import "../style/admin.css";
 
 const PANEL_SWATCH_BY_VALUE = {
@@ -174,12 +175,7 @@ function AdminLogin() {
 
   return (
     <>
-      <Seo
-        title="Admin | Corpore Sano"
-        description="Corpore Sano admin area."
-        path={location.pathname}
-        noindex
-      />
+      <Seo title={SEO_ADMIN_TITLE} description={SEO_ADMIN_DESCRIPTION} path={location.pathname} noindex />
       <section className="page-section">
       <div className="container admin-page">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">

@@ -3,6 +3,7 @@ import { useSiteContent } from "../context/SiteContentContext";
 import defaultContactBg from "../assets/contact-background-image.png";
 import "../style/contact.css";
 import Seo from "../components/Seo";
+import { SEO_CONTACT_DESCRIPTION, SEO_CONTACT_TITLE } from "../seoCopy";
 
 function Contact() {
   const { content } = useSiteContent();
@@ -12,11 +13,7 @@ function Contact() {
 
   return (
     <>
-      <Seo
-        title="Contact Corpore Sano | Nutrition and Health Consultations"
-        description="Contact Corpore Sano for questions about online consultations, nutrition support, and health-related services."
-        path="/contact"
-      />
+      <Seo title={SEO_CONTACT_TITLE} description={SEO_CONTACT_DESCRIPTION} path="/contact" />
       <section
         className="contact-page"
         style={{ backgroundImage: `url(${bg})` }}
