@@ -229,6 +229,14 @@
   font-weight: 700;
 }
 
+/* Mobile: hide prev/next controls; swipe, autoplay, and pagination stay active */
+@media (max-width: 767px) {
+  .home-hero-banner .swiper-button-prev,
+  .home-hero-banner .swiper-button-next {
+    display: none;
+  }
+}
+
 /* Desktop: subtler arrows than mobile/tablet */
 @media (min-width: 1024px) {
   .home-hero-banner .swiper-button-prev,
