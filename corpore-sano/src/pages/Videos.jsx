@@ -5,6 +5,7 @@ import { getEmbedUrl } from "../script/videoHelpers";
 import VideoSlide from "../components/VideoSlide";
 import "../style/videoSwiper.css";
 import Seo from "../components/Seo";
+import { SEO_VIDEOS_DESCRIPTION, SEO_VIDEOS_TITLE } from "../seoCopy";
 
 function VideosPage() {
   const { content } = useSiteContent();
@@ -20,11 +21,7 @@ function VideosPage() {
   if (!videos.length) {
     return (
       <section className="container py-10 md:py-14">
-        <Seo
-          title="Health and Nutrition Videos | Corpore Sano"
-          description="Watch educational videos from Corpore Sano on nutrition, health, and wellbeing."
-          path="/videos"
-        />
+        <Seo title={SEO_VIDEOS_TITLE} description={SEO_VIDEOS_DESCRIPTION} path="/videos" />
         <p className="text-[#103152] dark:text-[#e8ecf1]">{t("videos.empty")}</p>
       </section>
     );
@@ -32,11 +29,7 @@ function VideosPage() {
 
   return (
     <section className="container py-10 md:py-14">
-      <Seo
-        title="Health and Nutrition Videos | Corpore Sano"
-        description="Watch educational videos from Corpore Sano on nutrition, health, and wellbeing."
-        path="/videos"
-      />
+      <Seo title={SEO_VIDEOS_TITLE} description={SEO_VIDEOS_DESCRIPTION} path="/videos" />
       <h1 className="text-[#103152] dark:text-[#e8ecf1] text-2xl md:text-3xl font-semibold mb-6">
         {title}
       </h1>

@@ -8,6 +8,7 @@ import HeroWaves from "../components/HeroWaves";
 import VideosSection from "../components/VideoSection";
 import HomeLatestPostsSection from "../components/HomeLatestPostsSection";
 import Seo, { SITE_URL } from "../components/Seo";
+import { SEO_HOME_DESCRIPTION, SEO_HOME_TITLE } from "../seoCopy";
 
 const HOME_JSON_LD = [
   {
@@ -45,12 +46,7 @@ function Home() {
 
   return (
     <>
-      <Seo
-        title="Corpore Sano | Nutrition and Health Consultations in Kosovo"
-        description="Book professional online nutrition and health consultations with Corpore Sano in Kosovo."
-        path="/"
-        jsonLd={HOME_JSON_LD}
-      />
+      <Seo title={SEO_HOME_TITLE} description={SEO_HOME_DESCRIPTION} path="/" jsonLd={HOME_JSON_LD} />
       <section className="hero">
         <HeroWaves />
 

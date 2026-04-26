@@ -3,6 +3,7 @@ import { fetchPublishedPosts } from "../lib/postsApi";
 import PostCard from "../components/PostCard";
 import { useI18n } from "../context/I18nContext";
 import Seo from "../components/Seo";
+import { SEO_POSTS_DESCRIPTION, SEO_POSTS_TITLE } from "../seoCopy";
 
 function PostsPage() {
   const { t } = useI18n();
@@ -27,11 +28,7 @@ function PostsPage() {
 
   return (
     <section className="page-section">
-      <Seo
-        title="Articles and Updates | Corpore Sano"
-        description="Read articles and updates from Corpore Sano on nutrition, health, and wellbeing."
-        path="/posts"
-      />
+      <Seo title={SEO_POSTS_TITLE} description={SEO_POSTS_DESCRIPTION} path="/posts" />
       <div className="container">
         <h1 className="mb-8 text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
           {t("posts.allPosts")}

@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { adminT } from "../lib/adminUi";
 import Seo from "../components/Seo";
+import { SEO_ADMIN_DESCRIPTION, SEO_ADMIN_TITLE } from "../seoCopy";
 import "../style/admin.css";
 function AdminSignIn() {
   const { session, loading, signIn, authReady } = useAuth();
@@ -17,12 +18,7 @@ function AdminSignIn() {
   if (!authReady) {
     return (
       <section className="page-section">
-        <Seo
-          title="Admin | Corpore Sano"
-          description="Corpore Sano admin area."
-          path="/admin/sign-in"
-          noindex
-        />
+        <Seo title={SEO_ADMIN_TITLE} description={SEO_ADMIN_DESCRIPTION} path="/admin/sign-in" noindex />
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
             {adminT("adminSignIn.notConfigured")}
@@ -50,12 +46,7 @@ function AdminSignIn() {
 
   return (
     <section className="page-section">
-      <Seo
-        title="Admin | Corpore Sano"
-        description="Corpore Sano admin area."
-        path="/admin/sign-in"
-        noindex
-      />
+      <Seo title={SEO_ADMIN_TITLE} description={SEO_ADMIN_DESCRIPTION} path="/admin/sign-in" noindex />
       <div className="container admin-page max-w-md">
         <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
           {adminT("adminSignIn.title")}
