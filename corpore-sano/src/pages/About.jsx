@@ -31,6 +31,10 @@ function About() {
           body={section.body}
           imageLeft={section.imageLeft}
           textPanelTheme={section.textPanelTheme}
+          buttonLabel={section.buttonLabel}
+          buttonUrl={section.buttonUrl}
+          sectionUrl={section.sectionUrl}
+          isSectionClickable={section.isSectionClickable}
         />
       ))}
     </>

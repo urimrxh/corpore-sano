@@ -693,6 +693,107 @@ function AdminLogin() {
                   />
                 </div>
 
+                <div className="admin-field">
+                  <label htmlFor={`a-btn-l-${sec.id}`}>
+                    {adminT("adminLogin.aboutSectionButtonLabel")}
+                  </label>
+                  <input
+                    id={`a-btn-l-${sec.id}`}
+                    type="text"
+                    value={sec.buttonLabel ?? ""}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        about: {
+                          ...d.about,
+                          sections: d.about.sections.map((s, i) =>
+                            i === index
+                              ? { ...s, buttonLabel: e.target.value }
+                              : s,
+                          ),
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="admin-field">
+                  <label htmlFor={`a-btn-u-${sec.id}`}>
+                    {adminT("adminLogin.aboutSectionButtonUrl")}
+                  </label>
+                  <input
+                    id={`a-btn-u-${sec.id}`}
+                    type="text"
+                    value={sec.buttonUrl ?? ""}
+                    placeholder="/book-meeting or https://…"
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        about: {
+                          ...d.about,
+                          sections: d.about.sections.map((s, i) =>
+                            i === index
+                              ? { ...s, buttonUrl: e.target.value }
+                              : s,
+                          ),
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="admin-field">
+                  <label htmlFor={`a-sec-u-${sec.id}`}>
+                    {adminT("adminLogin.aboutSectionWholeUrl")}
+                  </label>
+                  <input
+                    id={`a-sec-u-${sec.id}`}
+                    type="text"
+                    value={sec.sectionUrl ?? ""}
+                    placeholder="/posts/example or https://…"
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        about: {
+                          ...d.about,
+                          sections: d.about.sections.map((s, i) =>
+                            i === index
+                              ? { ...s, sectionUrl: e.target.value }
+                              : s,
+                          ),
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="admin-field admin-field--inline">
+                  <input
+                    type="checkbox"
+                    id={`a-sec-hit-${sec.id}`}
+                    checked={Boolean(sec.isSectionClickable)}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        about: {
+                          ...d.about,
+                          sections: d.about.sections.map((s, i) =>
+                            i === index
+                              ? { ...s, isSectionClickable: e.target.checked }
+                              : s,
+                          ),
+                        },
+                      }))
+                    }
+                  />
+                  <label htmlFor={`a-sec-hit-${sec.id}`}>
+                    {adminT("adminLogin.aboutSectionClickable")}
+                  </label>
+                </div>
+                <p className="admin-hint mb-2">
+                  {adminT("adminLogin.aboutSectionClickableHint")}
+                </p>
+
                 <button
                   type="button"
                   className="admin-btn-danger rounded-md px-3 py-1.5 text-sm font-semibold"
@@ -729,6 +830,10 @@ function AdminLogin() {
                         imageAlt: "",
                         title: "",
                         body: "",
+                        buttonLabel: "",
+                        buttonUrl: "",
+                        sectionUrl: "",
+                        isSectionClickable: false,
                       },
                     ],
                   },
@@ -1275,7 +1380,7 @@ function AdminLogin() {
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
               {adminT("adminLogin.heroBannersHint")}
             </p>
-            <AdminHeroBannersTab />
+            <AdminHeroBannersTab editingLocale={adminEditLocale} />
           </div>
         )}
 
