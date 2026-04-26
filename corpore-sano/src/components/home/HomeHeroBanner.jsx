@@ -118,9 +118,17 @@ export default function HomeHeroBanner() {
               <SwiperSlide key={banner.id} className="home-hero-banner__slide">
                 <div className="home-hero-banner__media">
                   <img
+                    className="home-hero-banner__image-bg"
+                    src={banner.image_url}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <img
+                    className="home-hero-banner__image"
                     src={banner.image_url}
                     alt={title}
-                    className="home-hero-banner__img"
                     loading="lazy"
                     decoding="async"
                   />
