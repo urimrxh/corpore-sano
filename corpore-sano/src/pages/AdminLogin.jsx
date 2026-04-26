@@ -7,6 +7,7 @@ import AdminBookingsTab from "../components/AdminBookingsTab";
 import AdminAvailabilitySettings from "../components/AdminAvailabilitySettings";
 import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
+import AdminHeroBannersTab from "../components/AdminHeroBannersTab";
 import { fetchCurrentAdminProfile } from "../lib/adminsApi";
 import Seo from "../components/Seo";
 import { SEO_ADMIN_DESCRIPTION, SEO_ADMIN_TITLE } from "../seoCopy";
@@ -75,6 +76,7 @@ function AdminLogin() {
     () => [
       { id: "global", label: adminT("adminLogin.tabs.global") },
       { id: "home", label: adminT("adminLogin.tabs.home") },
+      { id: "heroBanners", label: adminT("adminLogin.tabs.heroBanners") },
       { id: "contact", label: adminT("adminLogin.tabs.contact") },
       { id: "about", label: adminT("adminLogin.tabs.about") },
       { id: "videos", label: adminT("adminLogin.tabs.videos") },
@@ -112,7 +114,7 @@ function AdminLogin() {
   const [savedFlash, setSavedFlash] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
 
-  const isContentTab = !["bookings", "posts", "postTags"].includes(tab);
+  const isContentTab = !["bookings", "posts", "postTags", "heroBanners"].includes(tab);
   const adminEmail = user?.email ?? "";
 
   useEffect(() => {
@@ -1265,6 +1267,15 @@ function AdminLogin() {
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {tab === "heroBanners" && (
+          <div>
+            <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+              {adminT("adminLogin.heroBannersHint")}
+            </p>
+            <AdminHeroBannersTab />
           </div>
         )}
 

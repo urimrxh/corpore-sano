@@ -1,0 +1,199 @@
+/* Swiper hero — scoped via wrapper */
+.home-hero-banner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.home-hero-banner .container {
+  padding-top: 1rem;
+  padding-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .home-hero-banner .container {
+    padding-top: 1.25rem;
+  }
+}
+
+.home-hero-banner__swiper {
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow:
+    0 4px 24px rgba(16, 49, 82, 0.08),
+    0 1px 3px rgba(16, 49, 82, 0.06);
+}
+
+.dark .home-hero-banner__swiper {
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.home-hero-banner__slide {
+  position: relative;
+  min-height: min(52vw, 320px);
+  max-height: 420px;
+}
+
+@media (min-width: 768px) {
+  .home-hero-banner__slide {
+    min-height: 340px;
+    max-height: 440px;
+  }
+}
+
+.home-hero-banner__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-hero-banner__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(16, 49, 82, 0.82) 0%,
+    rgba(16, 49, 82, 0.45) 42%,
+    rgba(33, 140, 119, 0.35) 100%
+  );
+}
+
+.dark .home-hero-banner__overlay {
+  background: linear-gradient(
+    105deg,
+    rgba(13, 18, 24, 0.88) 0%,
+    rgba(13, 18, 24, 0.55) 45%,
+    rgba(22, 29, 39, 0.5) 100%
+  );
+}
+
+.home-hero-banner__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: min(52vw, 320px);
+  max-height: 440px;
+  padding: 1.75rem 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .home-hero-banner__inner {
+    min-height: 340px;
+    padding: 2.25rem 2.5rem;
+  }
+}
+
+.home-hero-banner__title {
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  max-width: 36rem;
+}
+
+.home-hero-banner__subtitle {
+  margin-top: 0.65rem;
+  font-size: clamp(0.9rem, 2.2vw, 1.05rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  max-width: 32rem;
+}
+
+/* Primary CTA — matches site buttons (e.g. ballinë / «Konsultë falas» flow: teal + mint in dark) */
+.home-hero-banner__cta {
+  margin-top: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.35rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  background: #218c77;
+  color: #fff;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow:
+    0 2px 12px rgba(16, 49, 82, 0.38),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.home-hero-banner__cta:hover {
+  background: #1b7361;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 16px rgba(16, 49, 82, 0.42),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.home-hero-banner__cta:focus-visible {
+  outline: 2px solid rgba(232, 236, 241, 0.95);
+  outline-offset: 3px;
+}
+
+.dark .home-hero-banner__cta {
+  background: #3aa57d;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.dark .home-hero-banner__cta:hover {
+  background: #318c6b;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Swiper theme */
+.home-hero-banner .swiper-pagination-bullet {
+  background: #fff;
+  opacity: 0.55;
+}
+
+.home-hero-banner .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #3aa57d;
+}
+
+.home-hero-banner .swiper-button-prev,
+.home-hero-banner .swiper-button-next {
+  color: #fff;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.home-hero-banner .swiper-button-prev::after,
+.home-hero-banner .swiper-button-next::after {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+@media (max-width: 576px) {
+  .home-hero-banner .swiper-button-prev,
+  .home-hero-banner .swiper-button-next {
+    display: none;
+  }
+}
