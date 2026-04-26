@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useSiteContent } from "../context/SiteContentContext";
 import { useAuth } from "../context/AuthContext";
 import { adminT } from "../lib/adminUi";
@@ -7,6 +8,7 @@ import AdminAvailabilitySettings from "../components/AdminAvailabilitySettings";
 import AdminPostsTab from "../components/AdminPostsTab";
 import AdminPostTagsTab from "../components/AdminPostTagsTab";
 import { fetchCurrentAdminProfile } from "../lib/adminsApi";
+import Seo from "../components/Seo";
 import "../style/admin.css";
 
 const PANEL_SWATCH_BY_VALUE = {
@@ -48,6 +50,7 @@ function writeStoredAdminEditLocale(/** @type {"sq"|"en"} */ v) {
 }
 
 function AdminLogin() {
+  const location = useLocation();
   const { signOut, user } = useAuth();
   const {
     siteBilingualEnabled,
@@ -170,7 +173,14 @@ function AdminLogin() {
   }
 
   return (
-    <section className="page-section">
+    <>
+      <Seo
+        title="Admin | Corpore Sano"
+        description="Corpore Sano admin area."
+        path={location.pathname}
+        noindex
+      />
+      <section className="page-section">
       <div className="container admin-page">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <h1 className="mb-0 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1] md:text-[32px]">
@@ -1310,6 +1320,7 @@ function AdminLogin() {
         )}
       </div>
     </section>
+    </>
   );
 }
 

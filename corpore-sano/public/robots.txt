@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Admin-only prefixes; public routes (/book-meeting, /posts, /videos, /contact, etc.) stay allowed.
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-login
+Disallow: /admin-sign-in
+Disallow: /admin-reset-password
+Disallow: /admin-forgot-password
+
+Sitemap: https://corporesano-ks.com/sitemap.xml

@@ -1,5 +1,6 @@
 import AboutSplitSection from "../components/AboutSplitSection";
 import { useSiteContent } from "../context/SiteContentContext";
+import Seo from "../components/Seo";
 
 function About() {
   const { content } = useSiteContent();
@@ -7,6 +8,11 @@ function About() {
 
   return (
     <>
+      <Seo
+        title="About Corpore Sano | Health and Nutrition Support in Kosovo"
+        description="Learn more about Corpore Sano and its professional approach to nutrition, health education, and client support."
+        path="/about"
+      />
       <section className="page-section">
         <div className="container">
           <h1 className="mb-3 text-center text-[28px] font-semibold leading-tight text-[#103152] dark:text-[#e8ecf1] md:text-[36px]">

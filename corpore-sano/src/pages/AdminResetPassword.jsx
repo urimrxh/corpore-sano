@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { adminT } from "../lib/adminUi";
+import Seo from "../components/Seo";
 import "../style/admin.css";
 
 function AdminResetPassword() {
@@ -31,6 +32,12 @@ function AdminResetPassword() {
   if (!authReady) {
     return (
       <section className="page-section">
+        <Seo
+          title="Admin | Corpore Sano"
+          description="Corpore Sano admin area."
+          path="/admin/reset-password"
+          noindex
+        />
         <div className="container max-w-md py-16">
           <p className="text-[#4d515c] dark:text-[#b8c4d0]">
             {adminT("adminReset.notConfigured")}
@@ -64,6 +71,12 @@ function AdminResetPassword() {
 
   return (
     <section className="page-section">
+      <Seo
+        title="Admin | Corpore Sano"
+        description="Corpore Sano admin area."
+        path="/admin/reset-password"
+        noindex
+      />
       <div className="container admin-page max-w-md">
         <h1 className="mb-2 text-[28px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
           {adminT("adminReset.title")}

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { fetchPostsByTagSlug } from "../lib/postsApi";
 import PostCard from "../components/PostCard";
 import { useI18n } from "../context/I18nContext";
+import Seo, { SITE_NAME } from "../components/Seo";
 
 function PostsByTagPage() {
   const { t } = useI18n();
@@ -28,8 +29,15 @@ function PostsByTagPage() {
     };
   }, [slug]);
 
+  const tagTitle = tag?.name ? `${tag.name} | ${SITE_NAME}` : `Articles and Updates | ${SITE_NAME}`;
+
   return (
     <section className="page-section">
+      <Seo
+        title={tagTitle}
+        description="Read articles and updates from Corpore Sano on nutrition, health, and wellbeing."
+        path={`/posts/tag/${slug}`}
+      />
       <div className="container">
         <h1 className="mb-8 text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
           {tag?.name || t("posts.fallbackTagTitle")}
