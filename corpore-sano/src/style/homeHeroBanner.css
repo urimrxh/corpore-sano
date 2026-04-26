@@ -117,7 +117,7 @@
 
 @media (min-width: 768px) {
   .home-hero-banner__inner {
-    padding: 2rem 2.5rem 3rem;
+    padding: 2rem 6rem 3rem;
   }
 }
 
@@ -211,7 +211,7 @@
   background: #3aa57d;
 }
 
-/* Navigation — compact, vertically centred */
+/* Navigation — compact, vertically centred (mobile / tablet base) */
 .home-hero-banner .swiper-button-prev,
 .home-hero-banner .swiper-button-next {
   color: #fff;
@@ -229,15 +229,16 @@
   font-weight: 700;
 }
 
-@media (min-width: 768px) {
+/* Desktop: subtler arrows than mobile/tablet */
+@media (min-width: 1024px) {
   .home-hero-banner .swiper-button-prev,
   .home-hero-banner .swiper-button-next {
-    width: 34px;
-    height: 34px;
+    width: 26px;
+    height: 26px;
   }
 
   .home-hero-banner .swiper-button-prev::after,
   .home-hero-banner .swiper-button-next::after {
-    font-size: 15px;
+    font-size: 10px;
   }
 }

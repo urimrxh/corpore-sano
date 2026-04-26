@@ -5,8 +5,10 @@ import {
   deleteHeroBanner,
   getHeroBannersAdmin,
   HERO_BANNERS_BUCKET,
+  heroBannerColorPickerValue,
   normalizeCtaUrl,
   removeHeroBannerStorageObject,
+  sanitizeHeroBannerColor,
   updateHeroBanner,
   uploadHeroBannerImage,
 } from "../lib/heroBannersApi";
@@ -23,6 +25,8 @@ const emptyForm = {
   is_active: true,
   image_url: "",
   image_path: "",
+  title_color: "",
+  subtitle_color: "",
 };
 
 function AdminHeroBannersTab({ editingLocale = "sq" }) {
@@ -78,6 +82,8 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
       is_active: row.is_active !== false,
       image_url: row.image_url || "",
       image_path: row.image_path || "",
+      title_color: row.title_color || "",
+      subtitle_color: row.subtitle_color || "",
     });
     setImageFile(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -101,6 +107,16 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
     const urlNorm = normalizeCtaUrl(form.cta_url);
     if (hasLabel && !urlNorm) {
       window.alert(adminT("adminHeroBanners.ctaUrlMissing"));
+      return;
+    }
+
+    const titleColorTrim = (form.title_color || "").trim();
+    const subtitleColorTrim = (form.subtitle_color || "").trim();
+    if (
+      (titleColorTrim && !sanitizeHeroBannerColor(form.title_color)) ||
+      (subtitleColorTrim && !sanitizeHeroBannerColor(form.subtitle_color))
+    ) {
+      window.alert(adminT("adminHeroBanners.colorInvalid"));
       return;
     }
 
@@ -138,6 +154,8 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
         image_url,
         image_path,
         cta_url: urlNorm,
+        title_color: sanitizeHeroBannerColor(form.title_color),
+        subtitle_color: sanitizeHeroBannerColor(form.subtitle_color),
       };
 
       if (editingId) {
@@ -252,6 +270,77 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
             rows={3}
             className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
           />
+        </div>
+
+        <div className="admin-field">
+          <label htmlFor="hb-title-color">{adminT("adminHeroBanners.titleColor")}</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="hb-title-color"
+              type="text"
+              name="title_color"
+              value={form.title_color}
+              onChange={handleChange}
+              placeholder="#ffffff"
+              autoComplete="off"
+              className="min-w-[8rem] flex-1 rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
+            />
+            <input
+              type="color"
+              aria-label={adminT("adminHeroBanners.titleColorPicker")}
+              value={heroBannerColorPickerValue(form.title_color)}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  title_color: e.target.value,
+                }))
+              }
+              className="h-9 w-14 cursor-pointer rounded border border-[#e1e5ec] bg-white p-0 dark:border-[#2a3441]"
+            />
+            <button
+              type="button"
+              className="admin-btn-secondary whitespace-nowrap px-3 py-1.5 text-sm"
+              onClick={() => setForm((p) => ({ ...p, title_color: "" }))}
+            >
+              {adminT("adminHeroBanners.useDefaultColor")}
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-[#4d515c] dark:text-[#8ea0b5]">{adminT("adminHeroBanners.colorHint")}</p>
+        </div>
+
+        <div className="admin-field">
+          <label htmlFor="hb-subtitle-color">{adminT("adminHeroBanners.subtitleColor")}</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="hb-subtitle-color"
+              type="text"
+              name="subtitle_color"
+              value={form.subtitle_color}
+              onChange={handleChange}
+              placeholder="#ffffff"
+              autoComplete="off"
+              className="min-w-[8rem] flex-1 rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
+            />
+            <input
+              type="color"
+              aria-label={adminT("adminHeroBanners.subtitleColorPicker")}
+              value={heroBannerColorPickerValue(form.subtitle_color)}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  subtitle_color: e.target.value,
+                }))
+              }
+              className="h-9 w-14 cursor-pointer rounded border border-[#e1e5ec] bg-white p-0 dark:border-[#2a3441]"
+            />
+            <button
+              type="button"
+              className="admin-btn-secondary whitespace-nowrap px-3 py-1.5 text-sm"
+              onClick={() => setForm((p) => ({ ...p, subtitle_color: "" }))}
+            >
+              {adminT("adminHeroBanners.useDefaultColor")}
+            </button>
+          </div>
         </div>
 
         <div className="admin-field">

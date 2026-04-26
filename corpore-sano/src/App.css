@@ -71,9 +71,8 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* Space for fixed header; --site-header-height is set by Navbar (ResizeObserver) */
   --main-pad-top: calc(var(--site-header-height, 64px) + 12px);
-  padding-top: var(--main-pad-top);
+  padding-top: 74px;
 }
 
 @media (min-width: 768px) {

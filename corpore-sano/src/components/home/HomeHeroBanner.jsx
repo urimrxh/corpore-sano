@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import { useI18n } from "../../context/I18nContext";
-import { getActiveHeroBanners, normalizeCtaUrl } from "../../lib/heroBannersApi";
+import { bannerTextColorStyle, getActiveHeroBanners, normalizeCtaUrl } from "../../lib/heroBannersApi";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
@@ -103,7 +103,7 @@ export default function HomeHeroBanner() {
           loop={useLoop}
           speed={650}
           autoplay={{
-            delay: 2200,
+            delay: 3300,
             disableOnInteraction: false,
             pauseOnMouseEnter: true,
           }}
@@ -112,6 +112,8 @@ export default function HomeHeroBanner() {
         >
           {slides.map((banner) => {
             const { title, subtitle, ctaLabel, ctaUrl, showCta } = bannerTexts(banner, locale);
+            const titleStyle = bannerTextColorStyle(banner.title_color);
+            const subtitleStyle = bannerTextColorStyle(banner.subtitle_color);
             return (
               <SwiperSlide key={banner.id} className="home-hero-banner__slide">
                 <div className="home-hero-banner__media">
@@ -124,8 +126,14 @@ export default function HomeHeroBanner() {
                   />
                   <div className="home-hero-banner__overlay" aria-hidden />
                   <div className="home-hero-banner__inner">
-                    <h2 className="home-hero-banner__title">{title}</h2>
-                    {subtitle ? <p className="home-hero-banner__subtitle">{subtitle}</p> : null}
+                    <h2 className="home-hero-banner__title" style={titleStyle}>
+                      {title}
+                    </h2>
+                    {subtitle ? (
+                      <p className="home-hero-banner__subtitle" style={subtitleStyle}>
+                        {subtitle}
+                      </p>
+                    ) : null}
                     {showCta ? (
                       <HeroCta href={ctaUrl} className="home-hero-banner__cta">
                         {ctaLabel}
