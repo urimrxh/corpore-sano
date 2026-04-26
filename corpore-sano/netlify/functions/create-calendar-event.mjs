@@ -51,6 +51,29 @@ function getCalendarIdForGender(gender, calMale, calFemale) {
   return "";
 }
 
+function getCalendarClient() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const redirectUri =
+    process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+    "https://developers.google.com/oauthplayground";
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "Missing Google OAuth env vars: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN",
+    );
+  }
+
+  const auth = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+  auth.setCredentials({
+    refresh_token: refreshToken,
+  });
+
+  return google.calendar({ version: "v3", auth });
+}
+
 async function readEventLinks(calendar, calendarId, eventId) {
   const res = await calendar.events.get({
     calendarId,
@@ -151,7 +174,13 @@ async function ensureMeetLinkQuick(calendar, calendarId, eventId) {
     return links;
   }
 
-  const patchedLinks = await waitForMeetLink(calendar, calendarId, eventId, 2, 2000);
+  const patchedLinks = await waitForMeetLink(
+    calendar,
+    calendarId,
+    eventId,
+    2,
+    2000,
+  );
 
   return {
     google_meet_link: patchedLinks.google_meet_link || links.google_meet_link,
@@ -163,11 +192,22 @@ async function ensureMeetLinkQuick(calendar, calendarId, eventId) {
 async function persistBookingLinks(supabase, bookingId, values) {
   const payload = {};
 
-  if ("google_event_id" in values) payload.google_event_id = values.google_event_id;
-  if ("google_event_link" in values) payload.google_event_link = values.google_event_link;
-  if ("google_meet_link" in values) payload.google_meet_link = values.google_meet_link;
+  if ("google_event_id" in values) {
+    payload.google_event_id = values.google_event_id;
+  }
 
-  const { error } = await supabase.from("bookings").update(payload).eq("id", bookingId);
+  if ("google_event_link" in values) {
+    payload.google_event_link = values.google_event_link;
+  }
+
+  if ("google_meet_link" in values) {
+    payload.google_meet_link = values.google_meet_link;
+  }
+
+  const { error } = await supabase
+    .from("bookings")
+    .update(payload)
+    .eq("id", bookingId);
 
   if (error) {
     throw error;
@@ -397,14 +437,27 @@ export const handler = async (request) => {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const saJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   const calMale = process.env.GOOGLE_CALENDAR_MALE_ID;
   const calFemale = process.env.GOOGLE_CALENDAR_FEMALE_ID;
+  const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const googleOAuthClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const googleOAuthRefreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
 
-  if (!supabaseUrl || !serviceKey || !saJson || !calMale || !calFemale) {
+  if (
+    !supabaseUrl ||
+    !serviceKey ||
+    !calMale ||
+    !calFemale ||
+    !googleOAuthClientId ||
+    !googleOAuthClientSecret ||
+    !googleOAuthRefreshToken
+  ) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Server configuration incomplete" }),
+      body: JSON.stringify({
+        error:
+          "Server configuration incomplete. Missing Supabase, calendar, or Google OAuth env vars.",
+      }),
     };
   }
 
@@ -458,22 +511,17 @@ export const handler = async (request) => {
     };
   }
 
-  let credentials;
+  let calendar;
   try {
-    credentials = JSON.parse(saJson);
-  } catch {
+    calendar = getCalendarClient();
+  } catch (authErr) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_JSON" }),
+      body: JSON.stringify({
+        error: authErr?.message || "Google OAuth setup failed",
+      }),
     };
   }
-
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/calendar"],
-  });
-
-  const calendar = google.calendar({ version: "v3", auth });
 
   if (booking.google_event_id) {
     let existingMeetLink = booking.google_meet_link || null;
@@ -637,6 +685,52 @@ export const handler = async (request) => {
   };
 
   try {
+    if (!enrichedBooking.google_meet_link) {
+      const ensured = await ensureMeetLinkQuick(calendar, calendarId, eventId);
+
+      if (ensured.google_meet_link) {
+        const refreshedEventLink =
+          ensured.google_event_link || enrichedBooking.google_event_link;
+
+        await persistBookingLinks(supabase, bookingId, {
+          google_meet_link: ensured.google_meet_link,
+          google_event_link: refreshedEventLink,
+        });
+
+        enrichedBooking = {
+          ...enrichedBooking,
+          google_meet_link: ensured.google_meet_link,
+          google_event_link: refreshedEventLink,
+        };
+
+        console.log(
+          "create-calendar-event: Meet link obtained before emails",
+          JSON.stringify({
+            bookingId,
+            eventId,
+            hasMeetLink: true,
+          }),
+        );
+      } else {
+        console.warn(
+          "create-calendar-event: event saved, but Google Meet link is still missing before emails",
+          JSON.stringify({
+            bookingId,
+            eventId,
+            calendarId,
+            conferenceStatus: ensured.conference_status || null,
+          }),
+        );
+      }
+    }
+  } catch (meetErr) {
+    console.warn(
+      "create-calendar-event: pre-email Meet refresh failed:",
+      meetErr?.message || meetErr,
+    );
+  }
+
+  try {
     await notifyAdminsForBooking(supabase, enrichedBooking);
   } catch (adminErr) {
     console.error(
@@ -647,50 +741,14 @@ export const handler = async (request) => {
 
   await sendVerificationConfirmedEmailIfNeeded(supabase, enrichedBooking);
 
-  try {
-    if (!initialMeetLink) {
-      const ensured = await ensureMeetLinkQuick(calendar, calendarId, eventId);
-
-      if (
-        ensured.google_meet_link &&
-        ensured.google_meet_link !== enrichedBooking.google_meet_link
-      ) {
-        await persistBookingLinks(supabase, bookingId, {
-          google_meet_link: ensured.google_meet_link,
-          google_event_link:
-            ensured.google_event_link || enrichedBooking.google_event_link,
-        });
-
-        console.log(
-          "create-calendar-event: Meet link obtained after initial save",
-          JSON.stringify({
-            bookingId,
-            eventId,
-            hasMeetLink: true,
-          }),
-        );
-      } else if (!ensured.google_meet_link) {
-        console.warn(
-          "create-calendar-event: event saved and emails sent, but Google Meet link is still missing after quick retries",
-          JSON.stringify({ bookingId, eventId, calendarId }),
-        );
-      }
-    }
-  } catch (meetErr) {
-    console.warn(
-      "create-calendar-event: post-save Meet refresh failed:",
-      meetErr?.message || meetErr,
-    );
-  }
-
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ok: true,
       googleEventId: eventId,
-      googleMeetLink: initialMeetLink,
-      googleEventLink: initialEventLink,
+      googleMeetLink: enrichedBooking.google_meet_link,
+      googleEventLink: enrichedBooking.google_event_link,
     }),
   };
 };

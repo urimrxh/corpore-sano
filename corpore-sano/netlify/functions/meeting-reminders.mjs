@@ -42,17 +42,23 @@ function getMeetLinkFromEvent(event) {
 }
 
 function getCalendarClient() {
-  const saJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const redirectUri =
+    process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+    "https://developers.google.com/oauthplayground";
 
-  if (!saJson) {
-    throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "Missing Google OAuth env vars: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN",
+    );
   }
 
-  const credentials = JSON.parse(saJson);
+  const auth = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/calendar"],
+  auth.setCredentials({
+    refresh_token: refreshToken,
   });
 
   return google.calendar({ version: "v3", auth });
@@ -372,12 +378,16 @@ We will see you shortly.`,
             .from("bookings")
             .update({
               meeting_reminder_sent_at: sentAt,
-              meeting_link_sent_at: reminderLink ? sentAt : hydratedBooking.meeting_link_sent_at || null,
+              meeting_link_sent_at: reminderLink
+                ? sentAt
+                : hydratedBooking.meeting_link_sent_at || null,
             })
             .eq("id", hydratedBooking.id);
 
           console.log(
-            `meeting-reminders: user reminder sent for booking ${hydratedBooking.id} using ${useMeetLink ? "google_meet_link" : reminderLink ? "google_event_link" : "no_link"}`
+            `meeting-reminders: user reminder sent for booking ${hydratedBooking.id} using ${
+              useMeetLink ? "google_meet_link" : reminderLink ? "google_event_link" : "no_link"
+            }`,
           );
         } catch (emailErr) {
           console.error(
