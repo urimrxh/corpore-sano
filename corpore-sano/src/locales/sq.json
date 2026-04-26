@@ -46,7 +46,11 @@
           "image": "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1600&q=80",
           "imageAlt": "Vakt i shëndetshëm dhe konsultë për ushqyerjen",
           "title": "Misioni ynë",
-          "body": "Corpore Sano i ndihmon njerëzit të ndërtojnë zakone të qëndrueshme ngrënieje përmes udhëzimeve të qarta dhe konsultimeve personale online me specialistë të kualifikuar të ushqyerjes."
+          "body": "Corpore Sano i ndihmon njerëzit të ndërtojnë zakone të qëndrueshme ngrënieje përmes udhëzimeve të qarta dhe konsultimeve personale online me specialistë të kualifikuar të ushqyerjes.",
+          "buttonLabel": "",
+          "buttonUrl": "",
+          "sectionUrl": "",
+          "isSectionClickable": false
         },
         {
           "id": "about-section-2",
@@ -55,7 +59,11 @@
           "image": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=80",
           "imageAlt": "Mirëqenie dhe stil i ekuilibruar jete",
           "title": "Si punojmë",
-          "body": "Ne kombinojmë shkencën e ushqyerjes të bazuar në dëshmi me një qasje praktike—kështu që merrni plane që përshtaten me jetën tuaj, jo këshilla të përgjithshme. Rezervoni një konsultë falas për të filluar."
+          "body": "Ne kombinojmë shkencën e ushqyerjes të bazuar në dëshmi me një qasje praktike—kështu që merrni plane që përshtaten me jetën tuaj, jo këshilla të përgjithshme. Rezervoni një konsultë falas për të filluar.",
+          "buttonLabel": "",
+          "buttonUrl": "",
+          "sectionUrl": "",
+          "isSectionClickable": false
         }
       ]
     },
@@ -338,12 +346,9 @@
       "imageLabel": "Imazhi",
       "currentImage": "Imazhi aktual:",
       "viewImage": "Hape",
-      "titleSq": "Titulli në shqip",
-      "titleEn": "Titulli në anglisht",
-      "subtitleSq": "Përshkrimi në shqip",
-      "subtitleEn": "Përshkrimi në anglisht",
-      "ctaSq": "Teksti i butonit në shqip",
-      "ctaEn": "Teksti i butonit në anglisht",
+      "bannerTitle": "Titulli",
+      "bannerSubtitle": "Nëntitulli",
+      "bannerCtaLabel": "Teksti i butonit (opsional)",
       "ctaUrl": "Linku i butonit (opsional — shteg vendor ose URL e plotë)",
       "sortOrder": "Renditja (numri më i vogël = më sipër)",
       "active": "Aktiv (shfaqet në faqe)",
@@ -352,7 +357,7 @@
       "update": "Përditëso banerin",
       "cancel": "Anulo",
       "confirmDelete": "Të fshihet ky baner dhe imazhi i tij nga hapësira e ruajtjes?",
-      "titleRequired": "Plotësoni të paktën një titull (në shqip ose anglisht).",
+      "titleRequired": "Plotësoni të paktën një titull baneri (në shqip ose anglisht) në formë.",
       "sortInvalid": "Renditja duhet të jetë numër.",
       "ctaUrlMissing": "Nëse keni vendosur tekst për butonin, shtoni edhe lidhjen (ose fshini tekstet).",
       "imageRequired": "Zgjidhni një imazh për banerin e ri (ose ngarkoni zëvendësim kur ndryshoni).",
@@ -429,6 +434,11 @@
       "imageAlt": "Teksti alt i figurës",
       "heading": "Titulli",
       "body": "Teksti",
+      "aboutSectionButtonLabel": "Etiketa e butonit (opsionale)",
+      "aboutSectionButtonUrl": "URL e butonit",
+      "aboutSectionWholeUrl": "URL e gjithë seksionit",
+      "aboutSectionClickable": "Bëje të gjithë seksionin të klikueshëm",
+      "aboutSectionClickableHint": "Përdor URL-në e seksionit të plotë. Butoni opsional përdor URL-në e butonit. Këto lidhje vlejnë për të dy gjuhët; etiketa e butonit ndjek gjuhën e kopjes së faqes më sipër.",
       "removeSection": "Hiq seksionin",
       "addSection": "+ Shto seksion",
       "videosHint": "Vetëm videot me «Të publikuara» të shënuara shfaqen në faqe. URL-të të plota të YouTube funksionojnë më mirë.",

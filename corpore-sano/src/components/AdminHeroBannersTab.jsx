@@ -25,7 +25,8 @@ const emptyForm = {
   image_path: "",
 };
 
-function AdminHeroBannersTab() {
+function AdminHeroBannersTab({ editingLocale = "sq" }) {
+  const loc = editingLocale === "en" ? "en" : "sq";
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -222,75 +223,50 @@ function AdminHeroBannersTab() {
           ) : null}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="admin-field">
-            <label htmlFor="hb-title-sq">{adminT("adminHeroBanners.titleSq")}</label>
-            <input
-              id="hb-title-sq"
-              name="title_sq"
-              value={form.title_sq}
-              onChange={handleChange}
-              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-            />
-          </div>
-          <div className="admin-field">
-            <label htmlFor="hb-title-en">{adminT("adminHeroBanners.titleEn")}</label>
-            <input
-              id="hb-title-en"
-              name="title_en"
-              value={form.title_en}
-              onChange={handleChange}
-              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-            />
-          </div>
+        <div className="admin-field">
+          <label htmlFor="hb-title">{adminT("adminHeroBanners.bannerTitle")}</label>
+          <input
+            id="hb-title"
+            value={loc === "en" ? form.title_en : form.title_sq}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                [loc === "en" ? "title_en" : "title_sq"]: e.target.value,
+              }))
+            }
+            className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
+          />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="admin-field">
-            <label htmlFor="hb-sub-sq">{adminT("adminHeroBanners.subtitleSq")}</label>
-            <textarea
-              id="hb-sub-sq"
-              name="subtitle_sq"
-              value={form.subtitle_sq}
-              onChange={handleChange}
-              rows={3}
-              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-            />
-          </div>
-          <div className="admin-field">
-            <label htmlFor="hb-sub-en">{adminT("adminHeroBanners.subtitleEn")}</label>
-            <textarea
-              id="hb-sub-en"
-              name="subtitle_en"
-              value={form.subtitle_en}
-              onChange={handleChange}
-              rows={3}
-              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-            />
-          </div>
+        <div className="admin-field">
+          <label htmlFor="hb-sub">{adminT("adminHeroBanners.bannerSubtitle")}</label>
+          <textarea
+            id="hb-sub"
+            value={loc === "en" ? form.subtitle_en : form.subtitle_sq}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                [loc === "en" ? "subtitle_en" : "subtitle_sq"]: e.target.value,
+              }))
+            }
+            rows={3}
+            className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
+          />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="admin-field">
-            <label htmlFor="hb-cta-sq">{adminT("adminHeroBanners.ctaSq")}</label>
-            <input
-              id="hb-cta-sq"
-              name="cta_label_sq"
-              value={form.cta_label_sq}
-              onChange={handleChange}
-              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-            />
-          </div>
-          <div className="admin-field">
-            <label htmlFor="hb-cta-en">{adminT("adminHeroBanners.ctaEn")}</label>
-            <input
-              id="hb-cta-en"
-              name="cta_label_en"
-              value={form.cta_label_en}
-              onChange={handleChange}
-              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-            />
-          </div>
+        <div className="admin-field">
+          <label htmlFor="hb-cta">{adminT("adminHeroBanners.bannerCtaLabel")}</label>
+          <input
+            id="hb-cta"
+            value={loc === "en" ? form.cta_label_en : form.cta_label_sq}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                [loc === "en" ? "cta_label_en" : "cta_label_sq"]: e.target.value,
+              }))
+            }
+            className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
+          />
         </div>
 
         <div className="admin-field">
@@ -325,7 +301,7 @@ function AdminHeroBannersTab() {
                 type="checkbox"
                 checked={form.is_active}
                 onChange={handleChange}
-                className="h-4 w-4 rounded border-[#e1e5ec] text-[#218c77] dark:border-[#2a3441]"
+                className="h-4 w-4 rounded border-[#e1e5ec] text-[#218c77] dark:border-[#2a3441] mr-[5px]"
               />
               <span className="text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
                 {adminT("adminHeroBanners.active")}

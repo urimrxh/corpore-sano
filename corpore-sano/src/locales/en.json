@@ -46,7 +46,11 @@
           "image": "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1600&q=80",
           "imageAlt": "Healthy meal and nutrition consultation",
           "title": "Our mission",
-          "body": "Corpore Sano helps people build sustainable eating habits through clear guidance and personal online consultations with qualified nutrition specialists."
+          "body": "Corpore Sano helps people build sustainable eating habits through clear guidance and personal online consultations with qualified nutrition specialists.",
+          "buttonLabel": "",
+          "buttonUrl": "",
+          "sectionUrl": "",
+          "isSectionClickable": false
         },
         {
           "id": "about-section-2",
@@ -55,7 +59,11 @@
           "image": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=80",
           "imageAlt": "Wellness and balanced lifestyle",
           "title": "How we work",
-          "body": "We combine evidence-based nutrition science with a practical approach—so you get plans that fit your life, not generic advice. Book a free consultation to get started."
+          "body": "We combine evidence-based nutrition science with a practical approach—so you get plans that fit your life, not generic advice. Book a free consultation to get started.",
+          "buttonLabel": "",
+          "buttonUrl": "",
+          "sectionUrl": "",
+          "isSectionClickable": false
         }
       ]
     },
@@ -339,12 +347,9 @@
       "imageLabel": "Banner image",
       "currentImage": "Current image:",
       "viewImage": "Open",
-      "titleSq": "Title (Albanian)",
-      "titleEn": "Title (English)",
-      "subtitleSq": "Subtitle (Albanian)",
-      "subtitleEn": "Subtitle (English)",
-      "ctaSq": "CTA label (Albanian)",
-      "ctaEn": "CTA label (English)",
+      "bannerTitle": "Title",
+      "bannerSubtitle": "Subtitle",
+      "bannerCtaLabel": "CTA button label (optional)",
       "ctaUrl": "CTA URL (optional — internal path or full URL)",
       "sortOrder": "Sort order (lower = first)",
       "active": "Active (show on site)",
@@ -353,7 +358,7 @@
       "update": "Update banner",
       "cancel": "Cancel",
       "confirmDelete": "Delete this banner and its image from storage?",
-      "titleRequired": "Enter at least one title (Albanian or English).",
+      "titleRequired": "Enter at least one banner title (Albanian or English) in the form.",
       "sortInvalid": "Sort order must be a number.",
       "ctaUrlMissing": "If you set a CTA label, add a CTA URL (or clear the labels).",
       "imageRequired": "Choose an image for a new banner (or upload a replacement when editing).",
@@ -434,6 +439,11 @@
       "imageAlt": "Image alt text",
       "heading": "Heading",
       "body": "Body",
+      "aboutSectionButtonLabel": "Button label (optional)",
+      "aboutSectionButtonUrl": "Button URL",
+      "aboutSectionWholeUrl": "Whole section URL",
+      "aboutSectionClickable": "Make whole section clickable",
+      "aboutSectionClickableHint": "Uses the whole section URL. The optional button still uses the button URL. These URLs apply to both languages; the button label follows the site copy language above.",
       "removeSection": "Remove section",
       "addSection": "+ Add section",
       "videosHint": "Only videos with “Published” checked appear on the site. YouTube watch URLs work best.",

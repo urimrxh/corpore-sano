@@ -36,7 +36,41 @@ function mergeAboutSections(baseAbout, savedAbout) {
       legacyGlobalTheme ??
       baseSections[i]?.textPanelTheme ??
       "grey",
+    buttonLabel: sec.buttonLabel ?? "",
+    buttonUrl: sec.buttonUrl ?? "",
+    sectionUrl: sec.sectionUrl ?? "",
+    isSectionClickable: Boolean(sec.isSectionClickable),
   }));
+}
+
+/**
+ * Copy language-agnostic About section fields from the locale being saved into the other locale
+ * (same section ids) so buttonUrl / sectionUrl / isSectionClickable stay in sync.
+ */
+function applyAboutSharedFieldsFromSource(fromAbout, targetAbout) {
+  const fromSections = fromAbout?.sections;
+  if (!Array.isArray(fromSections) || fromSections.length === 0) {
+    return targetAbout && typeof targetAbout === "object" ? targetAbout : { sections: [] };
+  }
+  const existing = targetAbout && typeof targetAbout === "object" ? targetAbout : {};
+  const toSections = Array.isArray(existing.sections) ? existing.sections : [];
+  if (toSections.length === 0) {
+    return existing;
+  }
+  const fromById = new Map(fromSections.map((s) => [s.id, s]));
+  return {
+    ...existing,
+    sections: toSections.map((s) => {
+      const src = fromById.get(s.id);
+      if (!src) return s;
+      return {
+        ...s,
+        buttonUrl: src.buttonUrl ?? "",
+        sectionUrl: src.sectionUrl ?? "",
+        isSectionClickable: Boolean(src.isSectionClickable),
+      };
+    }),
+  };
 }
 
 /** Deep-merge persisted site content for one locale with bundled defaults. */
@@ -234,17 +268,25 @@ export function SiteContentProvider({ children }) {
       const other = loc === "en" ? "sq" : "en";
       const otherSaved = store.locales[other];
       if (otherSaved && typeof otherSaved === "object") {
+        let nextOther = { ...otherSaved };
         const globalPatch = {};
         if (bFlag !== undefined) globalPatch.bilingualEnabled = bFlag;
         if (sectionsHidden !== undefined && typeof sectionsHidden === "object") {
           globalPatch.sectionsHidden = { ...sectionsHidden };
         }
         if (Object.keys(globalPatch).length > 0) {
-          store.locales[other] = {
-            ...otherSaved,
-            global: { ...otherSaved.global, ...globalPatch },
+          nextOther = {
+            ...nextOther,
+            global: { ...nextOther.global, ...globalPatch },
           };
         }
+        if (Array.isArray(full.about?.sections)) {
+          nextOther = {
+            ...nextOther,
+            about: applyAboutSharedFieldsFromSource(full.about, nextOther.about),
+          };
+        }
+        store.locales[other] = nextOther;
       }
       store.version = 2;
       try {
