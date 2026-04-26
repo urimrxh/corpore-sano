@@ -90,44 +90,48 @@ export default function HomeHeroBanner() {
     return null;
   }
 
+  const useLoop = slides.length > 1;
+
   return (
     <div className="home-hero-banner mb-6 md:mb-8">
-      <div className="container">
+      <div className="home-hero-banner__viewport">
         <Swiper
           className="home-hero-banner__swiper"
           modules={[Autoplay, Navigation, Pagination]}
           spaceBetween={0}
           slidesPerView={1}
-          loop={slides.length > 1}
-          speed={600}
+          loop={useLoop}
+          speed={650}
           autoplay={{
-            delay: 5000,
+            delay: 2200,
             disableOnInteraction: false,
             pauseOnMouseEnter: true,
           }}
           pagination={{ clickable: true }}
-          navigation={slides.length > 1}
+          navigation={useLoop}
         >
           {slides.map((banner) => {
             const { title, subtitle, ctaLabel, ctaUrl, showCta } = bannerTexts(banner, locale);
             return (
               <SwiperSlide key={banner.id} className="home-hero-banner__slide">
-                <img
-                  src={banner.image_url}
-                  alt={title}
-                  className="home-hero-banner__img"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="home-hero-banner__overlay" aria-hidden />
-                <div className="home-hero-banner__inner">
-                  <h2 className="home-hero-banner__title">{title}</h2>
-                  {subtitle ? <p className="home-hero-banner__subtitle">{subtitle}</p> : null}
-                  {showCta ? (
-                    <HeroCta href={ctaUrl} className="home-hero-banner__cta">
-                      {ctaLabel}
-                    </HeroCta>
-                  ) : null}
+                <div className="home-hero-banner__media">
+                  <img
+                    src={banner.image_url}
+                    alt={title}
+                    className="home-hero-banner__img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="home-hero-banner__overlay" aria-hidden />
+                  <div className="home-hero-banner__inner">
+                    <h2 className="home-hero-banner__title">{title}</h2>
+                    {subtitle ? <p className="home-hero-banner__subtitle">{subtitle}</p> : null}
+                    {showCta ? (
+                      <HeroCta href={ctaUrl} className="home-hero-banner__cta">
+                        {ctaLabel}
+                      </HeroCta>
+                    ) : null}
+                  </div>
                 </div>
               </SwiperSlide>
             );
