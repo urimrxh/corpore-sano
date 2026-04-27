@@ -347,12 +347,15 @@ async function sendVerificationConfirmedEmailIfNeeded(supabase, booking) {
   }
 }
 
-async function notifyAdminsForBooking(supabase, booking) {
+async function notifyAdminsForBooking(supabase, booking, preResolvedRecipients = null) {
   if (booking.admin_notified_at) {
     return normalizeRecipientEmails(booking.admin_recipient_emails);
   }
 
-  let recipients = normalizeRecipientEmails(booking.admin_recipient_emails);
+  let recipients = normalizeRecipientEmails(preResolvedRecipients);
+  if (!recipients.length) {
+    recipients = normalizeRecipientEmails(booking.admin_recipient_emails);
+  }
 
   if (!recipients.length) {
     recipients = await getActiveAdminEmailsByGender(supabase, booking.gender);
@@ -598,11 +601,17 @@ export const handler = async (request) => {
     `Gender: ${booking.gender}`,
   ].filter(Boolean);
 
+  let adminRecipients = normalizeRecipientEmails(booking.admin_recipient_emails);
+  if (!adminRecipients.length) {
+    adminRecipients = await getActiveAdminEmailsByGender(supabase, booking.gender);
+  }
+
   const baseEvent = {
     summary: `Consultation - ${booking.full_name}`,
     description: descriptionLines.join("\n"),
     start: { dateTime: booking.slot_start },
     end: { dateTime: booking.slot_end },
+    attendees: adminRecipients.map((email) => ({ email })),
   };
 
   let insertRes;
@@ -611,6 +620,7 @@ export const handler = async (request) => {
     insertRes = await calendar.events.insert({
       calendarId,
       conferenceDataVersion: 1,
+      sendUpdates: "none",
       requestBody: {
         ...baseEvent,
         conferenceData: {
@@ -632,6 +642,7 @@ export const handler = async (request) => {
     try {
       insertRes = await calendar.events.insert({
         calendarId,
+        sendUpdates: "none",
         requestBody: baseEvent,
       });
     } catch (plainErr) {
@@ -731,7 +742,7 @@ export const handler = async (request) => {
   }
 
   try {
-    await notifyAdminsForBooking(supabase, enrichedBooking);
+    await notifyAdminsForBooking(supabase, enrichedBooking, adminRecipients);
   } catch (adminErr) {
     console.error(
       "create-calendar-event: admin notification failed",
