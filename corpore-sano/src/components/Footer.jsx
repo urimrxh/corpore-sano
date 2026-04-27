@@ -25,6 +25,8 @@ function Footer({ headerNavItems = [] }) {
     brandName,
     phone,
     phoneHref,
+    phoneSecondary,
+    phoneSecondaryHref,
     cityLine,
     address,
     email,
@@ -56,6 +58,14 @@ function Footer({ headerNavItems = [] }) {
           type: "phone",
           value: phone,
           href: phoneHref,
+        }
+      : null,
+    phoneSecondary
+      ? {
+          id: "phoneSecondary",
+          type: "phone",
+          value: phoneSecondary,
+          href: phoneSecondaryHref,
         }
       : null,
     cityLine

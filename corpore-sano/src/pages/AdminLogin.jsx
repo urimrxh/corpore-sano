@@ -1055,6 +1055,32 @@ function AdminLogin() {
               />
             </div>
             <div className="admin-field">
+              <label>{adminT("adminLogin.phoneSecondaryDisplay")}</label>
+              <input
+                type="text"
+                value={draft.footer.phoneSecondary ?? ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    footer: { ...d.footer, phoneSecondary: e.target.value },
+                  }))
+                }
+              />
+            </div>
+            <div className="admin-field">
+              <label>{adminT("adminLogin.phoneSecondaryHref")}</label>
+              <input
+                type="text"
+                value={draft.footer.phoneSecondaryHref ?? ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    footer: { ...d.footer, phoneSecondaryHref: e.target.value },
+                  }))
+                }
+              />
+            </div>
+            <div className="admin-field">
               <label>{adminT("adminLogin.cityLine")}</label>
               <input
                 type="text"

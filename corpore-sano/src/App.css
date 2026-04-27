@@ -72,12 +72,12 @@ body {
   flex-direction: column;
   min-width: 0;
   --main-pad-top: calc(var(--site-header-height, 64px) + 12px);
-  padding-top: 74px;
+  padding-top: 64px;
 }
 
 @media (min-width: 768px) {
   .main-content {
     --main-pad-top: calc(var(--site-header-height, 72px) + 16px);
-    padding-top: var(--main-pad-top);
+    padding-top: 74px;
   }
 }
