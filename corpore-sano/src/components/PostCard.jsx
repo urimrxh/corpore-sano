@@ -16,19 +16,29 @@ function PostCard({ post }) {
   const externalUrl = String(post.external_url || "").trim();
   const isExternal = externalUrl.startsWith("http://") || externalUrl.startsWith("https://");
   const cardClasses =
-    "block hover:translate-y-[-5px] transition-all duration-300 hover:brightness-[0.95]";
+    "block h-full hover:translate-y-[-5px] transition-all duration-300 hover:brightness-[0.95]";
+  const textClampStyle = {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  };
 
   const cardContent = (
-    <article className="overflow-hidden rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] shadow-sm dark:border-[#2a3441] dark:bg-[#1a2332]">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] shadow-sm dark:border-[#2a3441] dark:bg-[#1a2332]">
       {post.image_url ? (
         <img
           src={post.image_url}
           alt={post.title}
           className="h-52 w-full object-cover"
         />
-      ) : null}
+      ) : (
+        <div
+          className="h-52 w-full bg-[#e8ecf1] dark:bg-[#263341]"
+          aria-hidden
+        />
+      )}
 
-      <div className="p-5">
+      <div className="flex flex-1 flex-col p-5">
         <p className="mb-2 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           {formatDate(post.published_at || post.created_at)}
           {post.author ? ` • ${post.author}` : ""}
@@ -40,15 +50,21 @@ function PostCard({ post }) {
           </p>
         ) : null}
 
-        <h3 className="mb-2 text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]">
+        <h3
+          className="mb-2 text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]"
+          style={{ ...textClampStyle, WebkitLineClamp: 3 }}
+        >
           {post.title}
         </h3>
 
-        <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+        <p
+          className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]"
+          style={{ ...textClampStyle, WebkitLineClamp: 4 }}
+        >
           {post.description}
         </p>
 
-        <span className="inline-flex items-center text-sm font-medium text-[#218c77] underline dark:text-[#4dc89f]">
+        <span className="mt-auto inline-flex items-center text-sm font-medium text-[#218c77] underline dark:text-[#4dc89f]">
           {t("posts.readMore")}
         </span>
       </div>
