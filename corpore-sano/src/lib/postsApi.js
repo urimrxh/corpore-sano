@@ -146,11 +146,24 @@ export async function createPost(payload) {
         : null,
   };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("posts")
     .insert(cleanPayload)
     .select()
     .single();
+
+  if (
+    error &&
+    typeof error.message === "string" &&
+    error.message.includes("external_url")
+  ) {
+    const { external_url, ...fallbackPayload } = cleanPayload;
+    ({ data, error } = await supabase
+      .from("posts")
+      .insert(fallbackPayload)
+      .select()
+      .single());
+  }
 
   return { data, error };
 }
@@ -165,12 +178,26 @@ export async function updatePost(id, payload) {
         : null,
   };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("posts")
     .update(cleanPayload)
     .eq("id", id)
     .select()
     .single();
+
+  if (
+    error &&
+    typeof error.message === "string" &&
+    error.message.includes("external_url")
+  ) {
+    const { external_url, ...fallbackPayload } = cleanPayload;
+    ({ data, error } = await supabase
+      .from("posts")
+      .update(fallbackPayload)
+      .eq("id", id)
+      .select()
+      .single());
+  }
 
   return { data, error };
 }
