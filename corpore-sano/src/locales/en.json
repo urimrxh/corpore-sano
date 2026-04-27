@@ -226,6 +226,7 @@
       "loadingOne": "Loading post…",
       "notFound": "Post not found.",
       "readMore": "Read more",
+      "visitExternal": "Visit external page",
       "fallbackTagTitle": "Posts",
       "emptyTag": "No posts found in this section.",
       "latest": "Latest posts",

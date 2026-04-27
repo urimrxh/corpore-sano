@@ -94,6 +94,9 @@ function PostDetailPage() {
   }
 
   const seoImage = post.image_url ? resolveAbsoluteUrl(post.image_url) : undefined;
+  const externalUrl = String(post.external_url || "").trim();
+  const hasExternalUrl =
+    externalUrl.startsWith("http://") || externalUrl.startsWith("https://");
 
   return (
     <section className="page-section">
@@ -132,6 +135,17 @@ function PostDetailPage() {
         <div className="prose max-w-none dark:prose-invert">
           <p>{post.description}</p>
         </div>
+
+        {hasExternalUrl ? (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 inline-flex items-center rounded-lg bg-[#218c77] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1a745f] dark:bg-[#3aa57d] dark:hover:bg-[#32946f]"
+          >
+            {t("posts.visitExternal")}
+          </a>
+        ) : null}
       </div>
     </section>
   );
