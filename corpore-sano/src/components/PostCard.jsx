@@ -13,7 +13,9 @@ function PostCard({ post }) {
     });
   }
 
-  const externalUrl = String(post.external_url || "").trim();
+  const externalUrl = String(
+    post.external_url || post.external_link || post.source_url || post.url || "",
+  ).trim();
   const isExternal = externalUrl.startsWith("http://") || externalUrl.startsWith("https://");
   const cardClasses =
     "block h-full hover:translate-y-[-5px] transition-all duration-300 hover:brightness-[0.95]";

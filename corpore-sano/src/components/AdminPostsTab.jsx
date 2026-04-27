@@ -133,6 +133,10 @@ function AdminPostsTab() {
       return;
     }
 
+    if (useExternalPage && !result?.data?.external_url) {
+      window.alert(adminT("adminPosts.externalSaveMissingColumn"));
+    }
+
     setForm(initialForm);
     setUseExternalPage(false);
     setExternalDraft({ url: "", title: "", description: "", image_url: "" });

@@ -94,7 +94,9 @@ function PostDetailPage() {
   }
 
   const seoImage = post.image_url ? resolveAbsoluteUrl(post.image_url) : undefined;
-  const externalUrl = String(post.external_url || "").trim();
+  const externalUrl = String(
+    post.external_url || post.external_link || post.source_url || post.url || "",
+  ).trim();
   const hasExternalUrl =
     externalUrl.startsWith("http://") || externalUrl.startsWith("https://");
 
