@@ -16,6 +16,7 @@ const initialForm = {
   topic: "",
   author: "",
   image_url: "",
+  external_url: "",
   tag_id: "",
   status: "draft",
 };
@@ -32,6 +33,14 @@ function AdminPostsTab() {
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [useExternalPage, setUseExternalPage] = useState(false);
+  const [externalDraft, setExternalDraft] = useState({
+    url: "",
+    title: "",
+    description: "",
+    image_url: "",
+  });
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   async function loadAll() {
     setLoading(true);
@@ -60,13 +69,59 @@ function AdminPostsTab() {
     });
   }
 
+  async function fetchExternalPreview(url) {
+    const normalizedUrl = String(url || "").trim();
+    if (!normalizedUrl) return;
+
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(
+        `/.netlify/functions/fetch-link-preview?url=${encodeURIComponent(normalizedUrl)}`,
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Could not fetch link preview.");
+      }
+
+      setExternalDraft((prev) => ({
+        ...prev,
+        title: prev.title || data.title || "",
+        description: prev.description || data.description || "",
+        image_url: prev.image_url || data.image || "",
+      }));
+    } catch (err) {
+      window.alert(err?.message || "Could not fetch link preview.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
+    const externalUrl = externalDraft.url.trim();
+    if (useExternalPage && !externalUrl) {
+      window.alert(adminT("adminPosts.externalUrlRequired"));
+      return;
+    }
+
+    const source = useExternalPage
+      ? {
+          ...form,
+          title: externalDraft.title.trim(),
+          description: externalDraft.description.trim(),
+          image_url: externalDraft.image_url.trim(),
+          external_url: externalUrl,
+          author: form.author || "External source",
+          topic: form.topic || "External",
+        }
+      : form;
+
     const payload = {
-      ...form,
-      tag_id: form.tag_id || null,
-      image_url: form.image_url || null,
+      ...source,
+      tag_id: source.tag_id || null,
+      image_url: source.image_url || null,
+      external_url: source.external_url || null,
     };
 
     const result = editingId
@@ -79,6 +134,8 @@ function AdminPostsTab() {
     }
 
     setForm(initialForm);
+    setUseExternalPage(false);
+    setExternalDraft({ url: "", title: "", description: "", image_url: "" });
     setEditingId(null);
     loadAll();
   }
@@ -92,8 +149,16 @@ function AdminPostsTab() {
       topic: post.topic || "",
       author: post.author || "",
       image_url: post.image_url || "",
+      external_url: post.external_url || "",
       tag_id: post.tag_id || "",
       status: post.status || "draft",
+    });
+    setUseExternalPage(Boolean(post.external_url));
+    setExternalDraft({
+      url: post.external_url || "",
+      title: post.title || "",
+      description: post.description || "",
+      image_url: post.image_url || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -127,6 +192,7 @@ function AdminPostsTab() {
           value={form.title}
           onChange={handleChange}
           placeholder={adminT("adminPosts.titlePh")}
+          disabled={useExternalPage}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
@@ -135,6 +201,7 @@ function AdminPostsTab() {
           value={form.slug}
           onChange={handleChange}
           placeholder={adminT("adminPosts.slugPh")}
+          disabled={useExternalPage}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
@@ -143,6 +210,7 @@ function AdminPostsTab() {
           value={form.description}
           onChange={handleChange}
           placeholder={adminT("adminPosts.descPh")}
+          disabled={useExternalPage}
           className="min-h-[140px] w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
@@ -151,6 +219,7 @@ function AdminPostsTab() {
           value={form.topic}
           onChange={handleChange}
           placeholder={adminT("adminPosts.topicPh")}
+          disabled={useExternalPage}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
@@ -159,6 +228,7 @@ function AdminPostsTab() {
           value={form.author}
           onChange={handleChange}
           placeholder={adminT("adminPosts.authorPh")}
+          disabled={useExternalPage}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
@@ -167,6 +237,7 @@ function AdminPostsTab() {
           value={form.image_url}
           onChange={handleChange}
           placeholder={adminT("adminPosts.imagePh")}
+          disabled={useExternalPage}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
         />
 
@@ -194,6 +265,80 @@ function AdminPostsTab() {
           <option value="published">{adminT("adminPosts.published")}</option>
         </select>
 
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#e1e5ec] px-3 py-2 dark:border-[#2a3441]">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-[#e1e5ec] text-[#218c77] focus:ring-[#218c77] dark:border-[#2a3441]"
+            checked={useExternalPage}
+            onChange={(e) => setUseExternalPage(e.target.checked)}
+          />
+          <span className="text-sm text-[#103152] dark:text-[#e8ecf1]">
+            {adminT("adminPosts.externalModeLabel")}
+          </span>
+        </label>
+
+        {useExternalPage ? (
+          <div className="space-y-3 rounded-lg border border-[#e1e5ec] bg-[#f8fafc] p-3 dark:border-[#2a3441] dark:bg-[#161d27]">
+            <input
+              value={externalDraft.url}
+              onChange={(e) =>
+                setExternalDraft((prev) => ({ ...prev, url: e.target.value }))
+              }
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value) {
+                  void fetchExternalPreview(value);
+                }
+              }}
+              type="url"
+              placeholder={adminT("adminPosts.externalUrlPh")}
+              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#0f1722] dark:text-[#e8ecf1]"
+            />
+            <input
+              value={externalDraft.title}
+              onChange={(e) =>
+                setExternalDraft((prev) => ({ ...prev, title: e.target.value }))
+              }
+              type="text"
+              placeholder={adminT("adminPosts.externalTitlePh")}
+              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#0f1722] dark:text-[#e8ecf1]"
+            />
+            <textarea
+              value={externalDraft.description}
+              onChange={(e) =>
+                setExternalDraft((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              placeholder={adminT("adminPosts.externalDescPh")}
+              className="min-h-[120px] w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#0f1722] dark:text-[#e8ecf1]"
+            />
+            <input
+              value={externalDraft.image_url}
+              onChange={(e) =>
+                setExternalDraft((prev) => ({
+                  ...prev,
+                  image_url: e.target.value,
+                }))
+              }
+              type="url"
+              placeholder={adminT("adminPosts.externalImagePh")}
+              className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#0f1722] dark:text-[#e8ecf1]"
+            />
+            <button
+              type="button"
+              onClick={() => void fetchExternalPreview(externalDraft.url)}
+              disabled={!externalDraft.url.trim() || previewLoading}
+              className="admin-btn-secondary admin-btn-secondary--sm"
+            >
+              {previewLoading
+                ? adminT("adminPosts.externalFetching")
+                : adminT("adminPosts.externalFetch")}
+            </button>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-3">
           <button type="submit" className="admin-btn-primary">
             {editingId ? "Përditëso postimin" : "Krijo postimin"}
@@ -205,6 +350,8 @@ function AdminPostsTab() {
               onClick={() => {
                 setEditingId(null);
                 setForm(initialForm);
+                setUseExternalPage(false);
+                setExternalDraft({ url: "", title: "", description: "", image_url: "" });
               }}
               className="admin-btn-secondary"
             >
