@@ -330,6 +330,7 @@
       "externalFetch": "Fetch page preview",
       "externalFetching": "Fetching preview…",
       "externalUrlRequired": "External page URL is required when external mode is enabled.",
+      "externalSaveMissingColumn": "External URL was not saved. Run the latest Supabase migration to add posts.external_url, then save again.",
       "update": "Update post",
       "create": "Create post",
       "cancel": "Cancel",
