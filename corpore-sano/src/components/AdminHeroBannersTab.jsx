@@ -8,6 +8,8 @@ import {
   heroBannerColorPickerValue,
   normalizeCtaUrl,
   removeHeroBannerStorageObject,
+  resolveHeroBannerDesktopSrc,
+  resolveHeroBannerMobileSrc,
   sanitizeHeroBannerColor,
   updateHeroBanner,
   uploadHeroBannerImage,
@@ -25,16 +27,91 @@ const emptyForm = {
   is_active: true,
   image_url: "",
   image_path: "",
+  desktop_image_url: "",
+  desktop_image_path: "",
+  mobile_image_url: "",
+  mobile_image_path: "",
   title_color: "",
   subtitle_color: "",
 };
+
+/**
+ * @param {object} args
+ * @returns {{ image_url: string, image_path: string|null, desktop_image_url: string|null, desktop_image_path: string|null, mobile_image_url: string|null, mobile_image_path: string|null }|null}
+ */
+function buildHeroBannerImagePayload({
+  form,
+  uploadedDesktop,
+  uploadedMobile,
+  editingId,
+  editingStartedAsDual,
+  desktopImageFile,
+  mobileImageFile,
+}) {
+  let dUrl = (uploadedDesktop?.url ?? (form.desktop_image_url || "").trim()) || null;
+  let dPath = (uploadedDesktop?.path ?? (form.desktop_image_path || "").trim()) || null;
+  let mUrl = (uploadedMobile?.url ?? (form.mobile_image_url || "").trim()) || null;
+  let mPath = (uploadedMobile?.path ?? (form.mobile_image_path || "").trim()) || null;
+
+  if (editingStartedAsDual) {
+    if (desktopImageFile && uploadedDesktop && !mobileImageFile) {
+      mUrl = (form.mobile_image_url || "").trim() || null;
+      mPath = (form.mobile_image_path || "").trim() || null;
+    }
+    if (mobileImageFile && uploadedMobile && !desktopImageFile) {
+      dUrl = (form.desktop_image_url || "").trim() || null;
+      dPath = (form.desktop_image_path || "").trim() || null;
+    }
+  }
+
+  if (dUrl && mUrl) {
+    return {
+      image_url: dUrl,
+      image_path: dPath,
+      desktop_image_url: dUrl,
+      desktop_image_path: dPath,
+      mobile_image_url: mUrl,
+      mobile_image_path: mPath,
+    };
+  }
+
+  const singleUrl = dUrl || mUrl;
+  const singlePath = dUrl ? dPath : mPath;
+
+  if (singleUrl) {
+    return {
+      image_url: singleUrl,
+      image_path: singlePath ?? null,
+      desktop_image_url: null,
+      desktop_image_path: null,
+      mobile_image_url: null,
+      mobile_image_path: null,
+    };
+  }
+
+  if (editingId) {
+    return {
+      image_url: (form.image_url || "").trim(),
+      image_path: (form.image_path || "").trim() || null,
+      desktop_image_url: (form.desktop_image_url || "").trim() || null,
+      desktop_image_path: (form.desktop_image_path || "").trim() || null,
+      mobile_image_url: (form.mobile_image_url || "").trim() || null,
+      mobile_image_path: (form.mobile_image_path || "").trim() || null,
+    };
+  }
+
+  return null;
+}
 
 function AdminHeroBannersTab({ editingLocale = "sq" }) {
   const loc = editingLocale === "en" ? "en" : "sq";
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
+  const [editingStartedAsDual, setEditingStartedAsDual] = useState(false);
+  const [pathsBeforeEdit, setPathsBeforeEdit] = useState(null);
+  const [desktopImageFile, setDesktopImageFile] = useState(null);
+  const [mobileImageFile, setMobileImageFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -65,11 +142,21 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
   function resetForm() {
     setForm(emptyForm);
     setEditingId(null);
-    setImageFile(null);
+    setEditingStartedAsDual(false);
+    setPathsBeforeEdit(null);
+    setDesktopImageFile(null);
+    setMobileImageFile(null);
   }
 
   function handleEdit(row) {
     setEditingId(row.id);
+    const dual = Boolean((row.desktop_image_url || "").trim() && (row.mobile_image_url || "").trim());
+    setEditingStartedAsDual(dual);
+    setPathsBeforeEdit({
+      image_path: row.image_path || null,
+      desktop_image_path: row.desktop_image_path || null,
+      mobile_image_path: row.mobile_image_path || null,
+    });
     setForm({
       title_sq: row.title_sq || "",
       subtitle_sq: row.subtitle_sq || "",
@@ -82,10 +169,15 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
       is_active: row.is_active !== false,
       image_url: row.image_url || "",
       image_path: row.image_path || "",
+      desktop_image_url: row.desktop_image_url || "",
+      desktop_image_path: row.desktop_image_path || "",
+      mobile_image_url: row.mobile_image_url || "",
+      mobile_image_path: row.mobile_image_path || "",
       title_color: row.title_color || "",
       subtitle_color: row.subtitle_color || "",
     });
-    setImageFile(null);
+    setDesktopImageFile(null);
+    setMobileImageFile(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -120,29 +212,56 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
       return;
     }
 
-    if (!editingId && !imageFile) {
+    if (!editingId && !desktopImageFile && !mobileImageFile) {
       window.alert(adminT("adminHeroBanners.imageRequired"));
       return;
     }
 
     setSaving(true);
     try {
-      let image_url = form.image_url;
-      let image_path = form.image_path;
-      const oldPath = editingId ? form.image_path : null;
+      let uploadedDesktop = null;
+      let uploadedMobile = null;
+      const newUploadPaths = [];
 
-      if (imageFile) {
-        const { publicUrl, image_path: newPath, error: upErr } = await uploadHeroBannerImage(imageFile);
+      if (desktopImageFile) {
+        const { publicUrl, image_path: newPath, error: upErr } = await uploadHeroBannerImage(desktopImageFile);
         if (upErr) {
           window.alert(upErr.message || String(upErr));
           setSaving(false);
           return;
         }
-        image_url = publicUrl;
-        image_path = newPath;
+        uploadedDesktop = { url: publicUrl, path: newPath };
+        if (newPath) newUploadPaths.push(newPath);
       }
 
-      if (!image_url) {
+      if (mobileImageFile) {
+        const { publicUrl, image_path: newPath, error: upErr } = await uploadHeroBannerImage(mobileImageFile);
+        if (upErr) {
+          for (const p of newUploadPaths) {
+            await removeHeroBannerStorageObject(p);
+          }
+          window.alert(upErr.message || String(upErr));
+          setSaving(false);
+          return;
+        }
+        uploadedMobile = { url: publicUrl, path: newPath };
+        if (newPath) newUploadPaths.push(newPath);
+      }
+
+      const imageFields = buildHeroBannerImagePayload({
+        form,
+        uploadedDesktop,
+        uploadedMobile,
+        editingId,
+        editingStartedAsDual,
+        desktopImageFile: Boolean(desktopImageFile),
+        mobileImageFile: Boolean(mobileImageFile),
+      });
+
+      if (!imageFields || !(imageFields.image_url || "").trim()) {
+        for (const p of newUploadPaths) {
+          await removeHeroBannerStorageObject(p);
+        }
         window.alert(adminT("adminHeroBanners.imageRequired"));
         setSaving(false);
         return;
@@ -151,31 +270,40 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
       const payload = {
         ...form,
         sort_order: sortNum,
-        image_url,
-        image_path,
+        ...imageFields,
         cta_url: urlNorm,
         title_color: sanitizeHeroBannerColor(form.title_color),
         subtitle_color: sanitizeHeroBannerColor(form.subtitle_color),
       };
 
+      const collectPaths = (p) =>
+        [p.image_path, p.desktop_image_path, p.mobile_image_path].filter(Boolean);
+      const newPathSet = new Set(collectPaths(imageFields));
+
       if (editingId) {
         const { error } = await updateHeroBanner(editingId, payload);
         if (error) {
           window.alert(error.message || String(error));
-          if (imageFile && image_path && image_path !== oldPath) {
-            await removeHeroBannerStorageObject(image_path);
+          for (const p of newUploadPaths) {
+            if (!newPathSet.has(p)) await removeHeroBannerStorageObject(p);
           }
           setSaving(false);
           return;
         }
-        if (imageFile && oldPath && oldPath !== image_path) {
-          await removeHeroBannerStorageObject(oldPath);
+        if (pathsBeforeEdit) {
+          for (const old of collectPaths(pathsBeforeEdit)) {
+            if (old && !newPathSet.has(old)) {
+              await removeHeroBannerStorageObject(old);
+            }
+          }
         }
       } else {
         const { error } = await createHeroBanner(payload);
         if (error) {
           window.alert(error.message || String(error));
-          if (image_path) await removeHeroBannerStorageObject(image_path);
+          for (const p of newUploadPaths) {
+            await removeHeroBannerStorageObject(p);
+          }
           setSaving(false);
           return;
         }
@@ -190,7 +318,7 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
 
   async function handleDelete(row) {
     if (!window.confirm(adminT("adminHeroBanners.confirmDelete"))) return;
-    const { error } = await deleteHeroBanner(row.id, row.image_path);
+    const { error } = await deleteHeroBanner(row.id, null);
     if (error) {
       window.alert(error.message || String(error));
       return;
@@ -218,19 +346,19 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
         </p>
 
         <div className="admin-field">
-          <label htmlFor="hb-image">{adminT("adminHeroBanners.imageLabel")}</label>
+          <label htmlFor="hb-image-desktop">{adminT("adminHeroBanners.desktopImageLabel")}</label>
           <input
-            id="hb-image"
+            id="hb-image-desktop"
             type="file"
             accept="image/*"
             className="w-full text-sm text-[#103152] dark:text-[#e8ecf1] file:mr-3 file:rounded-md file:border-0 file:bg-[#218c77] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white"
-            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            onChange={(e) => setDesktopImageFile(e.target.files?.[0] || null)}
           />
-          {form.image_url && !imageFile ? (
+          {resolveHeroBannerDesktopSrc(form) && !desktopImageFile ? (
             <p className="mt-2 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
-              {adminT("adminHeroBanners.currentImage")}{" "}
+              {adminT("adminHeroBanners.currentDesktopImage")}{" "}
               <a
-                href={form.image_url}
+                href={resolveHeroBannerDesktopSrc(form)}
                 className="text-[#218c77] underline dark:text-[#4dc89f]"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -240,6 +368,32 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
             </p>
           ) : null}
         </div>
+
+        <div className="admin-field">
+          <label htmlFor="hb-image-mobile">{adminT("adminHeroBanners.mobileImageLabel")}</label>
+          <input
+            id="hb-image-mobile"
+            type="file"
+            accept="image/*"
+            className="w-full text-sm text-[#103152] dark:text-[#e8ecf1] file:mr-3 file:rounded-md file:border-0 file:bg-[#218c77] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white"
+            onChange={(e) => setMobileImageFile(e.target.files?.[0] || null)}
+          />
+          {resolveHeroBannerMobileSrc(form) && !mobileImageFile ? (
+            <p className="mt-2 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+              {adminT("adminHeroBanners.currentMobileImage")}{" "}
+              <a
+                href={resolveHeroBannerMobileSrc(form)}
+                className="text-[#218c77] underline dark:text-[#4dc89f]"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {adminT("adminHeroBanners.viewImage")}
+              </a>
+            </p>
+          ) : null}
+        </div>
+
+        <p className="text-xs text-[#4d515c] dark:text-[#8ea0b5]">{adminT("adminHeroBanners.dualImageHint")}</p>
 
         <div className="admin-field">
           <label htmlFor="hb-title">{adminT("adminHeroBanners.bannerTitle")}</label>
@@ -437,9 +591,9 @@ function AdminHeroBannersTab({ editingLocale = "sq" }) {
               <tr key={row.id} className="border-b border-[#e1e5ec] dark:border-[#2a3441]">
                 <td className="px-3 py-2 text-[#103152] dark:text-[#e8ecf1]">{row.sort_order}</td>
                 <td className="px-3 py-2">
-                  {row.image_url ? (
+                  {resolveHeroBannerDesktopSrc(row) ? (
                     <img
-                      src={row.image_url}
+                      src={resolveHeroBannerDesktopSrc(row)}
                       alt={adminT("adminHeroBanners.previewAlt")}
                       className="h-12 w-20 rounded object-cover"
                     />

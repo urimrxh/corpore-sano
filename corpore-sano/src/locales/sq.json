@@ -31,7 +31,7 @@
           "subjectPlaceholder": "Për çfarë është mesazhi juaj?",
           "messagePlaceholder": "Shkruani mesazhin tuaj këtu…",
           "submit": "Dërgo mesazhin",
-          "success": "Faleminderit — mesazhi juaj u regjistrua. Do të lidhemi me ju së shpejti."
+          "success": "Faleminderit — mesazhi juaj u dërgua. Do t’ju kontaktojmë së shpejti."
         }
       }
     },
@@ -174,7 +174,12 @@
       "subjectPlaceholder": "Për çfarë është mesazhi juaj?",
       "messagePlaceholder": "Shkruani mesazhin tuaj këtu…",
       "submit": "Dërgo mesazhin",
-      "success": "Faleminderit — mesazhi juaj u regjistrua. Do të ju kontakojmë së shpejti."
+      "submitting": "Duke dërguar…",
+      "success": "Faleminderit — mesazhi juaj u dërgua. Do t’ju kontaktojmë së shpejti.",
+      "errorGeneric": "Diçka shkoi keq. Ju lutem provoni përsëri pas pak.",
+      "errorValidation": "Ju lutem kontrolloni formularin dhe provoni përsëri.",
+      "errorNetwork": "Nuk arritëm të lidhemi me serverin. Kontrolloni lidhjen dhe provoni përsëri.",
+      "emailPartialWarning": "Mesazhi juaj u ruajt, por nuk dërguam email njoftues. Ekipi mund ta shohë prapë në sistem."
     },
     "schedule": {
       "fullName": "Emri i plotë",
@@ -230,7 +235,7 @@
       "fallbackTagTitle": "Postimet",
       "emptyTag": "Nuk u gjetën postime në këtë seksion.",
       "latest": "Postimet e fundit",
-      "viewAll": "Shiko të gjitha postimet"
+      "viewAll": "Shiko postimet"
     },
     "videos": {
       "empty": "Ende nuk ka video."
@@ -347,6 +352,11 @@
       "editBanner": "Ndrysho banerin e ballinës",
       "bucketHint": "Figurat ruhen në grupin e Supabase Storage «{bucket}» (lexim publik). Ekzekutoni migrimin SQL dhe krijoni grupin nëse nuk ekziston ende.",
       "imageLabel": "Imazhi",
+      "desktopImageLabel": "Imazhi për desktop (ekrane të gjera)",
+      "mobileImageLabel": "Imazhi për celular / tablet",
+      "currentDesktopImage": "Imazhi aktual për desktop:",
+      "currentMobileImage": "Imazhi aktual për celular:",
+      "dualImageHint": "Ngarkoni të dy për pamje të ndara desktop dhe mobil. Një skedar mjafton: përdoret në të gjitha madhësitë. Banerët ekzistues me një imazh vazhdojnë të funksionojnë.",
       "currentImage": "Imazhi aktual:",
       "viewImage": "Hape",
       "bannerTitle": "Titulli",

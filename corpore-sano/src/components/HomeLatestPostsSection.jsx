@@ -39,7 +39,7 @@ function HomeLatestPostsSection() {
 
             <Link
               to="/posts"
-              className="rounded-md bg-[#218c77] px-5 py-2.5 text-[18px] md:text-sm font-medium text-white hover:bg-[#1b7361]"
+              className="rounded-md bg-[#218c77] px-5 py-2.5 text-[15px] md:text-sm font-medium text-white hover:bg-[#1b7361]"
             >
               {t("posts.viewAll")}
             </Link>

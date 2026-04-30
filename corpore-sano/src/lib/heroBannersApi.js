@@ -57,6 +57,24 @@ export function heroBannerColorPickerValue(stored) {
   return "#ffffff";
 }
 
+/** Desktop hero src: dedicated desktop URL, else shared image_url (legacy / single-asset). */
+export function resolveHeroBannerDesktopSrc(banner) {
+  const d = (banner?.desktop_image_url || "").trim();
+  const base = (banner?.image_url || "").trim();
+  return d || base;
+}
+
+/** Mobile / tablet hero src: dedicated mobile URL, else shared image_url. */
+export function resolveHeroBannerMobileSrc(banner) {
+  const m = (banner?.mobile_image_url || "").trim();
+  const base = (banner?.image_url || "").trim();
+  return m || base;
+}
+
+export function heroBannerHasDisplayImage(banner) {
+  return Boolean(resolveHeroBannerDesktopSrc(banner) || resolveHeroBannerMobileSrc(banner));
+}
+
 /**
  * @returns {Promise<{ data: object[], error: Error|null }>}
  */
@@ -125,6 +143,10 @@ export async function createHeroBanner(payload) {
     is_active: Boolean(payload.is_active),
     image_url: payload.image_url,
     image_path: payload.image_path ?? null,
+    desktop_image_url: payload.desktop_image_url ?? null,
+    desktop_image_path: payload.desktop_image_path ?? null,
+    mobile_image_url: payload.mobile_image_url ?? null,
+    mobile_image_path: payload.mobile_image_path ?? null,
     title_sq: (payload.title_sq || "").trim(),
     subtitle_sq: (payload.subtitle_sq || "").trim(),
     cta_label_sq: (payload.cta_label_sq || "").trim(),
@@ -150,6 +172,10 @@ export async function updateHeroBanner(id, payload) {
     is_active: Boolean(payload.is_active),
     image_url: payload.image_url,
     image_path: payload.image_path ?? null,
+    desktop_image_url: payload.desktop_image_url ?? null,
+    desktop_image_path: payload.desktop_image_path ?? null,
+    mobile_image_url: payload.mobile_image_url ?? null,
+    mobile_image_path: payload.mobile_image_path ?? null,
     title_sq: (payload.title_sq || "").trim(),
     subtitle_sq: (payload.subtitle_sq || "").trim(),
     cta_label_sq: (payload.cta_label_sq || "").trim(),
@@ -170,13 +196,20 @@ export async function updateHeroBanner(id, payload) {
  */
 export async function deleteHeroBanner(id, imagePath) {
   if (!supabase) return { error: new Error("Supabase not configured") };
-  let path = imagePath;
-  if (path == null) {
-    const { data } = await supabase.from("hero_banners").select("image_path").eq("id", id).maybeSingle();
-    path = data?.image_path;
+  let paths = [];
+  if (imagePath != null) {
+    paths = [imagePath];
+  } else {
+    const { data } = await supabase
+      .from("hero_banners")
+      .select("image_path, desktop_image_path, mobile_image_path")
+      .eq("id", id)
+      .maybeSingle();
+    paths = [data?.image_path, data?.desktop_image_path, data?.mobile_image_path].filter(Boolean);
   }
-  if (path) {
-    await removeHeroBannerStorageObject(path);
+  const unique = [...new Set(paths)];
+  for (const p of unique) {
+    await removeHeroBannerStorageObject(p);
   }
   const { error } = await supabase.from("hero_banners").delete().eq("id", id);
   return { error };
