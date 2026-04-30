@@ -3,7 +3,14 @@ import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import { useI18n } from "../../context/I18nContext";
-import { bannerTextColorStyle, getActiveHeroBanners, normalizeCtaUrl } from "../../lib/heroBannersApi";
+import {
+  bannerTextColorStyle,
+  getActiveHeroBanners,
+  heroBannerHasDisplayImage,
+  normalizeCtaUrl,
+  resolveHeroBannerDesktopSrc,
+  resolveHeroBannerMobileSrc,
+} from "../../lib/heroBannersApi";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
@@ -82,7 +89,7 @@ export default function HomeHeroBanner() {
   const slides = useMemo(() => {
     if (!banners?.length) return [];
     return banners.filter(
-      (b) => b.image_url && pickLine(locale, b.title_sq, b.title_en),
+      (b) => heroBannerHasDisplayImage(b) && pickLine(locale, b.title_sq, b.title_en),
     );
   }, [banners, locale]);
 
@@ -114,16 +121,32 @@ export default function HomeHeroBanner() {
             const { title, subtitle, ctaLabel, ctaUrl, showCta } = bannerTexts(banner, locale);
             const titleStyle = bannerTextColorStyle(banner.title_color);
             const subtitleStyle = bannerTextColorStyle(banner.subtitle_color);
+            const desktopSrc = resolveHeroBannerDesktopSrc(banner);
+            const mobileSrc = resolveHeroBannerMobileSrc(banner);
+            const sameSrc = desktopSrc === mobileSrc;
             return (
               <SwiperSlide key={banner.id} className="home-hero-banner__slide">
                 <div className="home-hero-banner__media">
-                  <img
-                    src={banner.image_url}
-                    alt={title}
-                    className="home-hero-banner__img"
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  {sameSrc ? (
+                    <img
+                      src={desktopSrc}
+                      alt={title}
+                      className="home-hero-banner__img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <picture className="home-hero-banner__picture">
+                      <source media="(min-width: 1024px)" srcSet={desktopSrc} />
+                      <img
+                        src={mobileSrc}
+                        alt={title}
+                        className="home-hero-banner__img"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
+                  )}
                   <div className="home-hero-banner__overlay" aria-hidden />
                   <div className="home-hero-banner__inner">
                     <h2 className="home-hero-banner__title" style={titleStyle}>

@@ -31,7 +31,7 @@
           "subjectPlaceholder": "What is your message about?",
           "messagePlaceholder": "Write your message here…",
           "submit": "Send message",
-          "success": "Thanks — your message has been recorded. We’ll get back to you soon."
+          "success": "Thanks — your message was sent. We’ll get back to you soon."
         }
       }
     },
@@ -174,7 +174,12 @@
       "subjectPlaceholder": "What is your message about?",
       "messagePlaceholder": "Write your message here…",
       "submit": "Send message",
-      "success": "Thanks — your message has been recorded. We’ll get back to you soon."
+      "submitting": "Sending…",
+      "success": "Thanks — your message was sent. We’ll get back to you soon.",
+      "errorGeneric": "Something went wrong. Please try again in a moment.",
+      "errorValidation": "Please check the form and try again.",
+      "errorNetwork": "We could not reach the server. Check your connection and try again.",
+      "emailPartialWarning": "Your message was saved, but we could not send the notification email. Our team can still see it in our system."
     },
     "schedule": {
       "fullName": "Full name",
@@ -357,6 +362,11 @@
       "editBanner": "Edit homepage banner",
       "bucketHint": "Images are stored in the Supabase Storage bucket “{bucket}” (public read). Run the SQL migration and create the bucket if it does not exist yet.",
       "imageLabel": "Banner image",
+      "desktopImageLabel": "Desktop image (wide screens)",
+      "mobileImageLabel": "Mobile / tablet image",
+      "currentDesktopImage": "Current desktop image:",
+      "currentMobileImage": "Current mobile image:",
+      "dualImageHint": "Upload both for separate desktop and mobile art. One file is enough: it is used on all breakpoints. Existing banners with a single image keep working.",
       "currentImage": "Current image:",
       "viewImage": "Open",
       "bannerTitle": "Title",

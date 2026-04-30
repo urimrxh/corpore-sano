@@ -64,6 +64,15 @@
   overflow: hidden;
 }
 
+.home-hero-banner__picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
 .home-hero-banner__img {
   position: absolute;
   inset: 0;
