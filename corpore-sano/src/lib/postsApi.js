@@ -216,6 +216,21 @@ export function postDisplayContent(post, locale = "sq") {
   return sq || en;
 }
 
+/**
+ * Article body from content_* / legacy `content` only (no description fallback).
+ * Used so the detail page can show excerpt + body without duplicating description.
+ * @param {object|null|undefined} post
+ * @param {'sq'|'en'} locale
+ */
+export function postBodyFromContentFieldsOnly(post, locale = "sq") {
+  if (!post) return "";
+  const sq = String(post.content_sq || "").trim();
+  const en = String(post.content_en || "").trim();
+  const legacy = String(post.content || "").trim();
+  if (locale === "en") return en || sq || legacy;
+  return sq || en || legacy;
+}
+
 export function slugify(value) {
   return String(value || "")
     .toLowerCase()
