@@ -50,10 +50,10 @@ function AdminPostsTab() {
 
   async function loadAll() {
     setLoading(true);
-    const [{ data: postsData }, { data: tagsData }] = await Promise.all([
-      fetchAdminPosts(),
-      fetchAdminPostTags(),
-    ]);
+    const [{ data: postsData, error: postsErr }, { data: tagsData, error: tagsErr }] =
+      await Promise.all([fetchAdminPosts(), fetchAdminPostTags()]);
+    if (postsErr) console.error("[AdminPostsTab] fetchAdminPosts", postsErr);
+    if (tagsErr) console.error("[AdminPostsTab] fetchAdminPostTags", tagsErr);
     setPosts(postsData || []);
     setTags(tagsData || []);
     setLoading(false);
@@ -427,7 +427,9 @@ function AdminPostsTab() {
               </h4>
               <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
                 {post.author} • {formatPostStatus(post.status)}
-                {post.tag?.name ? ` • ${post.tag.name}` : ""}
+                {post.assignedTagNames || post.tag?.name
+                  ? ` • ${post.assignedTagNames || post.tag.name}`
+                  : ""}
               </p>
             </div>
 
