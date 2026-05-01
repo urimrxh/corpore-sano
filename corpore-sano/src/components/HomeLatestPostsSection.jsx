@@ -13,7 +13,10 @@ function HomeLatestPostsSection() {
     let cancelled = false;
 
     (async () => {
-      const { data } = await fetchLatestPosts(4);
+      const { data, error } = await fetchLatestPosts(4);
+      if (error) {
+        console.error("[HomeLatestPostsSection] fetchLatestPosts", error.message || error);
+      }
       if (!cancelled) {
         setPosts(data || []);
         setLoading(false);

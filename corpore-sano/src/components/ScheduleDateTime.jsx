@@ -8,6 +8,7 @@ import { BOOKING_PENDING_HOLD_MINUTES } from "../lib/bookingConstants";
 import { formatDateKey } from "../lib/timeSlots";
 import {
   createBooking,
+  fetchEnabledBookingWeekdayIndicesForGender,
   fetchSlotsForDate,
 } from "../lib/bookingsApi";
 import { requestBookingVerificationEmail } from "../lib/bookingVerification";
@@ -27,6 +28,7 @@ function ScheduleDateTime({
   const [bookingBusy, setBookingBusy] = useState(false);
   const [bookingMessage, setBookingMessage] = useState(null);
   const [bookingError, setBookingError] = useState(null);
+  const [enabledWeekdayIndices, setEnabledWeekdayIndices] = useState([]);
 
   const selectedDateKey = useMemo(
     () => (selectedDate ? formatDateKey(selectedDate) : ""),
@@ -96,6 +98,36 @@ function ScheduleDateTime({
       cancelled = true;
     };
   }, [selectedDateKey, gender, selectedDate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWeekdays() {
+      if (!gender) {
+        if (!cancelled) setEnabledWeekdayIndices([]);
+        return;
+      }
+      const indices = await fetchEnabledBookingWeekdayIndicesForGender(gender);
+      if (!cancelled) setEnabledWeekdayIndices(indices);
+    }
+
+    loadWeekdays();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gender]);
+
+  const availableDaysLine = useMemo(() => {
+    if (!gender) return null;
+    if (!enabledWeekdayIndices.length) {
+      return t("schedule.availableDaysEmpty");
+    }
+    const names = enabledWeekdayIndices.map((d) =>
+      t(`schedule.bookingWeekday${d}`),
+    );
+    return `${t("schedule.availableDaysLabel")} ${names.join(", ")}`;
+  }, [gender, enabledWeekdayIndices, t]);
 
   const handleDateSelect = (date) => {
     if (!date) return;
@@ -240,6 +272,11 @@ function ScheduleDateTime({
           </div>
 
           <div className="schedule-date-time__book-appointment flex flex-col h-full">
+            {gender && availableDaysLine ? (
+              <p className="schedule-date-time__available-days mb-3 text-center text-sm leading-relaxed text-[#4d515c] dark:text-[#b8c4d0] md:text-left">
+                {availableDaysLine}
+              </p>
+            ) : null}
             <div className="schedule-date-time__time-picker">
               <TimeSlots
                 selectedDate={selectedDate}

@@ -196,6 +196,15 @@
       "topicPlaceholder": "Tema kryesore",
       "title": "Zgjidhni datën dhe orën",
       "pickGenderForSlots": "Zgjidhni gjininë më sipër për të parë terminet e lira.",
+      "availableDaysLabel": "Ditët në të cilat mund të caktoni terminin tuaj:",
+      "availableDaysEmpty": "Aktualisht nuk ka ditë të disponueshme për termine.",
+      "bookingWeekday0": "E diel",
+      "bookingWeekday1": "E hënë",
+      "bookingWeekday2": "E martë",
+      "bookingWeekday3": "E mërkurë",
+      "bookingWeekday4": "E enjte",
+      "bookingWeekday5": "E premte",
+      "bookingWeekday6": "E shtunë",
       "booking": "Duke rezervuar…",
       "bookMeeting": "Rezervo takimin",
       "slotsTitle": "Terminet e lira",
@@ -242,7 +251,8 @@
       "latest": "Postimet e fundit",
       "viewAll": "Shiko postimet",
       "tagSubnavAria": "Nënkategori",
-      "tagSubnavAll": "Të gjitha"
+      "tagSubnavAll": "Të gjitha",
+      "loadListFailed": "Nuk mundëm të ngarkojmë postimet për këtë seksion. Ju lutem provoni përsëri më vonë."
     },
     "videos": {
       "empty": "Ende nuk ka video."

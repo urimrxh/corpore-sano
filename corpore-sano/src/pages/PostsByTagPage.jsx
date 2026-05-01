@@ -33,7 +33,10 @@ function PostsByTagPage() {
       setLoadError(null);
       const result = await fetchPostsForTagArchive(parentSlug, subSlug);
       if (cancelled) return;
-      if (result.error && !result.tag) {
+      if (result.error) {
+        console.error("[PostsByTagPage] fetchPostsForTagArchive", result.error);
+      }
+      if (result.error) {
         setLoadError(result.error);
       } else {
         setLoadError(null);
@@ -128,6 +131,8 @@ function PostsByTagPage() {
           <p>{t("posts.loading")}</p>
         ) : loadError && !tag ? (
           <p role="alert">{t("posts.notFound")}</p>
+        ) : loadError && tag ? (
+          <p role="alert">{t("posts.loadListFailed")}</p>
         ) : !posts.length ? (
           <p>{t("posts.emptyTag")}</p>
         ) : (

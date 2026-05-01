@@ -196,6 +196,15 @@
       "topicPlaceholder": "Main topic",
       "title": "Select a date & time",
       "pickGenderForSlots": "Choose your gender above to see available times for that team.",
+      "availableDaysLabel": "Available days to set up an appointment:",
+      "availableDaysEmpty": "No appointment days are currently available.",
+      "bookingWeekday0": "Sunday",
+      "bookingWeekday1": "Monday",
+      "bookingWeekday2": "Tuesday",
+      "bookingWeekday3": "Wednesday",
+      "bookingWeekday4": "Thursday",
+      "bookingWeekday5": "Friday",
+      "bookingWeekday6": "Saturday",
       "booking": "Booking…",
       "bookMeeting": "Book meeting",
       "slotsTitle": "Available times",
@@ -242,7 +251,8 @@
       "latest": "Latest posts",
       "viewAll": "View all posts",
       "tagSubnavAria": "Subcategories",
-      "tagSubnavAll": "All"
+      "tagSubnavAll": "All",
+      "loadListFailed": "We could not load posts for this section. Please try again later."
     },
     "videos": {
       "empty": "No videos yet."
