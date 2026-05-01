@@ -514,3 +514,47 @@ export async function updateBookingStatusAsAdmin(bookingId, status) {
 export const fetchAdminBookings = fetchBookingsAsAdmin;
 export const fetchBookingsForAdmin = fetchBookingsAsAdmin;
 export const updateBookingAsAdminStatus = updateBookingStatusAsAdmin;
+
+/** Monday–Saturday then Sunday, matching admin UI weekday order for display. */
+const WEEKDAY_ORDER_MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
+
+/**
+ * Enabled `day_of_week` values from `admin_availability` for the admin resolved from gender
+ * (same resolution path as booking slots).
+ * @param {string} gender
+ * @returns {Promise<number[]>} ordered indices 0=Sun … 6=Sat
+ */
+export async function fetchEnabledBookingWeekdayIndicesForGender(gender) {
+  if (!supabase) {
+    console.warn(
+      "[bookingsApi] fetchEnabledBookingWeekdayIndicesForGender: Supabase client missing",
+    );
+    return [];
+  }
+
+  try {
+    const admin = await resolveAdminForGender(gender);
+    if (!admin?.id) return [];
+
+    const { data, error } = await supabase
+      .from("admin_availability")
+      .select("day_of_week, is_enabled")
+      .eq("admin_id", admin.id);
+
+    if (error) {
+      console.warn("[bookingsApi] admin_availability", error.message || error);
+      return [];
+    }
+
+    const enabled = new Set(
+      (data || [])
+        .filter((row) => row.is_enabled)
+        .map((row) => row.day_of_week),
+    );
+
+    return WEEKDAY_ORDER_MON_FIRST.filter((d) => enabled.has(d));
+  } catch (e) {
+    console.warn("[bookingsApi] fetchEnabledBookingWeekdayIndicesForGender", e);
+    return [];
+  }
+}

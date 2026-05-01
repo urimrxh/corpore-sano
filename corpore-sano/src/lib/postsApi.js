@@ -1,5 +1,80 @@
 import { supabase } from "./supabase";
 
+/** PostgREST embed: use resource name `post_tags` (not `tag:post_tags`), then normalize to `tag`. */
+const POST_TAG_EMBED = `
+  post_tags (
+    id,
+    name,
+    slug,
+    parent_id,
+    title_sq,
+    title_en
+  )
+`;
+
+function logPostsApiError(context, error) {
+  if (!error) return;
+  const msg = error?.message || String(error);
+  console.error(`[postsApi] ${context}`, msg, error);
+}
+
+/**
+ * Flatten embedded `post_tags` into `tag` for components that expect `post.tag`.
+ * @param {object|null|undefined} row
+ */
+export function normalizePostRow(row) {
+  if (!row || typeof row !== "object") return row;
+  let rel = row.post_tags ?? row.tag;
+  if (Array.isArray(rel)) rel = rel[0] ?? null;
+  const { post_tags: _drop, ...rest } = row;
+  return { ...rest, tag: rel ?? rest.tag ?? null };
+}
+
+/**
+ * Safe public title: localized columns fall back to legacy `title`.
+ * @param {object|null|undefined} post
+ * @param {'sq'|'en'} locale
+ */
+export function postDisplayTitle(post, locale = "sq") {
+  if (!post) return "";
+  const base = String(post.title || "").trim();
+  const sq = String(post.title_sq || "").trim();
+  const en = String(post.title_en || "").trim();
+  if (locale === "en") return en || sq || base;
+  return sq || en || base;
+}
+
+/**
+ * Safe public description/excerpt fallbacks for legacy `description`.
+ * @param {object|null|undefined} post
+ * @param {'sq'|'en'} locale
+ */
+export function postDisplayDescription(post, locale = "sq") {
+  if (!post) return "";
+  const base = String(post.description || "").trim();
+  const sq = String(
+    post.description_sq || post.excerpt_sq || "",
+  ).trim();
+  const en = String(
+    post.description_en || post.excerpt_en || "",
+  ).trim();
+  if (locale === "en") return en || sq || base;
+  return sq || en || base;
+}
+
+/**
+ * Optional bilingual body when columns exist.
+ * @param {object|null|undefined} post
+ * @param {'sq'|'en'} locale
+ */
+export function postDisplayContent(post, locale = "sq") {
+  if (!post) return "";
+  const sq = String(post.content_sq || "").trim();
+  const en = String(post.content_en || "").trim();
+  if (locale === "en") return en || sq;
+  return sq || en;
+}
+
 export function slugify(value) {
   return String(value || "")
     .toLowerCase()
@@ -33,7 +108,14 @@ function stripPostMetaPayload(payload) {
 }
 
 async function fetchDescendantTagIds(parentId) {
-  const { data } = await supabase.from("post_tags").select("id").eq("parent_id", parentId);
+  const { data, error } = await supabase
+    .from("post_tags")
+    .select("id")
+    .eq("parent_id", parentId);
+  if (error) {
+    console.warn("[postsApi] fetchDescendantTagIds", error.message || error);
+    return [parentId];
+  }
   return [parentId, ...(data || []).map((r) => r.id)];
 }
 
@@ -43,7 +125,10 @@ async function fetchPublishedPostIdsForTagIds(tagIds) {
     .from("post_tag_assignments")
     .select("post_id")
     .in("tag_id", tagIds);
-  if (e1) throw e1;
+  if (e1) {
+    logPostsApiError("fetchPublishedPostIdsForTagIds assignments", e1);
+    throw e1;
+  }
   const ids = new Set((assignRows || []).map((r) => r.post_id));
 
   const { data: legacyRows, error: e2 } = await supabase
@@ -51,7 +136,10 @@ async function fetchPublishedPostIdsForTagIds(tagIds) {
     .select("id")
     .eq("status", "published")
     .in("tag_id", tagIds);
-  if (e2) throw e2;
+  if (e2) {
+    logPostsApiError("fetchPublishedPostIdsForTagIds legacy tag_id", e2);
+    throw e2;
+  }
   (legacyRows || []).forEach((r) => ids.add(r.id));
   return [...ids];
 }
@@ -67,6 +155,8 @@ export async function fetchNavPostTags() {
     .order("nav_order", { ascending: true })
     .order("name", { ascending: true });
 
+  if (error) console.warn("[postsApi] fetchNavPostTags", error.message || error);
+
   return { data: data || [], error };
 }
 
@@ -78,6 +168,8 @@ export async function fetchAdminPostTags() {
     .order("parent_id", { ascending: true, nullsFirst: true })
     .order("nav_order", { ascending: true })
     .order("name", { ascending: true });
+
+  if (error) console.warn("[postsApi] fetchAdminPostTags", error.message || error);
 
   return { data: data || [], error };
 }
@@ -92,6 +184,8 @@ export async function fetchAllActiveTags() {
     .order("nav_order", { ascending: true })
     .order("name", { ascending: true });
 
+  if (error) console.warn("[postsApi] fetchAllActiveTags", error.message || error);
+
   return { data: data || [], error };
 }
 
@@ -102,6 +196,8 @@ export async function fetchChildTagsForParent(parentId) {
     .eq("parent_id", parentId)
     .eq("is_active", true)
     .order("name", { ascending: true });
+
+  if (error) console.warn("[postsApi] fetchChildTagsForParent", error.message || error);
 
   return { data: data || [], error };
 }
@@ -197,23 +293,19 @@ export async function fetchPostsForTagArchive(parentSlug, subSlug) {
 
   const { data, error } = await supabase
     .from("posts")
-    .select(`
-      *,
-      tag:post_tags (
-        id,
-        name,
-        slug,
-        parent_id,
-        title_sq,
-        title_en
-      )
-    `)
+    .select(`*, ${POST_TAG_EMBED}`)
     .eq("status", "published")
     .in("id", postIds)
     .order("published_at", { ascending: false });
 
+  if (error) {
+    logPostsApiError("fetchPostsForTagArchive posts list", error);
+  }
+
+  const rows = (data || []).map(normalizePostRow);
+
   return {
-    data: data || [],
+    data: rows,
     tag,
     parentTag,
     subTag: subSlug ? tag : null,
@@ -234,6 +326,7 @@ export async function fetchPostTagIds(postId) {
     .from("post_tag_assignments")
     .select("tag_id")
     .eq("post_id", postId);
+  if (error) console.warn("[postsApi] fetchPostTagIds", error.message || error);
   return { data: (data || []).map((r) => r.tag_id), error };
 }
 
@@ -251,83 +344,51 @@ export async function replacePostTagAssignments(postId, tagIds) {
 export async function fetchLatestPosts(limit = 4) {
   const { data, error } = await supabase
     .from("posts")
-    .select(`
-      *,
-      tag:post_tags (
-        id,
-        name,
-        slug,
-        parent_id,
-        title_sq,
-        title_en
-      )
-    `)
+    .select(`*, ${POST_TAG_EMBED}`)
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(limit);
 
-  return { data: data || [], error };
+  if (error) logPostsApiError("fetchLatestPosts", error);
+
+  return { data: (data || []).map(normalizePostRow), error };
 }
 
 export async function fetchPublishedPosts(limit = 100) {
   const { data, error } = await supabase
     .from("posts")
-    .select(`
-      *,
-      tag:post_tags (
-        id,
-        name,
-        slug,
-        parent_id,
-        title_sq,
-        title_en
-      )
-    `)
+    .select(`*, ${POST_TAG_EMBED}`)
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(limit);
 
-  return { data: data || [], error };
+  if (error) logPostsApiError("fetchPublishedPosts", error);
+
+  return { data: (data || []).map(normalizePostRow), error };
 }
 
 export async function fetchPostBySlug(slug) {
   const { data, error } = await supabase
     .from("posts")
-    .select(`
-      *,
-      tag:post_tags (
-        id,
-        name,
-        slug,
-        parent_id,
-        title_sq,
-        title_en
-      )
-    `)
+    .select(`*, ${POST_TAG_EMBED}`)
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
 
-  return { data, error };
+  if (error) logPostsApiError("fetchPostBySlug", error);
+
+  return { data: data ? normalizePostRow(data) : data, error };
 }
 
 export async function fetchAdminPosts() {
   const { data, error } = await supabase
     .from("posts")
-    .select(`
-      *,
-      tag:post_tags (
-        id,
-        name,
-        slug,
-        parent_id,
-        title_sq,
-        title_en
-      )
-    `)
+    .select(`*, ${POST_TAG_EMBED}`)
     .order("created_at", { ascending: false });
 
-  return { data: data || [], error };
+  if (error) logPostsApiError("fetchAdminPosts", error);
+
+  return { data: (data || []).map(normalizePostRow), error };
 }
 
 export async function createPost(payload) {

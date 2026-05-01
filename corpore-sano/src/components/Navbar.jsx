@@ -182,6 +182,9 @@ function Navbar() {
 
     (async () => {
       const { data, error } = await fetchNavPostTags();
+      if (error) {
+        console.warn("[Navbar] fetchNavPostTags", error.message || error);
+      }
       if (!cancelled && !error) {
         setPostTags(data || []);
       }

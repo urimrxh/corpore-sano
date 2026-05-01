@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchPostBySlug } from "../lib/postsApi";
+import {
+  fetchPostBySlug,
+  postDisplayContent,
+  postDisplayDescription,
+  postDisplayTitle,
+} from "../lib/postsApi";
 import { useI18n } from "../context/I18nContext";
 import Seo, { SITE_NAME, resolveAbsoluteUrl } from "../components/Seo";
 import { SEO_POSTS_DESCRIPTION, SEO_POSTS_TITLE } from "../seoCopy";
 
-function buildArticleJsonLd(post) {
-  if (!post?.title || post.description == null || post.description === "") return null;
+function buildArticleJsonLd(post, locale) {
+  const headline = postDisplayTitle(post, locale);
+  const description = postDisplayDescription(post, locale);
+  if (!headline || description === "") return null;
   const imageUrl = post.image_url ? resolveAbsoluteUrl(post.image_url) : undefined;
   const author = post.author
     ? { "@type": "Person", "name": post.author }
@@ -22,8 +29,8 @@ function buildArticleJsonLd(post) {
   const o = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: post.title,
-    description: post.description,
+    headline,
+    description,
     author,
     publisher,
   };
@@ -35,7 +42,7 @@ function buildArticleJsonLd(post) {
 }
 
 function PostDetailPage() {
-  const { intlLocaleTag, t } = useI18n();
+  const { intlLocaleTag, locale, t } = useI18n();
   const { slug } = useParams();
 
   function formatDate(value) {
@@ -53,7 +60,10 @@ function PostDetailPage() {
     let cancelled = false;
 
     (async () => {
-      const { data } = await fetchPostBySlug(slug);
+      const { data, error } = await fetchPostBySlug(slug);
+      if (error) {
+        console.error("[PostDetailPage] fetchPostBySlug", error.message || error);
+      }
       if (!cancelled) {
         setPost(data);
         setLoading(false);
@@ -69,7 +79,14 @@ function PostDetailPage() {
     <Seo title={SEO_POSTS_TITLE} description={SEO_POSTS_DESCRIPTION} path={`/posts/${slug}`} />
   );
 
-  const articleLd = useMemo(() => (post ? buildArticleJsonLd(post) : null), [post]);
+  const articleLd = useMemo(
+    () => (post ? buildArticleJsonLd(post, locale) : null),
+    [post, locale],
+  );
+
+  const displayTitle = post ? postDisplayTitle(post, locale) : "";
+  const displayDescription = post ? postDisplayDescription(post, locale) : "";
+  const displayContent = post ? postDisplayContent(post, locale) : "";
 
   if (loading) {
     return (
@@ -103,8 +120,8 @@ function PostDetailPage() {
   return (
     <section className="page-section">
       <Seo
-        title={`${post.title} | ${SITE_NAME}`}
-        description={post.description}
+        title={`${displayTitle} | ${SITE_NAME}`}
+        description={displayDescription}
         path={`/posts/${slug}`}
         image={seoImage}
         type="article"
@@ -114,7 +131,7 @@ function PostDetailPage() {
         {post.image_url ? (
           <img
             src={post.image_url}
-            alt={post.title}
+            alt={displayTitle}
             className="mb-8 h-[340px] w-full rounded-2xl object-cover"
           />
         ) : null}
@@ -131,11 +148,14 @@ function PostDetailPage() {
         ) : null}
 
         <h1 className="mb-6 text-[36px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          {post.title}
+          {displayTitle}
         </h1>
 
         <div className="prose max-w-none dark:prose-invert">
-          <p>{post.description}</p>
+          <p>{displayDescription}</p>
+          {displayContent ? (
+            <div className="mt-4 whitespace-pre-wrap">{displayContent}</div>
+          ) : null}
         </div>
 
         {hasExternalUrl ? (

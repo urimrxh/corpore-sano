@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { useI18n } from "../context/I18nContext";
 
+import { postDisplayDescription, postDisplayTitle } from "../lib/postsApi";
+
 function PostCard({ post }) {
-  const { intlLocaleTag, t } = useI18n();
+  const { intlLocaleTag, locale, t } = useI18n();
 
   function formatDate(value) {
     if (!value) return "";
@@ -25,12 +27,15 @@ function PostCard({ post }) {
     overflow: "hidden",
   };
 
+  const displayTitle = postDisplayTitle(post, locale);
+  const displayDescription = postDisplayDescription(post, locale);
+
   const cardContent = (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] shadow-sm dark:border-[#2a3441] dark:bg-[#1a2332]">
       {post.image_url ? (
         <img
           src={post.image_url}
-          alt={post.title}
+          alt={displayTitle}
           className="h-52 w-full object-cover"
         />
       ) : (
@@ -56,14 +61,14 @@ function PostCard({ post }) {
           className="mb-2 text-xl font-semibold text-[#103152] dark:text-[#e8ecf1]"
           style={{ ...textClampStyle, WebkitLineClamp: 3 }}
         >
-          {post.title}
+          {displayTitle}
         </h3>
 
         <p
           className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]"
           style={{ ...textClampStyle, WebkitLineClamp: 4 }}
         >
-          {post.description}
+          {displayDescription}
         </p>
 
         <span className="mt-auto inline-flex items-center text-sm font-medium text-[#218c77] underline dark:text-[#4dc89f]">

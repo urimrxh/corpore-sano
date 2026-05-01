@@ -14,7 +14,10 @@ function PostsPage() {
     let cancelled = false;
 
     (async () => {
-      const { data } = await fetchPublishedPosts();
+      const { data, error } = await fetchPublishedPosts();
+      if (error) {
+        console.error("[PostsPage] fetchPublishedPosts", error.message || error);
+      }
       if (!cancelled) {
         setPosts(data || []);
         setLoading(false);
