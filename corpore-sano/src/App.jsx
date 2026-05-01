@@ -81,8 +81,9 @@ function App() {
             />
             <Route element={<PostsRoutes />}>
               <Route path="/posts" element={<PostsPage />} />
-              <Route path="/posts/:slug" element={<PostDetailPage />} />
+              <Route path="/posts/tag/:parentSlug/:subSlug" element={<PostsByTagPage />} />
               <Route path="/posts/tag/:slug" element={<PostsByTagPage />} />
+              <Route path="/posts/:slug" element={<PostDetailPage />} />
             </Route>
           </Routes>
         </main>

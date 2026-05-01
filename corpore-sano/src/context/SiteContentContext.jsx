@@ -73,11 +73,55 @@ function applyAboutSharedFieldsFromSource(fromAbout, targetAbout) {
   };
 }
 
+function normalizeFooterSocial(baseFooter, savedFooter) {
+  const baseSocial = baseFooter?.social && typeof baseFooter.social === "object" ? baseFooter.social : {};
+  const savedSocial = savedFooter?.social && typeof savedFooter.social === "object" ? savedFooter.social : {};
+  const merged = { ...baseSocial, ...savedSocial };
+  const rawProfiles = merged.linkedinProfiles;
+  const savedListsProfiles =
+    savedSocial &&
+    Object.prototype.hasOwnProperty.call(savedSocial, "linkedinProfiles") &&
+    Array.isArray(savedSocial.linkedinProfiles);
+
+  if (savedListsProfiles) {
+    const cleaned = (rawProfiles || [])
+      .filter((p) => p && String(p.url || "").trim())
+      .map((p, i) => ({
+        id: String(p.id || `li-${i}`),
+        name: String(p.name || "").trim() || "LinkedIn",
+        url: String(p.url || "").trim(),
+      }));
+    return { ...merged, linkedinProfiles: cleaned };
+  }
+
+  if (Array.isArray(rawProfiles) && rawProfiles.length > 0) {
+    return {
+      ...merged,
+      linkedinProfiles: rawProfiles
+        .filter((p) => p && String(p.url || "").trim())
+        .map((p, i) => ({
+          id: String(p.id || `li-${i}`),
+          name: String(p.name || "").trim() || "LinkedIn",
+          url: String(p.url || "").trim(),
+        })),
+    };
+  }
+  const legacy = String(merged.linkedin || "").trim();
+  if (legacy) {
+    return {
+      ...merged,
+      linkedinProfiles: [{ id: "legacy", name: "LinkedIn", url: legacy }],
+    };
+  }
+  return { ...merged, linkedinProfiles: [] };
+}
+
 /** Deep-merge persisted site content for one locale with bundled defaults. */
 function mergeSavedWithBase(saved, locale) {
   try {
     const base = cloneDefaults(locale);
     if (!saved || typeof saved !== "object") return base;
+    const mergedFooter = { ...base.footer, ...saved.footer };
     return {
       ...base,
       ...saved,
@@ -113,9 +157,8 @@ function mergeSavedWithBase(saved, locale) {
           : base.videos,
       videosPage: { ...base.videosPage, ...saved.videosPage },
       footer: {
-        ...base.footer,
-        ...saved.footer,
-        social: { ...base.footer.social, ...saved.footer?.social },
+        ...mergedFooter,
+        social: normalizeFooterSocial(base.footer, saved.footer),
       },
       bookMeeting: { ...base.bookMeeting, ...saved.bookMeeting },
       nutritionists: { ...base.nutritionists, ...saved.nutritionists },

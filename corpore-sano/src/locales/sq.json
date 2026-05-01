@@ -126,7 +126,8 @@
       "social": {
         "facebook": "https://www.facebook.com/",
         "instagram": "https://www.instagram.com/",
-        "linkedin": "https://www.linkedin.com/",
+        "linkedin": "",
+        "linkedinProfiles": [],
         "emailMailto": "mailto:contact@corporesano.com"
       },
       "copyright": "© 2026 Corpore Sano. Të gjitha të drejtat e rezervuara."
@@ -164,7 +165,11 @@
       "facebook": "Facebook",
       "instagram": "Instagram",
       "linkedin": "LinkedIn",
-      "email": "Email"
+      "email": "Email",
+      "linkedinModalTitle": "Ekipi ynë në LinkedIn",
+      "linkedinModalClose": "Mbyll",
+      "linkedinModalEmpty": "Ende nuk janë konfiguruar profile LinkedIn.",
+      "linkedinProfileLinkAria": "Hap profilin LinkedIn për {name}"
     },
     "contactForm": {
       "fullName": "Emri i plotë",
@@ -235,7 +240,9 @@
       "fallbackTagTitle": "Postimet",
       "emptyTag": "Nuk u gjetën postime në këtë seksion.",
       "latest": "Postimet e fundit",
-      "viewAll": "Shiko postimet"
+      "viewAll": "Shiko postimet",
+      "tagSubnavAria": "Nënkategori",
+      "tagSubnavAll": "Të gjitha"
     },
     "videos": {
       "empty": "Ende nuk ka video."
@@ -324,6 +331,9 @@
       "authorPh": "Autori",
       "imagePh": "URL e figurës (opsionale)",
       "noTag": "Pa etiketë",
+      "tagsLabel": "Etiketa dhe nënkategori",
+      "tagsHint": "Zgjidhni një ose më shumë. Mund t’i përzini etiketa kryesore dhe nënkategori. Etiketa e para e zgjedhur përdoret si etiketë kryesore në kartat kur duhet.",
+      "noTagsYet": "Ende nuk ka etiketa. Shtoni te «Etiketat e postimeve».",
       "draft": "Skicë",
       "published": "I publikuar",
       "update": "Përditëso postimin",
@@ -337,10 +347,17 @@
     "adminTags": {
       "confirmDelete": "Të fshihet kjo etiketë?",
       "namePh": "Emri i etiketës",
+      "nameRequired": "Shkruani emrin e etiketës.",
       "slugPh": "Slug i etiketës",
+      "titleSqPh": "Titulli i etiketës (SQ — titulli në faqen e arkivit)",
+      "titleEnPh": "Titulli i etiketës (EN — titulli në faqen e arkivit)",
+      "parentLabel": "Etiketa prind (opsionale)",
+      "parentNone": "— Etiketë kryesore —",
+      "parentHint": "Lëreni bosh për etiketë në menu. Zgjidhni një prind për nënkategori.",
       "orderLabel": "Rendi në menu",
       "orderPh": "Rendi në menu",
       "showNav": "Shfaq në menunë",
+      "active": "Aktive",
       "update": "Përditëso etiketën",
       "create": "Krijo etiketën",
       "edit": "Ndrysho",
@@ -494,6 +511,12 @@
       "addFooterField": "+ Shto fushë në fund",
       "copyright": "Rreshti i të drejtave të autorit",
       "socialUrls": "URL-të e rrjeteve sociale",
+      "linkedinProfilesHeading": "Profile LinkedIn (ikona në fund të faqes)",
+      "linkedinProfilesHint": "Vizitorët klikojnë ikonën LinkedIn në fund për të parë këtë listë. Çdo rresht hap URL-në në skedë të re.",
+      "linkedinProfileName": "Emri për shfaqje",
+      "linkedinProfileUrl": "URL e profilit LinkedIn",
+      "linkedinProfileRemove": "Hiq profilin",
+      "linkedinProfileAdd": "+ Shto profil LinkedIn",
       "bookMeetingCard": "Rezervo takim",
       "nutritionistsCard": "Specialistët e ushqyerjes",
       "bookingsHint": "Kërkesat për konsultë nga rrjedha e rezervimit në ballinë. Rezervimet për meshkuj përdorin kalendarin e specialistit mashkull; femrat atë të specialistes kur sinkronizimi me Google është aktiv.",

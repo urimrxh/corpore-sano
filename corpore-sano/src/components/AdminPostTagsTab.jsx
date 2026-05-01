@@ -1,17 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { adminT } from "../lib/adminUi";
 import {
   createTag,
   deleteTag,
-  fetchAllActiveTags,
+  fetchAdminPostTags,
   updateTag,
 } from "../lib/postsApi";
 
 const initialForm = {
   name: "",
   slug: "",
+  title_sq: "",
+  title_en: "",
+  parent_id: "",
   show_in_nav: true,
   nav_order: 0,
+  is_active: true,
 };
 
 function AdminPostTagsTab() {
@@ -19,8 +23,13 @@ function AdminPostTagsTab() {
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
 
+  const parentOptions = useMemo(
+    () => (tags || []).filter((t) => !t.parent_id),
+    [tags],
+  );
+
   async function loadTags() {
-    const { data } = await fetchAllActiveTags();
+    const { data } = await fetchAdminPostTags();
     setTags(data || []);
   }
 
@@ -31,8 +40,14 @@ function AdminPostTagsTab() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    if (!(form.name || "").trim()) {
+      window.alert(adminT("adminTags.nameRequired"));
+      return;
+    }
+
     const payload = {
       ...form,
+      parent_id: form.parent_id || null,
       nav_order: Number(form.nav_order || 0),
     };
 
@@ -60,6 +75,31 @@ function AdminPostTagsTab() {
     loadTags();
   }
 
+  function tagRouteLine(tagRow) {
+    if (tagRow.parent_id) {
+      const p = tags.find((t) => t.id === tagRow.parent_id);
+      if (p) return `/posts/tag/${p.slug}/${tagRow.slug}`;
+    }
+    return `/posts/tag/${tagRow.slug}`;
+  }
+
+  const sortedList = useMemo(() => {
+    const parents = tags.filter((t) => !t.parent_id);
+    const children = tags.filter((t) => t.parent_id);
+    const out = [];
+    parents.forEach((p) => {
+      out.push(p);
+      children
+        .filter((c) => c.parent_id === p.id)
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+        .forEach((c) => out.push(c));
+    });
+    children
+      .filter((c) => !parents.some((p) => p.id === c.parent_id))
+      .forEach((c) => out.push(c));
+    return out;
+  }, [tags]);
+
   return (
     <div className="space-y-8">
       <form
@@ -79,6 +119,48 @@ function AdminPostTagsTab() {
           placeholder={adminT("adminTags.slugPh")}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
+
+        <input
+          value={form.title_sq}
+          onChange={(e) => setForm((p) => ({ ...p, title_sq: e.target.value }))}
+          placeholder={adminT("adminTags.titleSqPh")}
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
+        />
+
+        <input
+          value={form.title_en}
+          onChange={(e) => setForm((p) => ({ ...p, title_en: e.target.value }))}
+          placeholder={adminT("adminTags.titleEnPh")}
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
+        />
+
+        <div className="admin-field">
+          <label className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+            {adminT("adminTags.parentLabel")}
+          </label>
+          <select
+            value={form.parent_id || ""}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                parent_id: e.target.value,
+                show_in_nav: e.target.value ? false : p.show_in_nav,
+              }))
+            }
+            className="mt-1 w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
+          >
+            <option value="">{adminT("adminTags.parentNone")}</option>
+            {parentOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+            {adminT("adminTags.parentHint")}
+          </p>
+        </div>
+
         <label className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
           {adminT("adminTags.orderLabel")}
         </label>
@@ -87,18 +169,31 @@ function AdminPostTagsTab() {
           value={form.nav_order}
           onChange={(e) => setForm((p) => ({ ...p, nav_order: e.target.value }))}
           placeholder={adminT("adminTags.orderPh")}
-          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
+          disabled={Boolean(form.parent_id)}
+          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] disabled:opacity-50 dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
         <label className="flex items-center gap-2 text-[#103152] dark:text-[#e8ecf1]">
           <input
             type="checkbox"
             checked={form.show_in_nav}
+            disabled={Boolean(form.parent_id)}
             onChange={(e) =>
               setForm((p) => ({ ...p, show_in_nav: e.target.checked }))
             }
           />
           {adminT("adminTags.showNav")}
+        </label>
+
+        <label className="flex items-center gap-2 text-[#103152] dark:text-[#e8ecf1]">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, is_active: e.target.checked }))
+            }
+          />
+          {adminT("adminTags.active")}
         </label>
 
         <button type="submit" className="admin-btn-primary">
@@ -107,17 +202,17 @@ function AdminPostTagsTab() {
       </form>
 
       <div className="space-y-3">
-        {tags.map((tag) => (
+        {sortedList.map((tag) => (
           <div
             key={tag.id}
-            className="flex flex-col gap-3 rounded-xl border border-[#e1e5ec] bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-[#2a3441] dark:bg-[#1e2835]"
+            className={`flex flex-col gap-3 rounded-xl border border-[#e1e5ec] bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-[#2a3441] dark:bg-[#1e2835] ${tag.parent_id ? "ml-0 sm:ml-6" : ""}`}
           >
             <div>
               <p className="font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                {tag.name}
+                {tag.parent_id ? `↳ ${tag.name}` : tag.name}
               </p>
               <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
-                /posts/tag/{tag.slug}
+                {tagRouteLine(tag)}
               </p>
             </div>
 
@@ -129,8 +224,12 @@ function AdminPostTagsTab() {
                   setForm({
                     name: tag.name || "",
                     slug: tag.slug || "",
+                    title_sq: tag.title_sq || "",
+                    title_en: tag.title_en || "",
+                    parent_id: tag.parent_id || "",
                     show_in_nav: Boolean(tag.show_in_nav),
-                    nav_order: tag.nav_order || 0,
+                    nav_order: tag.nav_order ?? 0,
+                    is_active: tag.is_active !== false,
                   });
                 }}
                 className="admin-btn-secondary admin-btn-secondary--sm"

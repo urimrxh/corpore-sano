@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { adminT } from "../lib/adminUi";
 import {
   createPost,
   deletePost,
+  fetchAdminPostTags,
   fetchAdminPosts,
-  fetchAllActiveTags,
+  fetchPostTagIds,
   slugify,
   updatePost,
 } from "../lib/postsApi";
@@ -17,7 +18,7 @@ const initialForm = {
   author: "",
   image_url: "",
   external_url: "",
-  tag_id: "",
+  tag_ids: [],
   status: "draft",
 };
 
@@ -42,15 +43,29 @@ function AdminPostsTab() {
   });
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  const parentTags = useMemo(
+    () => (tags || []).filter((t) => !t.parent_id),
+    [tags],
+  );
+
   async function loadAll() {
     setLoading(true);
     const [{ data: postsData }, { data: tagsData }] = await Promise.all([
       fetchAdminPosts(),
-      fetchAllActiveTags(),
+      fetchAdminPostTags(),
     ]);
     setPosts(postsData || []);
     setTags(tagsData || []);
     setLoading(false);
+  }
+
+  function toggleTagId(tagId) {
+    setForm((prev) => {
+      const next = new Set(prev.tag_ids || []);
+      if (next.has(tagId)) next.delete(tagId);
+      else next.add(tagId);
+      return { ...prev, tag_ids: [...next] };
+    });
   }
 
   useEffect(() => {
@@ -119,7 +134,7 @@ function AdminPostsTab() {
 
     const payload = {
       ...source,
-      tag_id: source.tag_id || null,
+      tag_ids: Array.isArray(form.tag_ids) ? form.tag_ids.filter(Boolean) : [],
       image_url: source.image_url || null,
       external_url: source.external_url || null,
     };
@@ -144,8 +159,11 @@ function AdminPostsTab() {
     loadAll();
   }
 
-  function handleEdit(post) {
+  async function handleEdit(post) {
     setEditingId(post.id);
+    const { data: assignIds } = await fetchPostTagIds(post.id);
+    const ids =
+      assignIds?.length ? assignIds : post.tag_id ? [post.tag_id] : [];
     setForm({
       title: post.title || "",
       slug: post.slug || "",
@@ -154,7 +172,7 @@ function AdminPostsTab() {
       author: post.author || "",
       image_url: post.image_url || "",
       external_url: post.external_url || "",
-      tag_id: post.tag_id || "",
+      tag_ids: ids,
       status: post.status || "draft",
     });
     setUseExternalPage(Boolean(post.external_url));
@@ -245,19 +263,51 @@ function AdminPostsTab() {
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
         />
 
-        <select
-          name="tag_id"
-          value={form.tag_id}
-          onChange={handleChange}
-          className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1]"
-        >
-          <option value="">{adminT("adminPosts.noTag")}</option>
-          {tags.map((tag) => (
-            <option key={tag.id} value={tag.id}>
-              {tag.name}
-            </option>
-          ))}
-        </select>
+        <div className="rounded-md border border-[#e1e5ec] bg-[#f8fafc] p-3 dark:border-[#2a3441] dark:bg-[#161d27]">
+          <p className="mb-1 text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
+            {adminT("adminPosts.tagsLabel")}
+          </p>
+          <p className="mb-3 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+            {adminT("adminPosts.tagsHint")}
+          </p>
+          <div className="max-h-48 space-y-2 overflow-y-auto">
+            {parentTags.length === 0 ? (
+              <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+                {adminT("adminPosts.noTagsYet")}
+              </p>
+            ) : (
+              parentTags.map((parent) => (
+                <div key={parent.id} className="space-y-1">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[#103152] dark:text-[#e8ecf1]">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-[#e1e5ec] text-[#218c77] dark:border-[#2a3441]"
+                      checked={form.tag_ids.includes(parent.id)}
+                      onChange={() => toggleTagId(parent.id)}
+                    />
+                    {parent.name}
+                  </label>
+                  {tags
+                    .filter((t) => t.parent_id === parent.id)
+                    .map((child) => (
+                      <label
+                        key={child.id}
+                        className="ml-5 flex cursor-pointer items-center gap-2 text-sm text-[#4d515c] dark:text-[#b8c4d0]"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-[#e1e5ec] text-[#218c77] dark:border-[#2a3441]"
+                          checked={form.tag_ids.includes(child.id)}
+                          onChange={() => toggleTagId(child.id)}
+                        />
+                        {child.name}
+                      </label>
+                    ))}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         <select
           name="status"
