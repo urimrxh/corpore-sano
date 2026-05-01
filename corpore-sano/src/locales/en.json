@@ -126,7 +126,8 @@
       "social": {
         "facebook": "https://www.facebook.com/",
         "instagram": "https://www.instagram.com/",
-        "linkedin": "https://www.linkedin.com/",
+        "linkedin": "",
+        "linkedinProfiles": [],
         "emailMailto": "mailto:contact@corporesano.com"
       },
       "copyright": "© 2026 Corpore Sano. All rights reserved."
@@ -164,7 +165,11 @@
       "facebook": "Facebook",
       "instagram": "Instagram",
       "linkedin": "LinkedIn",
-      "email": "Email"
+      "email": "Email",
+      "linkedinModalTitle": "Our team on LinkedIn",
+      "linkedinModalClose": "Close",
+      "linkedinModalEmpty": "No LinkedIn profiles are configured yet.",
+      "linkedinProfileLinkAria": "Open LinkedIn profile for {name}"
     },
     "contactForm": {
       "fullName": "Full name",
@@ -235,7 +240,9 @@
       "fallbackTagTitle": "Posts",
       "emptyTag": "No posts found in this section.",
       "latest": "Latest posts",
-      "viewAll": "View all posts"
+      "viewAll": "View all posts",
+      "tagSubnavAria": "Subcategories",
+      "tagSubnavAll": "All"
     },
     "videos": {
       "empty": "No videos yet."
@@ -336,6 +343,9 @@
       "externalFetching": "Fetching preview…",
       "externalUrlRequired": "External page URL is required when external mode is enabled.",
       "externalSaveMissingColumn": "External URL was not saved. Run the latest Supabase migration to add posts.external_url, then save again.",
+      "tagsLabel": "Tags & subcategories",
+      "tagsHint": "Select one or more. Main tags and subcategories can be combined. The first selected tag is used as the primary label on cards when needed.",
+      "noTagsYet": "No tags defined yet. Add tags under Post tags.",
       "update": "Update post",
       "create": "Create post",
       "cancel": "Cancel",
@@ -347,10 +357,17 @@
     "adminTags": {
       "confirmDelete": "Delete this tag?",
       "namePh": "Tag name",
+      "nameRequired": "Enter a tag name.",
       "slugPh": "Tag slug",
+      "titleSqPh": "Tag title (SQ — archive page heading)",
+      "titleEnPh": "Tag title (EN — archive page heading)",
+      "parentLabel": "Parent tag (optional)",
+      "parentNone": "— Top-level tag —",
+      "parentHint": "Leave empty for a main nav tag. Choose a parent to create a subcategory.",
       "orderLabel": "Nav order",
       "orderPh": "Nav order",
       "showNav": "Show in nav",
+      "active": "Active",
       "update": "Update tag",
       "create": "Create tag",
       "edit": "Edit",
@@ -508,6 +525,12 @@
       "addFooterField": "+ Add footer field",
       "copyright": "Copyright line",
       "socialUrls": "Social URLs",
+      "linkedinProfilesHeading": "LinkedIn profiles (footer icon)",
+      "linkedinProfilesHint": "Visitors click the footer LinkedIn icon to see this list. Each row opens the URL in a new tab.",
+      "linkedinProfileName": "Display name",
+      "linkedinProfileUrl": "LinkedIn profile URL",
+      "linkedinProfileRemove": "Remove profile",
+      "linkedinProfileAdd": "+ Add LinkedIn profile",
       "bookMeetingCard": "Book a meeting",
       "nutritionistsCard": "Nutritionists",
       "bookingsHint": "Consultation requests from the home page booking flow. Male bookings use the male specialist calendar; female use the female calendar when Google sync is configured.",

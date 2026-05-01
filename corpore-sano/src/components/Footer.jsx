@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import BookConsultationLink from "./BookConsultationLink";
 import { FaFacebook, FaInstagram, FaLinkedin } from "react-icons/fa";
@@ -21,6 +22,8 @@ function chunkArray(items, size) {
 function Footer({ headerNavItems = [] }) {
   const { content } = useSiteContent();
   const { t } = useI18n();
+  const [linkedinOpen, setLinkedinOpen] = useState(false);
+
   const {
     brandName,
     phone,
@@ -35,6 +38,19 @@ function Footer({ headerNavItems = [] }) {
     extraInfoFields = [],
   } = content.footer;
 
+  const linkedinProfiles = Array.isArray(social.linkedinProfiles)
+    ? social.linkedinProfiles
+    : [];
+
+  useEffect(() => {
+    if (!linkedinOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setLinkedinOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [linkedinOpen]);
+
   const baseNavItems = [
     { label: t("nav.home"), to: "/" },
     { label: t("nav.contact"), to: "/contact" },
@@ -45,7 +61,7 @@ function Footer({ headerNavItems = [] }) {
     (item, index, self) =>
       item?.label &&
       item?.to &&
-      index === self.findIndex((navItem) => navItem.to === item.to)
+      index === self.findIndex((navItem) => navItem.to === item.to),
   );
 
   const footerInfoItems = [
@@ -82,7 +98,7 @@ function Footer({ headerNavItems = [] }) {
 
   const footerInfoColumns = chunkArray(
     footerInfoItems,
-    FOOTER_INFO_ITEMS_PER_COLUMN
+    FOOTER_INFO_ITEMS_PER_COLUMN,
   );
 
   function renderFooterInfoItem(item) {
@@ -205,15 +221,18 @@ function Footer({ headerNavItems = [] }) {
                     <FaInstagram className="h-5 w-5" aria-hidden />
                   </a>
 
-                  <a
-                    href={social.linkedin}
-                    className="inline-flex items-center justify-center rounded-md p-1.5 text-[#103152] transition-colors hover:bg-[#e8ecf1] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835]"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={t("footer.linkedin")}
-                  >
-                    <FaLinkedin className="h-5 w-5" aria-hidden />
-                  </a>
+                  {linkedinProfiles.length > 0 ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-md p-1.5 text-[#103152] transition-colors hover:bg-[#e8ecf1] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835]"
+                      aria-label={t("footer.linkedin")}
+                      aria-haspopup="dialog"
+                      aria-expanded={linkedinOpen}
+                      onClick={() => setLinkedinOpen(true)}
+                    >
+                      <FaLinkedin className="h-5 w-5" aria-hidden />
+                    </button>
+                  ) : null}
 
                   <a
                     href={social.emailMailto}
@@ -229,9 +248,78 @@ function Footer({ headerNavItems = [] }) {
         </div>
 
         <p className="footer-copyright border-t border-[#e1e5ec] py-4 text-center text-xs text-[#6b7280] dark:border-[#2a3441] dark:text-[#8b95a3]">
-          {copyright}
+          {copyright}{" "}
+          <a
+            href="https://linkedin.com/in/urimrexhepi"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#218c77] underline decoration-[#218c77]/40 underline-offset-2 transition-colors hover:text-[#1b7361] dark:text-[#4dc89f] dark:decoration-[#4dc89f]/45 dark:hover:text-[#6ee7b7]"
+          >
+            @UR
+          </a>
         </p>
       </div>
+
+      {linkedinOpen ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+          role="presentation"
+          onClick={() => setLinkedinOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="footer-linkedin-modal-title"
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-[#e1e5ec] bg-white p-5 shadow-xl dark:border-[#2a3441] dark:bg-[#1e2835]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <h2
+                id="footer-linkedin-modal-title"
+                className="text-lg font-semibold text-[#103152] dark:text-[#e8ecf1]"
+              >
+                {t("footer.linkedinModalTitle")}
+              </h2>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-sm text-[#4d515c] hover:bg-[#e8ecf1] dark:text-[#b8c4d0] dark:hover:bg-[#2a3441]"
+                onClick={() => setLinkedinOpen(false)}
+              >
+                {t("footer.linkedinModalClose")}
+              </button>
+            </div>
+            {linkedinProfiles.length === 0 ? (
+              <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
+                {t("footer.linkedinModalEmpty")}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {linkedinProfiles.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[#e8ecf1] px-3 py-2.5 dark:border-[#2a3441]"
+                  >
+                    <span className="min-w-0 flex-1 text-sm font-medium text-[#103152] dark:text-[#e8ecf1]">
+                      {p.name}
+                    </span>
+                    <a
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex shrink-0 items-center justify-center rounded-md p-2 text-[#103152] transition-colors hover:bg-[#e8ecf1] dark:text-[#e8ecf1] dark:hover:bg-[#121a22]"
+                      aria-label={t("footer.linkedinProfileLinkAria", {
+                        name: p.name,
+                      })}
+                    >
+                      <FaLinkedin className="h-5 w-5" aria-hidden />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : null}
     </footer>
   );
 }

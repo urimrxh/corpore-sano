@@ -1283,13 +1283,13 @@ function AdminLogin() {
               {adminT("adminLogin.socialUrls")}
             </h3>
 
-            {["facebook", "instagram", "linkedin", "emailMailto"].map((k) => (
+            {["facebook", "instagram", "emailMailto"].map((k) => (
               <div key={k} className="admin-field">
                 <label htmlFor={`soc-${k}`}>{k}</label>
                 <input
                   id={`soc-${k}`}
                   type="url"
-                  value={draft.footer.social[k]}
+                  value={draft.footer.social[k] ?? ""}
                   onChange={(e) =>
                     setDraft((d) => ({
                       ...d,
@@ -1302,6 +1302,109 @@ function AdminLogin() {
                 />
               </div>
             ))}
+
+            <h4 className="mb-2 mt-4 text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
+              {adminT("adminLogin.linkedinProfilesHeading")}
+            </h4>
+            <p className="admin-hint mb-3">{adminT("adminLogin.linkedinProfilesHint")}</p>
+            {(draft.footer.social.linkedinProfiles ?? []).map((row, index) => (
+              <div
+                key={row.id || `li-${index}`}
+                className="admin-card mb-3"
+              >
+                <div className="admin-field">
+                  <label>{adminT("adminLogin.linkedinProfileName")}</label>
+                  <input
+                    type="text"
+                    value={row.name ?? ""}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        footer: {
+                          ...d.footer,
+                          social: {
+                            ...d.footer.social,
+                            linkedinProfiles: (
+                              d.footer.social.linkedinProfiles ?? []
+                            ).map((item, i) =>
+                              i === index ? { ...item, name: e.target.value } : item,
+                            ),
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="admin-field">
+                  <label>{adminT("adminLogin.linkedinProfileUrl")}</label>
+                  <input
+                    type="url"
+                    value={row.url ?? ""}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        footer: {
+                          ...d.footer,
+                          social: {
+                            ...d.footer.social,
+                            linkedinProfiles: (
+                              d.footer.social.linkedinProfiles ?? []
+                            ).map((item, i) =>
+                              i === index ? { ...item, url: e.target.value } : item,
+                            ),
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="admin-btn-danger rounded-md px-3 py-1.5 text-sm font-semibold"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      footer: {
+                        ...d.footer,
+                        social: {
+                          ...d.footer.social,
+                          linkedinProfiles: (
+                            d.footer.social.linkedinProfiles ?? []
+                          ).filter((_, i) => i !== index),
+                        },
+                      },
+                    }))
+                  }
+                >
+                  {adminT("adminLogin.linkedinProfileRemove")}
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="admin-btn-secondary"
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  footer: {
+                    ...d.footer,
+                    social: {
+                      ...d.footer.social,
+                      linkedinProfiles: [
+                        ...(d.footer.social.linkedinProfiles ?? []),
+                        {
+                          id: `li-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                          name: "",
+                          url: "",
+                        },
+                      ],
+                    },
+                  },
+                }))
+              }
+            >
+              {adminT("adminLogin.linkedinProfileAdd")}
+            </button>
           </div>
         )}
 
