@@ -1,16 +1,9 @@
 import { supabase } from "./supabase";
 
-/** PostgREST embed: use resource name `post_tags` (not `tag:post_tags`), then normalize to `tag`. */
-const POST_TAG_EMBED = `
-  post_tags (
-    id,
-    name,
-    slug,
-    parent_id,
-    title_sq,
-    title_en
-  )
-`;
+const POST_TAG_SELECT =
+  "id, name, slug, parent_id, title_sq, title_en";
+
+const ASSIGNMENTS_CHUNK = 150;
 
 function logPostsApiError(context, error) {
   if (!error) return;
@@ -18,16 +11,164 @@ function logPostsApiError(context, error) {
   console.error(`[postsApi] ${context}`, msg, error);
 }
 
+function chunkIds(ids, size = ASSIGNMENTS_CHUNK) {
+  const u = [...new Set((ids || []).filter(Boolean))];
+  const out = [];
+  for (let i = 0; i < u.length; i += size) out.push(u.slice(i, i + size));
+  return out;
+}
+
 /**
- * Flatten embedded `post_tags` into `tag` for components that expect `post.tag`.
+ * Build Map post_id -> ordered tag_id[] from assignment rows.
+ * @param {{ post_id: string, tag_id: string }[]} rows
+ */
+function assignmentsByPostId(rows) {
+  /** @type {Map<string, string[]>} */
+  const m = new Map();
+  for (const r of rows || []) {
+    const pid = r.post_id;
+    const tid = r.tag_id;
+    if (!pid || !tid) continue;
+    if (!m.has(pid)) m.set(pid, []);
+    m.get(pid).push(tid);
+  }
+  return m;
+}
+
+/** @param {any[]} tagRows */
+function tagMapFromRows(tagRows) {
+  /** @type {Map<string, object>} */
+  const m = new Map();
+  for (const t of tagRows || []) {
+    if (t?.id) m.set(t.id, t);
+  }
+  return m;
+}
+
+/**
+ * Primary tag: legacy `posts.tag_id` if that tag exists, else first assignment tag found in map.
+ */
+function primaryTagForPost(post, assignMap, tagMap) {
+  if (post?.tag_id && tagMap.has(post.tag_id)) {
+    return tagMap.get(post.tag_id);
+  }
+  const ordered = assignMap.get(post.id) || [];
+  for (const tid of ordered) {
+    if (tagMap.has(tid)) return tagMap.get(tid);
+  }
+  return null;
+}
+
+function assignedTagsInOrder(post, assignMap, tagMap) {
+  const ordered = assignMap.get(post.id) || [];
+  return ordered.map((id) => tagMap.get(id)).filter(Boolean);
+}
+
+/**
+ * Attach `tag` (primary), `assignedTags` (ordered), `assignedTagNames` (comma-separated for admin UI).
+ */
+function enrichPostsWithTags(posts, assignRows, tagRows) {
+  const assignMap = assignmentsByPostId(assignRows);
+  const tagMap = tagMapFromRows(tagRows);
+  return (posts || []).map((post) => {
+    const assignedTags = assignedTagsInOrder(post, assignMap, tagMap);
+    const tag = primaryTagForPost(post, assignMap, tagMap);
+    const assignedTagNames = assignedTags.map((t) => t.name).filter(Boolean).join(", ");
+    return {
+      ...post,
+      tag: tag || null,
+      assignedTags,
+      assignedTagNames,
+    };
+  });
+}
+
+/**
+ * @param {string[]} postIds
+ * @returns {Promise<{ data: { post_id: string, tag_id: string }[], error: Error | null }>}
+ */
+async function fetchAssignmentsForPostIds(postIds) {
+  if (!supabase || !postIds.length) {
+    return { data: [], error: null };
+  }
+  const all = [];
+  let lastError = null;
+  for (const chunk of chunkIds(postIds)) {
+    const { data, error } = await supabase
+      .from("post_tag_assignments")
+      .select("post_id, tag_id")
+      .in("post_id", chunk);
+    if (error) {
+      logPostsApiError("fetchAssignmentsForPostIds", error);
+      lastError = error;
+      break;
+    }
+    all.push(...(data || []));
+  }
+  return { data: all, error: lastError };
+}
+
+/**
+ * @param {string[]} tagIds
+ */
+async function fetchPostTagRecordsByIds(tagIds) {
+  if (!supabase || !tagIds.length) {
+    return { data: [], error: null };
+  }
+  const all = [];
+  let lastError = null;
+  for (const chunk of chunkIds(tagIds)) {
+    const { data, error } = await supabase
+      .from("post_tags")
+      .select(POST_TAG_SELECT)
+      .in("id", chunk);
+    if (error) {
+      logPostsApiError("fetchPostTagRecordsByIds", error);
+      lastError = error;
+      break;
+    }
+    all.push(...(data || []));
+  }
+  return { data: all, error: lastError };
+}
+
+function collectTagIdsForPosts(posts, assignRows) {
+  const ids = new Set();
+  for (const p of posts || []) {
+    if (p?.tag_id) ids.add(p.tag_id);
+  }
+  for (const r of assignRows || []) {
+    if (r?.tag_id) ids.add(r.tag_id);
+  }
+  return [...ids];
+}
+
+/**
+ * After loading posts + assignments + tags, merge; on assignment/tag errors still return posts with partial tags.
+ * @param {object[]} posts
+ * @param {{ data: any[], error: any }} assignResult
+ * @param {{ data: any[], error: any }} tagResult
+ * @returns {{ rows: object[], secondaryError: Error | null }}
+ */
+function mergePostsWithTagJoins(posts, assignResult, tagResult) {
+  const secondaryError = assignResult.error || tagResult.error || null;
+  const rows = enrichPostsWithTags(
+    posts,
+    assignResult.data || [],
+    tagResult.data || [],
+  );
+  return { rows, secondaryError };
+}
+
+/**
+ * Strip any stale PostgREST embed key (defensive).
  * @param {object|null|undefined} row
  */
 export function normalizePostRow(row) {
   if (!row || typeof row !== "object") return row;
-  let rel = row.post_tags ?? row.tag;
-  if (Array.isArray(rel)) rel = rel[0] ?? null;
-  const { post_tags: _drop, ...rest } = row;
-  return { ...rest, tag: rel ?? rest.tag ?? null };
+  if (!Object.prototype.hasOwnProperty.call(row, "post_tags")) return row;
+  const { post_tags: _pt, ...rest } = row;
+  return rest;
 }
 
 /**
@@ -212,7 +353,11 @@ export async function fetchPostsForTagArchive(parentSlug, subSlug) {
   let parentTag = null;
 
   if (subSlug) {
-    const { data: p } = await supabase.from("post_tags").select("*").eq("slug", parentSlug).maybeSingle();
+    const { data: p } = await supabase
+      .from("post_tags")
+      .select("*")
+      .eq("slug", parentSlug)
+      .maybeSingle();
     if (!p || p.parent_id) {
       return {
         data: [],
@@ -240,7 +385,11 @@ export async function fetchPostsForTagArchive(parentSlug, subSlug) {
     }
     tag = c;
   } else {
-    const { data: t } = await supabase.from("post_tags").select("*").eq("slug", parentSlug).maybeSingle();
+    const { data: t } = await supabase
+      .from("post_tags")
+      .select("*")
+      .eq("slug", parentSlug)
+      .maybeSingle();
     if (!t) {
       return {
         data: [],
@@ -252,7 +401,11 @@ export async function fetchPostsForTagArchive(parentSlug, subSlug) {
     }
     tag = t;
     if (t.parent_id) {
-      const { data: p } = await supabase.from("post_tags").select("*").eq("id", t.parent_id).maybeSingle();
+      const { data: p } = await supabase
+        .from("post_tags")
+        .select("*")
+        .eq("id", t.parent_id)
+        .maybeSingle();
       parentTag = p || null;
     } else {
       parentTag = t;
@@ -291,25 +444,44 @@ export async function fetchPostsForTagArchive(parentSlug, subSlug) {
     };
   }
 
-  const { data, error } = await supabase
+  const { data: rawPosts, error: postsErr } = await supabase
     .from("posts")
-    .select(`*, ${POST_TAG_EMBED}`)
+    .select("*")
     .eq("status", "published")
     .in("id", postIds)
     .order("published_at", { ascending: false });
 
-  if (error) {
-    logPostsApiError("fetchPostsForTagArchive posts list", error);
+  if (postsErr) {
+    logPostsApiError("fetchPostsForTagArchive posts list", postsErr);
+    return {
+      data: [],
+      tag,
+      parentTag,
+      subTag: subSlug ? tag : null,
+      error: postsErr,
+    };
   }
 
-  const rows = (data || []).map(normalizePostRow);
+  const posts = (rawPosts || []).map(normalizePostRow);
+  const postIdList = posts.map((p) => p.id);
+  const assignResult = await fetchAssignmentsForPostIds(postIdList);
+  const tagIds = collectTagIdsForPosts(posts, assignResult.data);
+  const tagResult = await fetchPostTagRecordsByIds(tagIds);
+  const { rows, secondaryError } = mergePostsWithTagJoins(
+    posts,
+    assignResult,
+    tagResult,
+  );
+  if (secondaryError) {
+    logPostsApiError("fetchPostsForTagArchive tag join", secondaryError);
+  }
 
   return {
     data: rows,
     tag,
     parentTag,
     subTag: subSlug ? tag : null,
-    error,
+    error: secondaryError || null,
   };
 }
 
@@ -342,53 +514,126 @@ export async function replacePostTagAssignments(postId, tagIds) {
 }
 
 export async function fetchLatestPosts(limit = 4) {
-  const { data, error } = await supabase
+  const { data: rawPosts, error } = await supabase
     .from("posts")
-    .select(`*, ${POST_TAG_EMBED}`)
+    .select("*")
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(limit);
 
-  if (error) logPostsApiError("fetchLatestPosts", error);
+  if (error) {
+    logPostsApiError("fetchLatestPosts", error);
+    return { data: [], error };
+  }
 
-  return { data: (data || []).map(normalizePostRow), error };
+  const posts = (rawPosts || []).map(normalizePostRow);
+  const postIds = posts.map((p) => p.id);
+  const assignResult = await fetchAssignmentsForPostIds(postIds);
+  const tagIds = collectTagIdsForPosts(posts, assignResult.data);
+  const tagResult = await fetchPostTagRecordsByIds(tagIds);
+  const { rows, secondaryError } = mergePostsWithTagJoins(
+    posts,
+    assignResult,
+    tagResult,
+  );
+  if (secondaryError) {
+    logPostsApiError("fetchLatestPosts tag join", secondaryError);
+  }
+
+  return { data: rows, error: error || secondaryError || null };
 }
 
 export async function fetchPublishedPosts(limit = 100) {
-  const { data, error } = await supabase
+  const { data: rawPosts, error } = await supabase
     .from("posts")
-    .select(`*, ${POST_TAG_EMBED}`)
+    .select("*")
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(limit);
 
-  if (error) logPostsApiError("fetchPublishedPosts", error);
+  if (error) {
+    logPostsApiError("fetchPublishedPosts", error);
+    return { data: [], error };
+  }
 
-  return { data: (data || []).map(normalizePostRow), error };
+  const posts = (rawPosts || []).map(normalizePostRow);
+  const postIds = posts.map((p) => p.id);
+  const assignResult = await fetchAssignmentsForPostIds(postIds);
+  const tagIds = collectTagIdsForPosts(posts, assignResult.data);
+  const tagResult = await fetchPostTagRecordsByIds(tagIds);
+  const { rows, secondaryError } = mergePostsWithTagJoins(
+    posts,
+    assignResult,
+    tagResult,
+  );
+  if (secondaryError) {
+    logPostsApiError("fetchPublishedPosts tag join", secondaryError);
+  }
+
+  return { data: rows, error: error || secondaryError || null };
 }
 
 export async function fetchPostBySlug(slug) {
-  const { data, error } = await supabase
+  const { data: raw, error } = await supabase
     .from("posts")
-    .select(`*, ${POST_TAG_EMBED}`)
+    .select("*")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();
 
-  if (error) logPostsApiError("fetchPostBySlug", error);
+  if (error) {
+    logPostsApiError("fetchPostBySlug", error);
+    return { data: null, error };
+  }
+  if (!raw) {
+    return { data: null, error: null };
+  }
 
-  return { data: data ? normalizePostRow(data) : data, error };
+  const post = normalizePostRow(raw);
+  const assignResult = await fetchAssignmentsForPostIds([post.id]);
+  const tagIds = collectTagIdsForPosts([post], assignResult.data);
+  const tagResult = await fetchPostTagRecordsByIds(tagIds);
+  const { rows, secondaryError } = mergePostsWithTagJoins(
+    [post],
+    assignResult,
+    tagResult,
+  );
+  if (secondaryError) {
+    logPostsApiError("fetchPostBySlug tag join", secondaryError);
+  }
+
+  return {
+    data: rows[0] || post,
+    error: secondaryError || null,
+  };
 }
 
 export async function fetchAdminPosts() {
-  const { data, error } = await supabase
+  const { data: rawPosts, error } = await supabase
     .from("posts")
-    .select(`*, ${POST_TAG_EMBED}`)
+    .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) logPostsApiError("fetchAdminPosts", error);
+  if (error) {
+    logPostsApiError("fetchAdminPosts", error);
+    return { data: [], error };
+  }
 
-  return { data: (data || []).map(normalizePostRow), error };
+  const posts = (rawPosts || []).map(normalizePostRow);
+  const postIds = posts.map((p) => p.id);
+  const assignResult = await fetchAssignmentsForPostIds(postIds);
+  const tagIds = collectTagIdsForPosts(posts, assignResult.data);
+  const tagResult = await fetchPostTagRecordsByIds(tagIds);
+  const { rows, secondaryError } = mergePostsWithTagJoins(
+    posts,
+    assignResult,
+    tagResult,
+  );
+  if (secondaryError) {
+    logPostsApiError("fetchAdminPosts tag join", secondaryError);
+  }
+
+  return { data: rows, error: error || secondaryError || null };
 }
 
 export async function createPost(payload) {
