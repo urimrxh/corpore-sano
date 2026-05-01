@@ -2,18 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   fetchPostBySlug,
-  postDisplayContent,
   postDisplayDescription,
   postDisplayTitle,
 } from "../lib/postsApi";
+import {
+  buildSanitizedBodyHtml,
+  buildSanitizedIntroHtml,
+  stripTagsToText,
+} from "../lib/postHtml";
 import { useI18n } from "../context/I18nContext";
 import Seo, { SITE_NAME, resolveAbsoluteUrl } from "../components/Seo";
 import { SEO_POSTS_DESCRIPTION, SEO_POSTS_TITLE } from "../seoCopy";
+import "../style/postRichContent.css";
 
 function buildArticleJsonLd(post, locale) {
   const headline = postDisplayTitle(post, locale);
-  const description = postDisplayDescription(post, locale);
-  if (!headline || description === "") return null;
+  const description = stripTagsToText(postDisplayDescription(post, locale));
+  if (!headline || !description) return null;
   const imageUrl = post.image_url ? resolveAbsoluteUrl(post.image_url) : undefined;
   const author = post.author
     ? { "@type": "Person", "name": post.author }
@@ -85,8 +90,11 @@ function PostDetailPage() {
   );
 
   const displayTitle = post ? postDisplayTitle(post, locale) : "";
-  const displayDescription = post ? postDisplayDescription(post, locale) : "";
-  const displayContent = post ? postDisplayContent(post, locale) : "";
+  const seoDescriptionPlain = post
+    ? stripTagsToText(postDisplayDescription(post, locale))
+    : "";
+  const introHtml = post ? buildSanitizedIntroHtml(post, locale) : "";
+  const bodyHtml = post ? buildSanitizedBodyHtml(post, locale) : "";
 
   if (loading) {
     return (
@@ -121,7 +129,7 @@ function PostDetailPage() {
     <section className="page-section">
       <Seo
         title={`${displayTitle} | ${SITE_NAME}`}
-        description={displayDescription}
+        description={seoDescriptionPlain}
         path={`/posts/${slug}`}
         image={seoImage}
         type="article"
@@ -151,10 +159,18 @@ function PostDetailPage() {
           {displayTitle}
         </h1>
 
-        <div className="prose max-w-none dark:prose-invert">
-          <p>{displayDescription}</p>
-          {displayContent ? (
-            <div className="mt-4 whitespace-pre-wrap">{displayContent}</div>
+        <div className="max-w-none">
+          {introHtml ? (
+            <div
+              className="post-rich-intro text-[#2d3748] dark:text-[#e2e8f0]"
+              dangerouslySetInnerHTML={{ __html: introHtml }}
+            />
+          ) : null}
+          {bodyHtml ? (
+            <div
+              className="post-rich-content"
+              dangerouslySetInnerHTML={{ __html: bodyHtml }}
+            />
           ) : null}
         </div>
 

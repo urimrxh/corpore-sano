@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminT } from "../lib/adminUi";
+import { normalizeStoredRichHtml } from "../lib/postHtml";
 import {
   createPost,
   deletePost,
@@ -9,11 +10,14 @@ import {
   slugify,
   updatePost,
 } from "../lib/postsApi";
+import AdminRichTextEditor from "./AdminRichTextEditor";
 
 const initialForm = {
   title: "",
   slug: "",
   description: "",
+  content_sq: "",
+  content_en: "",
   topic: "",
   author: "",
   image_url: "",
@@ -139,6 +143,14 @@ function AdminPostsTab() {
       external_url: source.external_url || null,
     };
 
+    if (useExternalPage) {
+      payload.content_sq = null;
+      payload.content_en = null;
+    } else {
+      payload.content_sq = normalizeStoredRichHtml(form.content_sq);
+      payload.content_en = normalizeStoredRichHtml(form.content_en);
+    }
+
     const result = editingId
       ? await updatePost(editingId, payload)
       : await createPost(payload);
@@ -168,6 +180,8 @@ function AdminPostsTab() {
       title: post.title || "",
       slug: post.slug || "",
       description: post.description || "",
+      content_sq: post.content_sq || "",
+      content_en: post.content_en || "",
       topic: post.topic || "",
       author: post.author || "",
       image_url: post.image_url || "",
@@ -227,14 +241,49 @@ function AdminPostsTab() {
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          placeholder={adminT("adminPosts.descPh")}
-          disabled={useExternalPage}
-          className="min-h-[140px] w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
-        />
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-[#103152] dark:text-[#e8ecf1]">
+            {adminT("adminPosts.descPh")}
+          </label>
+          <p className="mb-2 text-xs text-[#4d515c] dark:text-[#8ea0b5]">
+            {adminT("adminPosts.descHint")}
+          </p>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            placeholder={adminT("adminPosts.descPh")}
+            disabled={useExternalPage}
+            className="min-h-[100px] w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
+          />
+        </div>
+
+        {!useExternalPage ? (
+          <div className="space-y-6">
+            <AdminRichTextEditor
+              key={`${editingId ?? "new"}-content_sq`}
+              mountKey={`${editingId ?? "new"}-content_sq`}
+              initialHtml={form.content_sq}
+              onChange={(html) =>
+                setForm((prev) => ({ ...prev, content_sq: html }))
+              }
+              label={adminT("adminPosts.bodySqLabel")}
+              placeholder={adminT("adminPosts.bodySqPh")}
+              disabled={false}
+            />
+            <AdminRichTextEditor
+              key={`${editingId ?? "new"}-content_en`}
+              mountKey={`${editingId ?? "new"}-content_en`}
+              initialHtml={form.content_en}
+              onChange={(html) =>
+                setForm((prev) => ({ ...prev, content_en: html }))
+              }
+              label={adminT("adminPosts.bodyEnLabel")}
+              placeholder={adminT("adminPosts.bodyEnPh")}
+              disabled={false}
+            />
+          </div>
+        ) : null}
 
         <input
           name="topic"

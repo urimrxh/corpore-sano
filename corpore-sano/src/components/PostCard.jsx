@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useI18n } from "../context/I18nContext";
 
-import { postDisplayDescription, postDisplayTitle } from "../lib/postsApi";
+import { postCardPlainExcerpt } from "../lib/postHtml";
+import { postDisplayTitle } from "../lib/postsApi";
 
 function PostCard({ post }) {
   const { intlLocaleTag, locale, t } = useI18n();
@@ -28,7 +29,7 @@ function PostCard({ post }) {
   };
 
   const displayTitle = postDisplayTitle(post, locale);
-  const displayDescription = postDisplayDescription(post, locale);
+  const cardExcerpt = postCardPlainExcerpt(post, locale);
 
   const cardContent = (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e1e5ec] bg-[#f5f8fa] shadow-sm dark:border-[#2a3441] dark:bg-[#1a2332]">
@@ -68,7 +69,7 @@ function PostCard({ post }) {
           className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]"
           style={{ ...textClampStyle, WebkitLineClamp: 4 }}
         >
-          {displayDescription}
+          {cardExcerpt}
         </p>
 
         <span className="mt-auto inline-flex items-center text-sm font-medium text-[#218c77] underline dark:text-[#4dc89f]">
