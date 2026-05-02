@@ -155,7 +155,7 @@ function PostDetailPage() {
           </p>
         ) : null}
 
-        <h1 className="mb-6 text-[36px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
+        <h1 className="mb-6 text-[36px] font-semibold text-[#103152] dark:text-[#e8ecf1] text-center">
           {displayTitle}
         </h1>
 
