@@ -253,6 +253,12 @@
     width: 26px;
     height: 26px;
   }
+  .home-hero-banner .swiper-button-prev{
+    left: 20px;
+  }
+  .home-hero-banner .swiper-button-next{
+    right: 20px;
+  }
 
   .home-hero-banner .swiper-button-prev::after,
   .home-hero-banner .swiper-button-next::after {
