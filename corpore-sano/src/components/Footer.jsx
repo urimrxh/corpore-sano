@@ -41,6 +41,8 @@ function Footer({ headerNavItems = [] }) {
   const linkedinProfiles = Array.isArray(social.linkedinProfiles)
     ? social.linkedinProfiles
     : [];
+  const resolvedFooterEmail = (email || "").trim() || String(social.emailMailto || "").replace(/^mailto:/i, "").trim();
+  const resolvedFooterEmailMailto = resolvedFooterEmail ? `mailto:${resolvedFooterEmail}` : (social.emailMailto || "mailto:");
 
   useEffect(() => {
     if (!linkedinOpen) return undefined;
@@ -235,7 +237,7 @@ function Footer({ headerNavItems = [] }) {
                   ) : null}
 
                   <a
-                    href={social.emailMailto}
+                    href={resolvedFooterEmailMailto}
                     className="inline-flex items-center justify-center rounded-md p-1.5 text-[#103152] transition-colors hover:bg-[#e8ecf1] dark:text-[#e8ecf1] dark:hover:bg-[#1e2835] hover:cursor-pointer"
                     aria-label={t("footer.email")}
                   >

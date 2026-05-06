@@ -655,11 +655,19 @@ export async function createPost(payload) {
   const row = stripPostMetaPayload(payload);
   const tagIds = Array.isArray(payload.tag_ids) ? payload.tag_ids.filter(Boolean) : [];
   const tag_id = row.tag_id || (tagIds.length ? tagIds[0] : null);
+  const titleSq = String(row.title_sq || "").trim();
+  const titleEn = String(row.title_en || "").trim();
+  const descriptionSq = String(row.description_sq || "").trim();
+  const descriptionEn = String(row.description_en || "").trim();
+  const fallbackTitle = String(row.title || "").trim();
+  const fallbackDescription = String(row.description || "").trim();
 
   const cleanPayload = {
     ...row,
+    title: fallbackTitle || titleSq || titleEn || "",
+    description: fallbackDescription || descriptionSq || descriptionEn || "",
     tag_id: tag_id || null,
-    slug: row.slug ? slugify(row.slug) : slugify(row.title),
+    slug: row.slug ? slugify(row.slug) : slugify(fallbackTitle || titleSq || titleEn),
     published_at:
       row.status === "published"
         ? row.published_at || new Date().toISOString()
@@ -698,10 +706,18 @@ export async function updatePost(id, payload) {
   const row = stripPostMetaPayload(payload);
   const tagIdsRaw = payload.tag_ids;
   const tagIds = Array.isArray(tagIdsRaw) ? tagIdsRaw.filter(Boolean) : null;
+  const titleSq = String(row.title_sq || "").trim();
+  const titleEn = String(row.title_en || "").trim();
+  const descriptionSq = String(row.description_sq || "").trim();
+  const descriptionEn = String(row.description_en || "").trim();
+  const fallbackTitle = String(row.title || "").trim();
+  const fallbackDescription = String(row.description || "").trim();
 
   const cleanPayload = {
     ...row,
-    slug: row.slug ? slugify(row.slug) : slugify(row.title),
+    title: fallbackTitle || titleSq || titleEn || "",
+    description: fallbackDescription || descriptionSq || descriptionEn || "",
+    slug: row.slug ? slugify(row.slug) : slugify(fallbackTitle || titleSq || titleEn),
     published_at:
       row.status === "published"
         ? row.published_at || new Date().toISOString()

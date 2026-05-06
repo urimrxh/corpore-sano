@@ -1518,7 +1518,7 @@ function AdminLogin() {
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
               {adminT("adminLogin.postsHint")}
             </p>
-            <AdminPostsTab />
+            <AdminPostsTab editingLocale={adminEditLocale} />
           </div>
         )}
 
@@ -1527,7 +1527,7 @@ function AdminLogin() {
             <p className="mb-4 text-sm text-[#4d515c] dark:text-[#b8c4d0]">
               {adminT("adminLogin.tagsHint")}
             </p>
-            <AdminPostTagsTab />
+            <AdminPostTagsTab editingLocale={adminEditLocale} />
           </div>
         )}
 

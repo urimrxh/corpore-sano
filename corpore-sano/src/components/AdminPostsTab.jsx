@@ -7,15 +7,18 @@ import {
   fetchAdminPostTags,
   fetchAdminPosts,
   fetchPostTagIds,
+  postDisplayTitle,
   slugify,
   updatePost,
 } from "../lib/postsApi";
 import AdminRichTextEditor from "./AdminRichTextEditor";
 
 const initialForm = {
-  title: "",
+  title_sq: "",
+  title_en: "",
   slug: "",
-  description: "",
+  description_sq: "",
+  description_en: "",
   content_sq: "",
   content_en: "",
   topic: "",
@@ -23,10 +26,15 @@ const initialForm = {
   image_url: "",
   external_url: "",
   tag_ids: [],
-  status: "draft",
+  status: "published",
 };
 
-function AdminPostsTab() {
+function AdminPostsTab({ editingLocale = "sq" }) {
+  const loc = editingLocale === "en" ? "en" : "sq";
+  const titleKey = loc === "en" ? "title_en" : "title_sq";
+  const descriptionKey = loc === "en" ? "description_en" : "description_sq";
+  const contentKey = loc === "en" ? "content_en" : "content_sq";
+
   function formatPostStatus(status) {
     if (status === "published") return adminT("adminPosts.statusPublished");
     if (status === "draft") return adminT("adminPosts.statusDraft");
@@ -81,9 +89,10 @@ function AdminPostsTab() {
 
     setForm((prev) => {
       const next = { ...prev, [name]: value };
-      if (name === "title" && !prev.slug) {
+      if (name === titleKey) {
         next.slug = slugify(value);
       }
+      if (name === "slug") next.slug = slugify(value);
       return next;
     });
   }
@@ -127,8 +136,8 @@ function AdminPostsTab() {
     const source = useExternalPage
       ? {
           ...form,
-          title: externalDraft.title.trim(),
-          description: externalDraft.description.trim(),
+          [titleKey]: externalDraft.title.trim(),
+          [descriptionKey]: externalDraft.description.trim(),
           image_url: externalDraft.image_url.trim(),
           external_url: externalUrl,
           author: form.author || "External source",
@@ -141,7 +150,13 @@ function AdminPostsTab() {
       tag_ids: Array.isArray(form.tag_ids) ? form.tag_ids.filter(Boolean) : [],
       image_url: source.image_url || null,
       external_url: source.external_url || null,
+      slug: slugify(source.slug || source[titleKey]),
     };
+
+    payload.title_sq = (payload.title_sq || "").trim();
+    payload.title_en = (payload.title_en || "").trim();
+    payload.description_sq = (payload.description_sq || "").trim();
+    payload.description_en = (payload.description_en || "").trim();
 
     if (useExternalPage) {
       payload.content_sq = null;
@@ -176,10 +191,16 @@ function AdminPostsTab() {
     const { data: assignIds } = await fetchPostTagIds(post.id);
     const ids =
       assignIds?.length ? assignIds : post.tag_id ? [post.tag_id] : [];
+    const sqTitle = post.title_sq || post.title || "";
+    const enTitle = post.title_en || post.title || "";
+    const sqDescription = post.description_sq || post.description || "";
+    const enDescription = post.description_en || post.description || "";
     setForm({
-      title: post.title || "",
+      title_sq: sqTitle,
+      title_en: enTitle,
       slug: post.slug || "",
-      description: post.description || "",
+      description_sq: sqDescription,
+      description_en: enDescription,
       content_sq: post.content_sq || "",
       content_en: post.content_en || "",
       topic: post.topic || "",
@@ -187,13 +208,13 @@ function AdminPostsTab() {
       image_url: post.image_url || "",
       external_url: post.external_url || "",
       tag_ids: ids,
-      status: post.status || "draft",
+      status: post.status || "published",
     });
     setUseExternalPage(Boolean(post.external_url));
     setExternalDraft({
       url: post.external_url || "",
-      title: post.title || "",
-      description: post.description || "",
+      title: (loc === "en" ? enTitle : sqTitle) || "",
+      description: (loc === "en" ? enDescription : sqDescription) || "",
       image_url: post.image_url || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -224,8 +245,8 @@ function AdminPostsTab() {
         </h3>
 
         <input
-          name="title"
-          value={form.title}
+          name={titleKey}
+          value={form[titleKey]}
           onChange={handleChange}
           placeholder={adminT("adminPosts.titlePh")}
           disabled={useExternalPage}
@@ -237,7 +258,8 @@ function AdminPostsTab() {
           value={form.slug}
           onChange={handleChange}
           placeholder={adminT("adminPosts.slugPh")}
-          disabled={useExternalPage}
+          disabled
+          readOnly
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />
 
@@ -249,8 +271,8 @@ function AdminPostsTab() {
             {adminT("adminPosts.descHint")}
           </p>
           <textarea
-            name="description"
-            value={form.description}
+            name={descriptionKey}
+            value={form[descriptionKey]}
             onChange={handleChange}
             placeholder={adminT("adminPosts.descPh")}
             disabled={useExternalPage}
@@ -261,25 +283,14 @@ function AdminPostsTab() {
         {!useExternalPage ? (
           <div className="space-y-6">
             <AdminRichTextEditor
-              key={`${editingId ?? "new"}-content_sq`}
-              mountKey={`${editingId ?? "new"}-content_sq`}
-              initialHtml={form.content_sq}
+              key={`${editingId ?? "new"}-${contentKey}`}
+              mountKey={`${editingId ?? "new"}-${contentKey}`}
+              initialHtml={form[contentKey]}
               onChange={(html) =>
-                setForm((prev) => ({ ...prev, content_sq: html }))
+                setForm((prev) => ({ ...prev, [contentKey]: html }))
               }
-              label={adminT("adminPosts.bodySqLabel")}
-              placeholder={adminT("adminPosts.bodySqPh")}
-              disabled={false}
-            />
-            <AdminRichTextEditor
-              key={`${editingId ?? "new"}-content_en`}
-              mountKey={`${editingId ?? "new"}-content_en`}
-              initialHtml={form.content_en}
-              onChange={(html) =>
-                setForm((prev) => ({ ...prev, content_en: html }))
-              }
-              label={adminT("adminPosts.bodyEnLabel")}
-              placeholder={adminT("adminPosts.bodyEnPh")}
+              label={loc === "en" ? adminT("adminPosts.bodyEnLabel") : adminT("adminPosts.bodySqLabel")}
+              placeholder={loc === "en" ? adminT("adminPosts.bodyEnPh") : adminT("adminPosts.bodySqPh")}
               disabled={false}
             />
           </div>
@@ -444,7 +455,7 @@ function AdminPostsTab() {
 
         <div className="flex flex-wrap gap-3">
           <button type="submit" className="admin-btn-primary">
-            {editingId ? "Përditëso postimin" : "Krijo postimin"}
+            {editingId ? adminT("adminPosts.update") : adminT("adminPosts.create")}
           </button>
 
           {editingId ? (
@@ -472,7 +483,7 @@ function AdminPostsTab() {
           >
             <div>
               <h4 className="font-semibold text-[#103152] dark:text-[#e8ecf1]">
-                {post.title}
+                {postDisplayTitle(post, loc)}
               </h4>
               <p className="text-sm text-[#4d515c] dark:text-[#b8c4d0]">
                 {post.author} • {formatPostStatus(post.status)}
