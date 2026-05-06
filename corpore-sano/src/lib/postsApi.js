@@ -265,13 +265,13 @@ function stripPostMetaPayload(payload) {
 
 function missingColumnNameFromError(error) {
   const msg = String(error?.message || "");
-  const m = msg.match(/'([^']+)' column/i);
+  const m = msg.match(/["']([^"']+)["']\s+column/i);
   return m?.[1] || null;
 }
 
 async function insertPostWithFallback(cleanPayload) {
   let attempt = { ...cleanPayload };
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 20; i += 1) {
     let { data, error } = await supabase
       .from("posts")
       .insert(attempt)
@@ -305,7 +305,7 @@ async function insertPostWithFallback(cleanPayload) {
 
 async function updatePostWithFallback(id, cleanPayload) {
   let attempt = { ...cleanPayload };
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 20; i += 1) {
     let { data, error } = await supabase
       .from("posts")
       .update(attempt)
