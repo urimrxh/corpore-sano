@@ -116,6 +116,7 @@ async function fetchPostTagRecordsByIds(tagIds) {
     return { data: [], error: null };
   }
   const all = [];
+  const seen = new Set();
   let lastError = null;
   for (const chunk of chunkIds(tagIds)) {
     const { data, error } = await supabase
@@ -127,7 +128,35 @@ async function fetchPostTagRecordsByIds(tagIds) {
       lastError = error;
       break;
     }
-    all.push(...(data || []));
+    for (const row of data || []) {
+      if (!row?.id || seen.has(row.id)) continue;
+      seen.add(row.id);
+      all.push(row);
+    }
+  }
+
+  const parentIds = [
+    ...new Set(
+      all
+        .map((row) => row?.parent_id)
+        .filter((id) => id && !seen.has(id)),
+    ),
+  ];
+  for (const chunk of chunkIds(parentIds)) {
+    const { data, error } = await supabase
+      .from("post_tags")
+      .select(POST_TAG_SELECT)
+      .in("id", chunk);
+    if (error) {
+      logPostsApiError("fetchPostTagRecordsByIds parent tags", error);
+      lastError = error;
+      break;
+    }
+    for (const row of data || []) {
+      if (!row?.id || seen.has(row.id)) continue;
+      seen.add(row.id);
+      all.push(row);
+    }
   }
   return { data: all, error: lastError };
 }
@@ -265,7 +294,10 @@ function stripPostMetaPayload(payload) {
 
 function missingColumnNameFromError(error) {
   const msg = String(error?.message || "");
-  const m = msg.match(/["']([^"']+)["']\s+column/i);
+  const m =
+    msg.match(/["']([^"']+)["']\s+column/i) ||
+    msg.match(/column\s+["']([^"']+)["']/i) ||
+    msg.match(/schema cache.*["']([^"']+)["']/i);
   return m?.[1] || null;
 }
 
@@ -737,13 +769,15 @@ export async function createPost(payload) {
   const descriptionEn = String(row.description_en || "").trim();
   const fallbackTitle = String(row.title || "").trim();
   const fallbackDescription = String(row.description || "").trim();
+  const canonicalTitle = titleSq || fallbackTitle || titleEn || "";
+  const canonicalDescription = descriptionSq || fallbackDescription || descriptionEn || "";
 
   const cleanPayload = {
     ...row,
-    title: fallbackTitle || titleSq || titleEn || "",
-    description: fallbackDescription || descriptionSq || descriptionEn || "",
+    title: canonicalTitle,
+    description: canonicalDescription,
     tag_id: tag_id || null,
-    slug: row.slug ? slugify(row.slug) : slugify(fallbackTitle || titleSq || titleEn),
+    slug: slugify(titleSq || row.slug || fallbackTitle || titleEn),
     published_at:
       row.status === "published"
         ? row.published_at || new Date().toISOString()
@@ -771,12 +805,14 @@ export async function updatePost(id, payload) {
   const descriptionEn = String(row.description_en || "").trim();
   const fallbackTitle = String(row.title || "").trim();
   const fallbackDescription = String(row.description || "").trim();
+  const canonicalTitle = titleSq || fallbackTitle || titleEn || "";
+  const canonicalDescription = descriptionSq || fallbackDescription || descriptionEn || "";
 
   const cleanPayload = {
     ...row,
-    title: fallbackTitle || titleSq || titleEn || "",
-    description: fallbackDescription || descriptionSq || descriptionEn || "",
-    slug: row.slug ? slugify(row.slug) : slugify(fallbackTitle || titleSq || titleEn),
+    title: canonicalTitle,
+    description: canonicalDescription,
+    slug: slugify(titleSq || row.slug || fallbackTitle || titleEn),
     published_at:
       row.status === "published"
         ? row.published_at || new Date().toISOString()
@@ -805,12 +841,15 @@ export async function deletePost(id) {
 
 function cleanTagPayload(payload) {
   const hasParent = Boolean(payload.parent_id);
+  const titleSq = (payload.title_sq || "").trim();
+  const titleEn = (payload.title_en || "").trim();
+  const name = (payload.name || titleSq || titleEn).trim();
   return {
-    name: (payload.name || "").trim(),
-    slug: slugify(payload.slug || payload.name),
+    name,
+    slug: slugify(titleSq || payload.slug || name || titleEn),
     parent_id: payload.parent_id || null,
-    title_sq: (payload.title_sq || "").trim() || null,
-    title_en: (payload.title_en || "").trim() || null,
+    title_sq: titleSq || null,
+    title_en: titleEn || null,
     show_in_nav: hasParent ? false : Boolean(payload.show_in_nav),
     is_active: payload.is_active !== false,
     nav_order: Number(payload.nav_order) || 0,

@@ -89,7 +89,7 @@ function AdminPostsTab({ editingLocale = "sq" }) {
 
     setForm((prev) => {
       const next = { ...prev, [name]: value };
-      if (name === titleKey) {
+      if (name === "title_sq") {
         next.slug = slugify(value);
       }
       if (name === "slug") next.slug = slugify(value);
@@ -150,9 +150,9 @@ function AdminPostsTab({ editingLocale = "sq" }) {
       tag_ids: Array.isArray(form.tag_ids) ? form.tag_ids.filter(Boolean) : [],
       image_url: source.image_url || null,
       external_url: source.external_url || null,
-      slug: slugify(source.slug || source[titleKey]),
-      title: (source[titleKey] || "").trim(),
-      description: (source[descriptionKey] || "").trim(),
+      slug: slugify(source.title_sq || source.slug || source.title_en),
+      title: (source.title_sq || source.title_en || "").trim(),
+      description: (source.description_sq || source.description_en || "").trim(),
     };
 
     payload.title_sq = (payload.title_sq || "").trim();
@@ -194,9 +194,9 @@ function AdminPostsTab({ editingLocale = "sq" }) {
     const ids =
       assignIds?.length ? assignIds : post.tag_id ? [post.tag_id] : [];
     const sqTitle = post.title_sq || post.title || "";
-    const enTitle = post.title_en || post.title || "";
+    const enTitle = post.title_en || "";
     const sqDescription = post.description_sq || post.description || "";
-    const enDescription = post.description_en || post.description || "";
+    const enDescription = post.description_en || "";
     setForm({
       title_sq: sqTitle,
       title_en: enTitle,
