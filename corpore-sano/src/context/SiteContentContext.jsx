@@ -73,6 +73,24 @@ function applyAboutSharedFieldsFromSource(fromAbout, targetAbout) {
   };
 }
 
+/**
+ * Keep footer email shared across locales.
+ * Email input in admin is intended as one common business contact.
+ */
+function applyFooterSharedEmailFromSource(fromFooter, targetFooter) {
+  const src = fromFooter && typeof fromFooter === "object" ? fromFooter : {};
+  const dst = targetFooter && typeof targetFooter === "object" ? targetFooter : {};
+  const sharedEmail = typeof src.email === "string" ? src.email : "";
+  return {
+    ...dst,
+    email: sharedEmail,
+    social: {
+      ...(dst.social || {}),
+      emailMailto: sharedEmail ? `mailto:${sharedEmail}` : "",
+    },
+  };
+}
+
 function normalizeFooterSocial(baseFooter, savedFooter) {
   const baseSocial = baseFooter?.social && typeof baseFooter.social === "object" ? baseFooter.social : {};
   const savedSocial = savedFooter?.social && typeof savedFooter.social === "object" ? savedFooter.social : {};
@@ -327,6 +345,12 @@ export function SiteContentProvider({ children }) {
           nextOther = {
             ...nextOther,
             about: applyAboutSharedFieldsFromSource(full.about, nextOther.about),
+          };
+        }
+        if (full.footer && typeof full.footer === "object") {
+          nextOther = {
+            ...nextOther,
+            footer: applyFooterSharedEmailFromSource(full.footer, nextOther.footer),
           };
         }
         store.locales[other] = nextOther;
