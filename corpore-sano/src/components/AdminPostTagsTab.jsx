@@ -33,14 +33,18 @@ function AdminPostTagsTab({ editingLocale = "sq" }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!(form.name || "").trim()) {
+    const titleSq = (form.title_sq || "").trim();
+    const titleEn = (form.title_en || "").trim();
+    const name = (form.name || titleSq || titleEn).trim();
+    if (!name) {
       window.alert(adminT("adminTags.nameRequired"));
       return;
     }
 
     const payload = {
       ...form,
-      slug: slugify(form.name),
+      name,
+      slug: slugify(titleSq || name || titleEn),
       parent_id: form.parent_id || null,
       nav_order: Number(form.nav_order || 0),
     };
@@ -100,7 +104,11 @@ function AdminPostTagsTab({ editingLocale = "sq" }) {
         <input
           value={form.name}
           onChange={(e) =>
-            setForm((p) => ({ ...p, name: e.target.value, slug: slugify(e.target.value) }))
+            setForm((p) => ({
+              ...p,
+              name: e.target.value,
+              slug: slugify(p.title_sq || e.target.value),
+            }))
           }
           placeholder={adminT("adminTags.namePh")}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
@@ -116,7 +124,13 @@ function AdminPostTagsTab({ editingLocale = "sq" }) {
 
         <input
           value={form[titleKey]}
-          onChange={(e) => setForm((p) => ({ ...p, [titleKey]: e.target.value }))}
+          onChange={(e) =>
+            setForm((p) => ({
+              ...p,
+              [titleKey]: e.target.value,
+              slug: titleKey === "title_sq" ? slugify(e.target.value || p.name) : p.slug,
+            }))
+          }
           placeholder={loc === "en" ? adminT("adminTags.titleEnPh") : adminT("adminTags.titleSqPh")}
           className="w-full rounded-md border border-[#e1e5ec] bg-white px-3 py-2 text-[#103152] placeholder:text-[#6b7280] dark:border-[#2a3441] dark:bg-[#161d27] dark:text-[#e8ecf1] dark:placeholder:text-[#8ea0b5]"
         />

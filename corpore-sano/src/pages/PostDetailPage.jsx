@@ -132,6 +132,7 @@ function PostDetailPage() {
         ? primaryTag
         : null;
   const subTag = primaryTag && primaryTag.parent_id ? primaryTag : null;
+  const showSubTagCrumb = Boolean(subTag && parentTag);
 
   return (
     <section className="page-section">
@@ -169,10 +170,10 @@ function PostDetailPage() {
               >
                 {parentTag.name}
               </Link>
-              {subTag ? <span>›</span> : null}
+              {showSubTagCrumb ? <span>›</span> : null}
             </>
           ) : null}
-          {subTag ? (
+          {showSubTagCrumb ? (
             <>
               <Link
                 to={`/posts/tag/${parentTag.slug}/${subTag.slug}`}
