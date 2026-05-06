@@ -95,9 +95,20 @@ function PostsByTagPage() {
         path={seoPath}
       />
       <div className="container">
-        <h1 className="mb-4 text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
-          {heading || t("posts.fallbackTagTitle")}
-        </h1>
+        {parentTag && subTag ? (
+          <div className="mb-4">
+            <h1 className="text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
+              {tagDisplayTitle(parentTag, locale)}
+            </h1>
+            <p className="mt-1 text-lg text-[#4d515c] dark:text-[#b8c4d0]">
+              {tagDisplayTitle(subTag, locale)}
+            </p>
+          </div>
+        ) : (
+          <h1 className="mb-4 text-[32px] font-semibold text-[#103152] dark:text-[#e8ecf1]">
+            {heading || t("posts.fallbackTagTitle")}
+          </h1>
+        )}
 
         {showSubnav ? (
           <nav

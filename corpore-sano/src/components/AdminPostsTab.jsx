@@ -151,6 +151,8 @@ function AdminPostsTab({ editingLocale = "sq" }) {
       image_url: source.image_url || null,
       external_url: source.external_url || null,
       slug: slugify(source.slug || source[titleKey]),
+      title: (source[titleKey] || "").trim(),
+      description: (source[descriptionKey] || "").trim(),
     };
 
     payload.title_sq = (payload.title_sq || "").trim();
