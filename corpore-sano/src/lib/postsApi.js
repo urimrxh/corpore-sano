@@ -263,6 +263,82 @@ function stripPostMetaPayload(payload) {
   return rest;
 }
 
+function missingColumnNameFromError(error) {
+  const msg = String(error?.message || "");
+  const m = msg.match(/'([^']+)' column/i);
+  return m?.[1] || null;
+}
+
+async function insertPostWithFallback(cleanPayload) {
+  let attempt = { ...cleanPayload };
+  for (let i = 0; i < 4; i += 1) {
+    let { data, error } = await supabase
+      .from("posts")
+      .insert(attempt)
+      .select()
+      .single();
+
+    if (
+      error &&
+      typeof error.message === "string" &&
+      error.message.includes("external_url")
+    ) {
+      const { external_url, ...fallbackPayload } = attempt;
+      ({ data, error } = await supabase
+        .from("posts")
+        .insert(fallbackPayload)
+        .select()
+        .single());
+      attempt = fallbackPayload;
+    }
+
+    if (!error) return { data, error: null };
+    const missing = missingColumnNameFromError(error);
+    if (!missing || !Object.prototype.hasOwnProperty.call(attempt, missing)) {
+      return { data: null, error };
+    }
+    const { [missing]: _dropped, ...nextAttempt } = attempt;
+    attempt = nextAttempt;
+  }
+  return { data: null, error: new Error("Could not save post with current schema.") };
+}
+
+async function updatePostWithFallback(id, cleanPayload) {
+  let attempt = { ...cleanPayload };
+  for (let i = 0; i < 4; i += 1) {
+    let { data, error } = await supabase
+      .from("posts")
+      .update(attempt)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (
+      error &&
+      typeof error.message === "string" &&
+      error.message.includes("external_url")
+    ) {
+      const { external_url, ...fallbackPayload } = attempt;
+      ({ data, error } = await supabase
+        .from("posts")
+        .update(fallbackPayload)
+        .eq("id", id)
+        .select()
+        .single());
+      attempt = fallbackPayload;
+    }
+
+    if (!error) return { data, error: null };
+    const missing = missingColumnNameFromError(error);
+    if (!missing || !Object.prototype.hasOwnProperty.call(attempt, missing)) {
+      return { data: null, error };
+    }
+    const { [missing]: _dropped, ...nextAttempt } = attempt;
+    attempt = nextAttempt;
+  }
+  return { data: null, error: new Error("Could not update post with current schema.") };
+}
+
 async function fetchDescendantTagIds(parentId) {
   const { data, error } = await supabase
     .from("post_tags")
@@ -674,24 +750,7 @@ export async function createPost(payload) {
         : null,
   };
 
-  let { data, error } = await supabase
-    .from("posts")
-    .insert(cleanPayload)
-    .select()
-    .single();
-
-  if (
-    error &&
-    typeof error.message === "string" &&
-    error.message.includes("external_url")
-  ) {
-    const { external_url, ...fallbackPayload } = cleanPayload;
-    ({ data, error } = await supabase
-      .from("posts")
-      .insert(fallbackPayload)
-      .select()
-      .single());
-  }
+  const { data, error } = await insertPostWithFallback(cleanPayload);
 
   if (!error && data?.id) {
     const effectiveIds = tagIds.length ? tagIds : tag_id ? [tag_id] : [];
@@ -728,26 +787,7 @@ export async function updatePost(id, payload) {
     cleanPayload.tag_id = tagIds.length ? tagIds[0] : null;
   }
 
-  let { data, error } = await supabase
-    .from("posts")
-    .update(cleanPayload)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (
-    error &&
-    typeof error.message === "string" &&
-    error.message.includes("external_url")
-  ) {
-    const { external_url, ...fallbackPayload } = cleanPayload;
-    ({ data, error } = await supabase
-      .from("posts")
-      .update(fallbackPayload)
-      .eq("id", id)
-      .select()
-      .single());
-  }
+  const { data, error } = await updatePostWithFallback(id, cleanPayload);
 
   if (!error && tagIds !== null) {
     const { error: aErr } = await replacePostTagAssignments(id, tagIds);
