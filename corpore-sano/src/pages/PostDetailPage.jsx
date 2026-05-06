@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   fetchPostBySlug,
   postDisplayDescription,
@@ -124,6 +124,14 @@ function PostDetailPage() {
   ).trim();
   const hasExternalUrl =
     externalUrl.startsWith("http://") || externalUrl.startsWith("https://");
+  const primaryTag = post.tag || null;
+  const parentTag =
+    primaryTag && primaryTag.parent_id
+      ? (post.assignedTags || []).find((t) => t.id === primaryTag.parent_id) || null
+      : primaryTag && !primaryTag.parent_id
+        ? primaryTag
+        : null;
+  const subTag = primaryTag && primaryTag.parent_id ? primaryTag : null;
 
   return (
     <section className="page-section">
@@ -148,6 +156,35 @@ function PostDetailPage() {
           {formatDate(post.published_at || post.created_at)}
           {post.author ? ` • ${post.author}` : ""}
         </p>
+
+        <nav
+          className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[#4d515c] dark:text-[#b8c4d0]"
+          aria-label="Post breadcrumb"
+        >
+          {parentTag ? (
+            <>
+              <Link
+                to={`/posts/tag/${parentTag.slug}`}
+                className="text-[#218c77] underline dark:text-[#4dc89f]"
+              >
+                {parentTag.name}
+              </Link>
+              {subTag ? <span>›</span> : null}
+            </>
+          ) : null}
+          {subTag ? (
+            <>
+              <Link
+                to={`/posts/tag/${parentTag.slug}/${subTag.slug}`}
+                className="text-[#218c77] underline dark:text-[#4dc89f]"
+              >
+                {subTag.name}
+              </Link>
+              <span>›</span>
+            </>
+          ) : null}
+          <span className="text-[#103152] dark:text-[#e8ecf1]">{displayTitle}</span>
+        </nav>
 
         {post.topic ? (
           <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[#218c77] dark:text-[#4dc89f]">
