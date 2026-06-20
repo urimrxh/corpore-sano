@@ -110,7 +110,7 @@ export const handler = async (event) => {
     .from("bookings")
     .update({
       verified_at: now,
-      // keep verification_token so repeated clicks still resolve to success
+      status: "confirmed",
     })
     .eq("id", booking.id);
 

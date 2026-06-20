@@ -367,7 +367,7 @@ We will see you shortly.`,
           await sendResendEmail({
             to: hydratedBooking.email,
             subject:
-              "Rikujtesë për terminin | Reminder: your appointment starts in about 10 minutes",
+              "Linku për Terminin tuaj | Your appointment link and reminder",
             html,
             text,
           });
